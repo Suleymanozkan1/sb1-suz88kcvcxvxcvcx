@@ -168,9 +168,18 @@ func fetch(transport: Callable, url: String) -> bool:
 		return false
 	var values: Variant = RemoteConfig._extract_values(r.get("body"))
 	if typeof(values) != TYPE_DICTIONARY:
-		GameLog.warn("remote_config", "fetch body is not a config object; ignored")
+		# Only a {"values": {...}} snapshot replaces the overrides: an error or
+		# maintenance body must not silently reset every remote setting.
+		GameLog.warn("remote_config", "fetch body is not a {\"values\": {...}} snapshot; ignored")
 		return false
-	_apply(values as Dictionary, true)
+	var snapshot: Dictionary = values as Dictionary
+	var usable: bool = snapshot.is_empty()
+	for key: Variant in snapshot:
+		usable = usable or typeof(validate(str(key), snapshot[key])) != TYPE_NIL
+	if not usable:
+		GameLog.warn("remote_config", "no usable value in the fetched snapshot; keeping the current values")
+		return false
+	_apply(snapshot, true)
 	save_cache()
 	last_fetch_ok = true
 	return true
@@ -243,13 +252,14 @@ static func _parse_json(text: String) -> Variant:
 	return json.data if json.parse(text) == OK else null
 
 
+## The "values" object of a fetched {"values": {...}} body; null otherwise.
 static func _extract_values(body: Variant) -> Variant:
 	var data: Variant = body
 	if typeof(data) == TYPE_STRING:
 		data = RemoteConfig._parse_json(data as String)
 	if typeof(data) == TYPE_DICTIONARY and typeof((data as Dictionary).get(VALUES_KEY)) == TYPE_DICTIONARY:
-		data = (data as Dictionary)[VALUES_KEY]
-	return data
+		return (data as Dictionary)[VALUES_KEY]
+	return null
 
 
 ## Normalises one schema entry; returns {} (and logs) when unusable.
@@ -321,12 +331,18 @@ static func _validated_string(spec: Dictionary, value: Variant) -> Variant:
 	return s
 
 
-## URLs from remote data must be empty (feature off) or HTTPS without spaces.
+## URLs from remote data must be empty (feature off) or HTTPS without spaces,
+## naming one plain host (no credentials or "?"/"#" tricks before the path).
 static func is_secure_url_or_empty(url: String) -> bool:
 	if url.is_empty():
 		return true
 	var has_space: bool = url.contains(" ") or url.contains("\t") or url.contains("\n")
-	return url.begins_with(SECURE_URL_PREFIX) and url.length() > SECURE_URL_PREFIX.length() and not has_space
+	return (
+		url.begins_with(SECURE_URL_PREFIX)
+		and url.length() > SECURE_URL_PREFIX.length()
+		and not has_space
+		and HttpTransport.has_plain_authority(url)
+	)
 
 
 static func _in_range(spec: Dictionary, v: float) -> bool:

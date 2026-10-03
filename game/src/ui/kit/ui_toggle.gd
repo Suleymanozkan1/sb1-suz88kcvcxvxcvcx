@@ -40,6 +40,9 @@ func _set_knob(t: float) -> void:
 	queue_redraw()
 
 
+## One pointer source only: a physical tap arrives both as a touch and as an
+## emulated mouse click (and a desktop click as both, too), so listening to
+## both would flip the switch twice per tap.
 func _gui_input(event: InputEvent) -> void:
 	var pressed: bool = (
 		(
@@ -47,7 +50,6 @@ func _gui_input(event: InputEvent) -> void:
 			and (event as InputEventMouseButton).pressed
 			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT
 		)
-		or (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed)
 		or (event.is_action_pressed("ui_accept"))
 	)
 	if pressed:

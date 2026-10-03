@@ -178,7 +178,7 @@ func _slider_row(icon_name: StringName, key: String, label: String) -> HBoxConta
 	s.step = 0.05
 	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	s.custom_minimum_size = Vector2(0, 40)
+	s.custom_minimum_size = Vector2(0, UiTokens.MIN_TOUCH)
 	s.value_changed.connect(func(v: float) -> void: setting_changed.emit(key, v))
 	h.add_child(s)
 	_sliders[key] = s

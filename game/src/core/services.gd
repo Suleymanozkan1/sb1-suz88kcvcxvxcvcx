@@ -49,8 +49,13 @@ var is_booted: bool = false
 ## Tests construct their own instance with auto_boot off and call [method boot]
 ## with in-memory storage and a fixed clock.
 var auto_boot: bool = true
+## True while a run is being played (set by the flow): the debounced autosave
+## waits for the result screen or a menu, so a save never hitches gameplay.
+## Pause, focus loss and quit still save at once (flush_now).
+var hold_autosave: bool = false
 
 var _save_left: float = 0.0
+var _integrity_reported: String = ""
 ## Level-up reveals waiting to be shown ({eyebrow, title, subtitle, bundle}).
 var _level_up_reveals: Array[Dictionary] = []
 
@@ -103,7 +108,7 @@ func _boot_save(storage: SaveStorage) -> void:
 func _boot_economy() -> void:
 	economy = EconomyService.new(profile, bus, clock)
 	economy.apply_starting_balance()
-	integrity = IntegrityMonitor.new(profile)
+	integrity = IntegrityMonitor.new(profile, {}, clock)
 	var progression_cfg: Dictionary = ProgressionService.load_config()
 	progression = ProgressionService.new(profile, bus, catalog, progression_cfg)
 	stats = StatsService.new(profile, bus, progression_cfg)
@@ -155,6 +160,7 @@ func _boot_platform() -> void:
 	if not base_url.is_empty():
 		remote_board = HttpLeaderboardBackend.new(base_url, net, profile.install_id, AppInfo.version(), board_cfg)
 	leaderboard = LeaderboardService.new(profile, bus, clock, local_board, remote_board, online_config)
+	leaderboard.integrity = integrity
 	var policy: Dictionary = AdsPolicy.merge_remote(AdsPolicy.load_default(), remote_config)
 	ads = AdsService.new(profile, bus, NullAdProvider.new(), policy, analytics.track, clock)
 	store = StoreService.new(
@@ -169,6 +175,10 @@ func _boot_platform() -> void:
 	store.reconcile_owned()
 	analytics.track_error_reports(errors.collect_reports(true))
 	_fetch_remote_config.call_deferred(net)
+	# Scores queued offline in an earlier session (the network may simply be
+	# up from the start, so no offline->online change would trigger it).
+	leaderboard.flush_queue.call_deferred()
+	check_integrity()
 
 
 func _boot_feel() -> void:
@@ -198,8 +208,12 @@ func _wire() -> void:
 	]:
 		sig.connect(_on_state_fact)
 	bus.settings_changed.connect(_on_setting)
+	# Every preset change (including the automatic step-down on slow frames)
+	# reaches the viewport: render scale, MSAA and the fps cap are what
+	# actually relieve a struggling GPU.
 	bus.quality_changed.connect(
 		func(preset: StringName, automatic: bool) -> void:
+			quality.apply_to_viewport(get_viewport())
 			if automatic:
 				analytics.track(&"quality_auto_reduced", {"to": String(preset)})
 	)
@@ -230,6 +244,7 @@ func _wire() -> void:
 			if online:
 				leaderboard.flush_queue()
 	)
+	leaderboard.queue_changed.connect(save.mark_dirty)
 	bus.cosmetic_unlocked.connect(
 		func(_id: String) -> void: stats.set_value("cosmetics_owned", cosmetics.owned_count())
 	)
@@ -360,9 +375,21 @@ func _process(delta: float) -> void:
 	if errors.has_pending():
 		errors.flush()
 	_save_left -= delta
-	if _save_left <= 0.0:
+	if _save_left <= 0.0 and not hold_autosave:
 		_save_left = SAVE_INTERVAL
 		save.flush_if_dirty(profile)
+
+
+## Wallet/ledger consistency (after load and after every run). Detection
+## only: anomalies are reported once per session as analytics and travel with
+## score submissions for server review; the player is never penalised.
+func check_integrity() -> Array[String]:
+	var codes: Array[String] = integrity.check()
+	var key: String = ",".join(codes)
+	if not codes.is_empty() and key != _integrity_reported:
+		_integrity_reported = key
+		analytics.track(&"integrity_flagged", {"codes": key})
+	return codes
 
 
 ## Persists everything now (app pause, quit, focus loss).

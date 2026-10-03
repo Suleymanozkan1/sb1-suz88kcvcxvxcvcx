@@ -172,15 +172,21 @@ func test_fetch_success_applies_snapshot_and_caches() -> void:
 	assert_eq(cache.writes, 1)
 
 
-func test_fetch_accepts_flat_and_text_bodies() -> void:
+func test_fetch_needs_a_values_snapshot() -> void:
 	var rc: RemoteConfig = _config()
 	var transport: ScriptedTransport = ScriptedTransport.new()
-	transport.response = {"ok": true, "status": 200, "body": '{"economy.coin_multiplier": 0.75}', "error": ""}
-	assert_true(await rc.fetch(transport.respond, CONFIG_URL))
+	transport.response = {"ok": true, "status": 200, "body": '{"values": {"economy.coin_multiplier": 0.75}}', "error": ""}
+	assert_true(await rc.fetch(transport.respond, CONFIG_URL), "text body with the envelope")
 	assert_eq(rc.get_value("economy.coin_multiplier"), 0.75)
-	transport.response = {"ok": true, "status": 200, "body": [1, 2], "error": ""}
-	assert_false(await rc.fetch(transport.respond, CONFIG_URL), "non-object body refused")
-	assert_eq(rc.get_value("economy.coin_multiplier"), 0.75, "previous values kept")
+	for body: Variant in [
+		[1, 2], {"error": "maintenance"}, {"economy.coin_multiplier": 0.5}, {"values": {"nonsense.key": 3}}
+	]:
+		transport.response = {"ok": true, "status": 200, "body": body, "error": ""}
+		assert_false(await rc.fetch(transport.respond, CONFIG_URL), "refused: %s" % str(body))
+		assert_eq(rc.get_value("economy.coin_multiplier"), 0.75, "previous values kept")
+	transport.response = {"ok": true, "status": 200, "body": {"values": {}}, "error": ""}
+	assert_true(await rc.fetch(transport.respond, CONFIG_URL), "an empty snapshot clears the overrides")
+	assert_eq(rc.get_value("economy.coin_multiplier"), 1.0)
 
 
 func test_fetch_offline_keeps_cached_values() -> void:

@@ -12,6 +12,8 @@ var current_id: StringName = &""
 var _screens: Dictionary = {}
 var _built: Dictionary = {}
 var _overlays: Array[StringName] = []
+var _stale: Dictionary = {}
+var _payloads: Dictionary = {}
 
 
 func _init() -> void:
@@ -35,10 +37,23 @@ func has_screen(id: StringName) -> bool:
 
 func _ensure_built(id: StringName) -> UiScreen:
 	var s: UiScreen = screen(id)
-	if s != null and not _built.has(id):
+	if s == null:
+		return s
+	if not _built.has(id):
 		s.build()
 		_built[id] = true
+	elif _stale.has(id):
+		s.rebuild()
+	_stale.erase(id)
 	return s
+
+
+## The language changed: every built screen is rebuilt the next time it is
+## shown (a covered overlay when it is revealed again), so no screen keeps
+## text in the previous language.
+func relocalize() -> void:
+	for id: Variant in _built:
+		_stale[id] = true
 
 
 ## Replaces the base screen (closes all overlays).
@@ -53,6 +68,7 @@ func show_screen(id: StringName, payload: Dictionary = {}) -> void:
 		prev.exit()
 		prev.transition_out(reduce_motion)
 	current_id = id
+	_payloads[id] = payload
 	move_child(next, get_child_count() - 1)
 	next.enter(payload)
 	next.transition_in(reduce_motion)
@@ -80,6 +96,7 @@ func push_overlay(id: StringName, payload: Dictionary = {}) -> void:
 	if not _overlays.is_empty():
 		screen(_overlays.back()).visible = false
 	_overlays.append(id)
+	_payloads[id] = payload
 	move_child(o, get_child_count() - 1)
 	o.enter(payload)
 	o.transition_in(reduce_motion)
@@ -113,8 +130,12 @@ func close_overlays() -> void:
 
 
 func _reveal_top() -> void:
-	if not _overlays.is_empty():
-		screen(_overlays.back()).transition_in(reduce_motion)
+	if _overlays.is_empty():
+		return
+	var id: StringName = _overlays.back()
+	if _stale.has(id):
+		_ensure_built(id).enter(_payloads.get(id, {}) as Dictionary)
+	screen(id).transition_in(reduce_motion)
 
 
 func top_id() -> StringName:

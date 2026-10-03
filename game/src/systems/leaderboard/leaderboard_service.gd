@@ -6,7 +6,7 @@ extends RefCounted
 ## Boards for a ranked run (see [method board_ids_for]):
 ##   "daily:<YYYY-MM-DD>"            daily mode only (date of the daily level)
 ##   "weekly:<YYYY-Www>:<mode>"      ISO week of the run (UTC)
-##   "alltime:<mode>"
+##   "alltime:<mode>"                not for streamed courses (a new course every week)
 ##   "level:<level_id>"              classic only (modes with level_board)
 ## Revived runs and unranked modes (zen) are never submitted; modes that
 ## require completion (classic, daily, …) submit completed runs only, and
@@ -22,6 +22,12 @@ extends RefCounted
 ## or — without a remote backend — after the local record. A run without a
 ## replay cannot be verified, so with a remote backend it is reported as not
 ## accepted (it still counts on the personal boards).
+##
+## The queue is retried when the network comes back, at boot, and after any
+## successful remote request; [signal queue_changed] asks for a save.
+
+## The offline queue (profile.pending_submissions) changed.
+signal queue_changed
 
 const QUEUE_KIND: String = "leaderboard"
 const BOARD_DAILY: String = "daily"
@@ -45,6 +51,8 @@ const DEFAULT_MODES: Dictionary = {
 
 var profile: PlayerProfile
 var bus: EventBus
+## Optional: its anomaly codes travel with every submission (review only).
+var integrity: IntegrityMonitor
 var clock: GameClock
 var local: LeaderboardBackend
 var remote: LeaderboardBackend
@@ -175,6 +183,17 @@ func board_ids_for(result: RunResult, date_key: String) -> PackedStringArray:
 	var day: int = DailyChallengeService.day_for_date_key(date_key)
 	if day < 0:
 		day = clock.day_number()
+	var stream: Dictionary = ModeCatalog.shared().parse_stream_id(result.level_id)
+	if not stream.is_empty():
+		# A streamed course is that week's official course: it ranks on the
+		# board of the week whose seed built it (a run started late on Sunday
+		# included) and nowhere else; the server rejects other boards.
+		var week: String = GameClock.week_key_for_day(day)
+		for wk: String in LeaderboardService.recent_week_keys(day, 1):
+			if ModeCatalog.endless_seed(StringName(mode), wk) == int(stream["seed"]):
+				week = wk
+		out.append(LeaderboardService.weekly_board(week, mode))
+		return out
 	if mode == BOARD_DAILY:
 		out.append(LeaderboardService.daily_board(DailyChallengeService.date_key_from_level_id(result.level_id)))
 	out.append(LeaderboardService.weekly_board(GameClock.week_key_for_day(day), mode))
@@ -217,6 +236,9 @@ func submit_run(result: RunResult) -> void:
 			_enqueue(board, entry)
 		else:
 			_emit_submitted(board, LeaderboardService._accepted(res))
+	# The server answered: whatever an earlier session queued can go now.
+	if not offline and pending_count() > 0:
+		flush_queue.call_deferred()
 
 
 ## Retries queued remote submissions (async). Stops at the first transient
@@ -273,6 +295,8 @@ func fetch(board_id: String, limit: int = -1) -> Dictionary:
 		if LeaderboardService._is_true(r.get("ok", false)):
 			r["source"] = "remote"
 			r["status_key"] = ""
+			if pending_count() > 0:
+				flush_queue.call_deferred()
 			return r
 	var l: Dictionary = await local.fetch(board_id, n)
 	l["source"] = "local"
@@ -289,6 +313,7 @@ func _entry_for(result: RunResult) -> Dictionary:
 		"at": clock.now_unix(),
 		"replay": replay,
 		"sim_version": int(replay.get("sim_version", RunReplay.SIM_VERSION)),
+		"integrity": Array(integrity.check()) if integrity != null else [],
 	}
 
 
@@ -320,6 +345,7 @@ func _enqueue(board: String, entry: Dictionary) -> void:
 			}
 		)
 	)
+	queue_changed.emit()
 	var limit: int = maxi(1, int(_lb_cfg.get("queue_limit", DEFAULT_QUEUE_LIMIT)))
 	while pending_count() > limit:
 		_drop_oldest_queued()
@@ -331,6 +357,7 @@ func _move_to_back(item: Dictionary) -> void:
 		return
 	profile.pending_submissions.remove_at(i)
 	profile.pending_submissions.append(item)
+	queue_changed.emit()
 
 
 func _drop_oldest_queued() -> void:
@@ -346,6 +373,7 @@ func _remove_queued(id: String) -> void:
 		var item: Dictionary = profile.pending_submissions[i]
 		if str(item.get("kind", "")) == QUEUE_KIND and str(item.get("id", "")) == id:
 			profile.pending_submissions.remove_at(i)
+			queue_changed.emit()
 			return
 
 
@@ -377,6 +405,7 @@ func _prune_queue() -> void:
 				stale = stale or not weeks.has(str(board["week_key"]))
 			if stale:
 				profile.pending_submissions.remove_at(i)
+				queue_changed.emit()
 		i -= 1
 
 

@@ -31,6 +31,8 @@ var _settings_return: StringName = &""
 var _restore_status: String = ""
 var _ending: bool = false
 var _uncommitted: RunResult = null
+## A rewarded revive ad is showing (reveals wait; the pending run stays open).
+var _reviving: bool = false
 var _reveal_return: GameStateMachine.State = GameStateMachine.State.MAIN_MENU
 
 
@@ -57,10 +59,12 @@ func _ready() -> void:
 	s.bus.cosmetic_equipped.connect(func(_c: StringName, _id: String) -> void: _apply_cosmetics())
 	s.bus.settings_changed.connect(func(_k: StringName, _v: Variant) -> void: _apply_settings_to_view())
 	s.bus.quality_changed.connect(func(_p: StringName, _a: bool) -> void: _apply_quality())
+	s.bus.locale_changed.connect(func(_l: String) -> void: _relocalize_ui.call_deferred())
 	_apply_cosmetics()
 	_apply_quality()
 	fsm.state_changed.connect(
 		func(_from: GameStateMachine.State, to: GameStateMachine.State, _p: Dictionary) -> void:
+			s.hold_autosave = to == GameStateMachine.State.PLAYING or to == GameStateMachine.State.COUNTDOWN
 			s.errors.context_provider = func() -> Dictionary:
 				var ctx: Dictionary = AppInfo.context()
 				ctx["state"] = GameStateMachine.state_name(to)
@@ -241,6 +245,18 @@ func _on_tab(tab: StringName) -> void:
 			_settings_return = &""
 			_go(GameStateMachine.State.SETTINGS)
 			router.show_screen(&"settings", Presenters.settings(s, _restore_status))
+
+
+## The language changed (from Settings): every screen is rebuilt in the new
+## language on its next show, and Settings itself is rebuilt in place.
+func _relocalize_ui() -> void:
+	router.relocalize()
+	if router.top_id() != &"settings":
+		return
+	if _settings_return == &"pause":
+		router.push_overlay(&"settings", Presenters.settings(s, _restore_status))
+	else:
+		router.show_screen(&"settings", Presenters.settings(s, _restore_status))
 
 
 func _close_settings() -> void:
@@ -453,7 +469,8 @@ func _on_run_ended(result: RunResult) -> void:
 func _schedule_reveals(delay: float) -> void:
 	var host: StringName = router.top_id()
 	await get_tree().create_timer(delay).timeout
-	if router.top_id() == host and not attract:
+	# Never over a pending revive: the revived run must return to PLAYING.
+	if router.top_id() == host and not attract and not _reviving:
 		_next_reveal()
 
 
@@ -495,10 +512,15 @@ func _next_level() -> void:
 func _revive() -> void:
 	if _uncommitted == null:
 		return
+	_reviving = true
 	var shown: Dictionary = await s.ads.show_rewarded(&"revive")
+	_reviving = false
 	if not bool(shown.get("granted", false)):
+		if not _reveals.is_empty() and router.top_id() == &"fail":
+			_schedule_reveals(REVEAL_DELAY_FAIL)
 		return
 	if session.revive():
+		view.on_revive()
 		# The run continues; it is applied once, cumulatively, when it ends.
 		_uncommitted = null
 		_reveals.clear()
@@ -615,7 +637,9 @@ func _apply_quality() -> void:
 		float(p.get("particle_scale", 1.0)),
 		int(p.get("trail_points", 18)),
 		bool(p.get("dynamic_light", true)),
-		bool(p.get("shadows", true))
+		bool(p.get("shadows", true)),
+		bool(p.get("glow", true)),
+		bool(p.get("ambient_particles", true))
 	)
 
 
@@ -624,6 +648,7 @@ func _apply_settings_to_view() -> void:
 	router.reduce_motion = reduce
 	view.reduce_motion = reduce
 	view.core_view.reduce_motion = reduce
+	view.set_colorblind(s.settings.get_bool("colorblind"))
 	(router.screen(&"reward") as RewardOverlay).reduce_motion = reduce
 
 
@@ -658,3 +683,18 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		# Never let a run continue in the background.
 		_pause()
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_commit_on_leave()
+
+
+## The app is going to the background or closing while the fail card still
+## offers a revive: the run is applied now (the OS may kill the app), and the
+## revive offer is withdrawn. Not while the revive ad itself is showing.
+func _commit_on_leave() -> void:
+	if _uncommitted == null or _reviving or s == null:
+		return
+	_commit_pending()
+	var fail: FailOverlay = router.screen(&"fail") as FailOverlay if router != null else null
+	if fail != null:
+		fail.disable_revive()
+	s.flush_now()

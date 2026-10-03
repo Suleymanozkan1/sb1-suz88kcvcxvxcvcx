@@ -34,8 +34,13 @@ const CONTROL_C1_END: int = 0xA0
 const SPACE: int = 0x20
 ## Raw names longer than max_length times this are cut before sanitising.
 const RAW_NAME_FACTOR: int = 4
-## Invisible direction / zero-width marks that could disguise a name.
+## Invisible direction / zero-width / format marks that could disguise a
+## name (soft hyphen, Arabic letter mark, Mongolian vowel separator, word
+## joiner and invisible operators, bidi embeddings and isolates, BOM).
 const INVISIBLE_MARKS: PackedInt32Array = [
+	0x00AD,
+	0x061C,
+	0x180E,
 	0x200B,
 	0x200C,
 	0x200D,
@@ -46,12 +51,19 @@ const INVISIBLE_MARKS: PackedInt32Array = [
 	0x202C,
 	0x202D,
 	0x202E,
+	0x2060,
+	0x2061,
+	0x2062,
+	0x2063,
+	0x2064,
 	0x2066,
 	0x2067,
 	0x2068,
 	0x2069,
 	0xFEFF,
 ]
+## Line and paragraph separators: shown as a plain space (one row per name).
+const LINE_BREAKS: PackedInt32Array = [0x2028, 0x2029, 0x0085]
 const ERROR_DISABLED: String = "disabled"
 const ERROR_OFFLINE: String = "offline"
 const ERROR_REJECTED: String = "rejected"
@@ -107,6 +119,8 @@ func build_submission(board_id: String, entry: Dictionary) -> Dictionary:
 		"app_version": app_version,
 		"install_id": install_id,
 		"sim_version": int(sim_version) if _is_number(sim_version) else RunReplay.SIM_VERSION,
+		# Wallet/ledger consistency codes (IntegrityMonitor) for server review.
+		"integrity": _string_list(entry.get("integrity", [])),
 	}
 
 
@@ -122,9 +136,13 @@ func submit(board_id: String, entry: Dictionary) -> Dictionary:
 	var result: Dictionary
 	if status == 0:
 		result = LeaderboardBackend.submit_result(false, false, true, str(r["error"]))
+	elif status >= HTTP_OK and status <= HTTP_OK_LAST and typeof(payload.get("accepted", null)) != TYPE_BOOL:
+		# A 2xx without a verdict (an HTML error page, a maintenance message,
+		# an empty 204, a truncated body) is not an acceptance: the run stays
+		# queued and is sent again later.
+		result = LeaderboardBackend.submit_result(false, false, true, ERROR_BAD_RESPONSE)
 	elif status >= HTTP_OK and status <= HTTP_OK_LAST:
-		# Untrusted body: only a JSON true counts (bool(null) would abort).
-		var accepted: bool = HttpLeaderboardBackend._is_true(payload.get("accepted", true))
+		var accepted: bool = payload["accepted"] as bool
 		var rank: int = maxi(0, int(payload.get("rank", 0))) if _is_number(payload.get("rank", 0)) else 0
 		result = LeaderboardBackend.submit_result(true, accepted, false, "" if accepted else ERROR_REJECTED, rank)
 		if _is_number(payload.get("score", null)):
@@ -227,7 +245,7 @@ static func sanitize_name(raw: String, max_length: int) -> String:
 		if INVISIBLE_MARKS.has(code):
 			continue
 		var is_control: bool = code < CONTROL_C0_END or (code >= CONTROL_DEL and code < CONTROL_C1_END)
-		var is_space: bool = is_control or code == SPACE
+		var is_space: bool = is_control or code == SPACE or LINE_BREAKS.has(code)
 		if is_space:
 			if not last_space:
 				out += " "

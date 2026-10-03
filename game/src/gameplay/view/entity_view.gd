@@ -19,6 +19,8 @@ var _body: MeshInstance3D
 var _shadow: MeshInstance3D
 var _membrane: MeshInstance3D
 var _lamps: Array[MeshInstance3D] = []
+## Last lamp state applied (-1 unknown): materials change only on a switch.
+var _lamp_warn: int = -1
 var _kit: ViewKit
 var _ripple: float = 0.0
 var _bob_phase: float = 0.0
@@ -41,6 +43,7 @@ func pool_reset() -> void:
 	_shadow = null
 	_membrane = null
 	_lamps.clear()
+	_lamp_warn = -1
 	for mi: MeshInstance3D in _parts:
 		mi.visible = false
 		mi.mesh = null
@@ -123,6 +126,17 @@ func configure(index: int, type: int, lvl: SimLevel, kit: ViewKit) -> void:
 				Vector3(0.0, ViewKit.ARCH_HEIGHT * 0.48, 0.0),
 				false
 			)
+			if kit.colorblind:
+				var c: int = lvl.e_color[index]
+				var marker: MeshInstance3D = _part(
+					2,
+					kit.phase_marker_mesh(c),
+					kit.phase_marker_material(c),
+					Vector3(0.0, ViewKit.ARCH_HEIGHT + 0.42, 0.0),
+					false
+				)
+				if c == 0:
+					marker.rotation_degrees = Vector3(90, 0, 0)
 		SimConst.EntityType.FORM_GATE:
 			var form: int = int(lvl.e_p0[index])
 			_part(0, kit.arch_mesh(lanes), kit.structure_material, Vector3.ZERO, true)
@@ -163,7 +177,12 @@ func configure(index: int, type: int, lvl: SimLevel, kit: ViewKit) -> void:
 				0, kit.chevron_mesh(lanes, from_l, to_l), kit.chevron_material, Vector3.ZERO, false
 			)
 			mi.set_instance_shader_parameter("ripple", 0.0)
-			mi.scale = Vector3(1.0 if to_l > from_l else -1.0, 1.0, 1.0)
+			# The arrows point along +x; a leftward current is mirrored. The
+			# mirror also flips the strip's baked centre, so it is shifted back
+			# over its own lanes (matters off-centre, i.e. in 3-lane levels).
+			var mirrored: bool = to_l < from_l
+			mi.scale = Vector3(-1.0 if mirrored else 1.0, 1.0, 1.0)
+			mi.position.x = (SimConst.lane_x(from_l, lanes) + SimConst.lane_x(to_l, lanes)) if mirrored else 0.0
 		SimConst.EntityType.SHIELD:
 			_body = _part(0, kit.shield_mesh, kit.shield_material, Vector3(lane_x, 0.42, 0.0), false)
 			_body.rotation_degrees = Vector3(90, 0, 0)
@@ -220,5 +239,8 @@ func _animate_shutter(lvl: SimLevel, sim_time: float) -> void:
 	_body.position.y = h * 0.5 - lowered * (h - 0.04)
 	var until_close: float = open_end - t
 	var warn: bool = t >= open_end or (until_close < LAMP_WARN_TIME and fmod(until_close, 0.12) < 0.06)
+	if int(warn) == _lamp_warn:
+		return
+	_lamp_warn = int(warn)
 	for lamp: MeshInstance3D in _lamps:
 		lamp.material_override = _kit.lamp_on_material if warn else _kit.lamp_off_material

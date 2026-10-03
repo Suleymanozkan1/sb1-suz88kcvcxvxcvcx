@@ -14,6 +14,8 @@ const FLOOR_SHADER: Shader = preload("res://assets/shaders/floor.gdshader")
 const POST_SHADER: Shader = preload("res://assets/shaders/post_fx.gdshader")
 const MEMBRANE_SHADER: Shader = preload("res://assets/shaders/membrane.gdshader")
 const VIEW_AHEAD: float = 75.0
+## Camera shake, lean and FOV kicks with "reduce motion" on (fraction of full).
+const REDUCED_CAMERA_MOTION: float = 0.2
 const VIEW_BEHIND: float = 6.0
 const RIB_SPACING: float = 7.0
 const RIB_COUNT: int = 16
@@ -23,6 +25,8 @@ const FLOOR_WIDTH: float = 9.0
 const CORE_Y: float = 0.38
 const SILHOUETTE_DISTANCE: float = 150.0
 const SILHOUETTE_PARALLAX: float = 0.03
+const SILHOUETTE_MAX_APPROACH: float = 40.0
+const ATMOSPHERE_MAX_ALPHA: float = 0.08
 const FOG_BEGIN: float = 28.0
 const FOG_END: float = 115.0
 ## Juice budgets (ART_DIRECTION §9).
@@ -48,7 +52,13 @@ var post_layer: CanvasLayer
 
 ## Quality / accessibility toggles.
 var post_fx_enabled: bool = true
-var reduce_motion: bool = false
+## Accessibility: halves hit-stop and shockwaves, drops slow-motion, and cuts
+## camera shake, lean and FOV kicks to a fraction.
+var reduce_motion: bool = false:
+	set(value):
+		reduce_motion = value
+		if camera_rig != null:
+			camera_rig.shake_scale = REDUCED_CAMERA_MOTION if value else 1.0
 var _core_skin: Dictionary = {}
 var _trail_skin: Dictionary = {}
 var _trail_head: Color = Palette.PRIMARY
@@ -79,6 +89,10 @@ var _end_slow: bool = false
 var _music_pulse: float = 0.0
 var _built: bool = false
 var _turbine_angle: float = 0.0
+var _particle_scale: float = 1.0
+var _colorblind: bool = false
+var _glow: bool = true
+var _ambient: bool = true
 
 
 func _ready() -> void:
@@ -101,6 +115,7 @@ func _ensure_built() -> void:
 	key_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	add_child(key_light)
 	camera_rig = CameraRig.new()
+	camera_rig.shake_scale = REDUCED_CAMERA_MOTION if reduce_motion else 1.0
 	add_child(camera_rig)
 	_floor = MeshInstance3D.new()
 	var plane: PlaneMesh = PlaneMesh.new()
@@ -174,6 +189,7 @@ func apply_world(world_theme: WorldTheme) -> void:
 	_ensure_built()
 	theme = world_theme
 	kit = ViewKit.new(theme)
+	kit.colorblind = _colorblind
 	_apply_environment()
 	key_light.light_color = theme.key_color
 	key_light.light_energy = theme.key_energy
@@ -187,6 +203,9 @@ func apply_world(world_theme: WorldTheme) -> void:
 	_ribs.multimesh.instance_count = RIB_COUNT
 	_ribs.material_override = kit.structure_material
 	_silhouette.mesh = MeshFactory.silhouette(theme.silhouette)
+	# Only the turbine turns; no other world inherits its accumulated roll.
+	_silhouette.transform.basis = Basis.IDENTITY
+	_turbine_angle = 0.0
 	_silhouette_mat.albedo_color = theme.sky_bottom.lerp(theme.story_accent, 0.2)
 	_finish_arch.mesh = kit.arch_mesh(3)
 	_finish_arch.material_override = kit.structure_material
@@ -220,7 +239,7 @@ func _apply_environment() -> void:
 	environment.tonemap_mode = Environment.TONE_MAPPER_AGX
 	environment.tonemap_exposure = 1.0
 	# Only HDR energy (> 1.0) blooms; matter never does.
-	environment.glow_enabled = true
+	environment.glow_enabled = _glow
 	environment.glow_hdr_threshold = 1.0
 	environment.glow_intensity = 0.55
 	environment.glow_bloom = 0.0
@@ -289,10 +308,56 @@ func reset_for_run(full_reveal: bool) -> void:
 	_update_frame(0.0)
 
 
+## Colour-blind aid (Settings): phase gates get shape markers and phase-B
+## sparks lie on their side. Applies to the visible course right away.
+func set_colorblind(on: bool) -> void:
+	if on == _colorblind:
+		return
+	_colorblind = on
+	sparks.colorblind = on
+	if kit == null:
+		return
+	kit.colorblind = on
+	var lvl: SimLevel = session.sim_level if session != null else null
+	if lvl == null:
+		return
+	for idx: Variant in _active.keys():
+		var view: EntityView = _active[idx] as EntityView
+		if view.entity_type == SimConst.EntityType.PHASE_GATE:
+			view.configure(int(idx), view.entity_type, lvl, kit)
+			view.appear = 1.0
+	var hidden: Dictionary = sparks.hidden_entities()
+	sparks.build(lvl, theme, session.sim.cursor)
+	for idx2: Variant in hidden:
+		sparks.hide_entity(int(idx2))
+
+
+## Rewarded revive: the run continues from the failure point. The core comes
+## back (it imploded on the fail), the trail restarts from it, and the
+## barrier it hit is removed (the sim marked it consumed).
+func on_revive() -> void:
+	_release_entity(session.sim.fail_entity)
+	trail.clear_points()
+	core_view.spawn_in()
+	core_view.set_form(session.sim.form, session.sim.phase, session.sim.heavy)
+	_chroma = 0.0
+	_shock = 0.0
+	_tint = 0.0
+	_slowmo_left = 0.0
+	_end_slow = false
+
+
 ## Endless streaming: new course entities were appended to the running level.
 ## Hazards spawn through the normal cursor; the spark field is re-windowed.
 func on_stream_appended() -> void:
-	sparks.rebuild_append(session.sim_level, session.sim.cursor)
+	# Keep everything the camera can still see behind the core (the sim cursor
+	# is already past it), so missed sparks don't pop out on each append.
+	var lvl: SimLevel = session.sim_level
+	var behind: float = session.sim.d - VIEW_BEHIND
+	var from_index: int = mini(session.sim.cursor, lvl.entity_count())
+	while from_index > 0 and lvl.e_d[from_index - 1] >= behind:
+		from_index -= 1
+	sparks.rebuild_append(lvl, from_index)
 
 
 func clear_entities() -> void:
@@ -302,16 +367,34 @@ func clear_entities() -> void:
 
 
 ## Quality hooks (see QualityService presets).
-func set_quality(post_fx: bool, particle_scale: float, trail_points: int, dynamic_light: bool, shadows: bool) -> void:
+func set_quality(
+	post_fx: bool,
+	particle_scale: float,
+	trail_points: int,
+	dynamic_light: bool,
+	shadows: bool,
+	glow: bool = true,
+	ambient_particles: bool = true
+) -> void:
 	_ensure_built()
 	post_fx_enabled = post_fx
+	_particle_scale = clampf(particle_scale, 0.0, 1.0)
+	_glow = glow
+	_ambient = ambient_particles
 	bursts.set_amount_scale(particle_scale)
 	trail.set_length(trail_points)
 	core_view.set_light_enabled(dynamic_light)
 	key_light.shadow_enabled = shadows
+	environment.glow_enabled = _glow
 	if theme != null:
-		_atmosphere.amount = maxi(1, int(float(theme.atmosphere_count) * clampf(particle_scale, 0.0, 1.0)))
-		_atmosphere.emitting = theme.atmosphere_count > 0 and particle_scale > 0.2
+		_apply_atmosphere_quality()
+
+
+## Ambient motes follow the quality preset (and battery saver): fewer on
+## lower presets, none when ambient particles are off.
+func _apply_atmosphere_quality() -> void:
+	_atmosphere.amount = maxi(1, int(float(theme.atmosphere_count) * _particle_scale))
+	_atmosphere.emitting = _ambient and theme.atmosphere_count > 0 and _particle_scale > 0.2
 
 
 func _process(delta: float) -> void:
@@ -345,7 +428,10 @@ func _update_frame(delta: float) -> void:
 	_floor.position = Vector3(0.0, 0.0, -d - FLOOR_LENGTH * 0.5 + 12.0)
 	_floor_mat.set_shader_parameter("scroll", d + FLOOR_LENGTH * 0.5 - 12.0)
 	_place_ribs(d)
-	_silhouette.position = Vector3(0.0, -8.0, -d - SILHOUETTE_DISTANCE + d * SILHOUETTE_PARALLAX)
+	# Slow parallax approach, capped so long Endless/Zen runs never bring the
+	# silhouette into the camera.
+	var approach: float = minf(d * SILHOUETTE_PARALLAX, SILHOUETTE_MAX_APPROACH)
+	_silhouette.position = Vector3(0.0, -8.0, -d - SILHOUETTE_DISTANCE + approach)
 	if theme != null and theme.silhouette == "turbine":
 		# The rotor turns slowly around its own hub (story: World 1's boss machine).
 		_silhouette.rotation.z = 0.0
@@ -363,7 +449,7 @@ func _update_frame(delta: float) -> void:
 			_active.erase(idx)
 			continue
 		view.animate(delta, lvl, t, d)
-	sparks.apply_magnet(core_pos, lvl, sim.cursor, sim.magnet_timer > 0.0 or sim.overdrive_timer > 0.0)
+	sparks.apply_magnet(core_pos, lvl, sim.cursor, sim.magnet_timer > 0.0 or sim.overdrive_timer > 0.0, sim.phase)
 	_music_pulse = move_toward(_music_pulse, 0.0, delta * 3.0)
 
 
@@ -405,7 +491,6 @@ func _place_ribs(d: float) -> void:
 
 func _setup_atmosphere() -> void:
 	var p: CPUParticles3D = _atmosphere
-	p.amount = maxi(1, theme.atmosphere_count)
 	p.lifetime = 5.0
 	p.preprocess = 5.0
 	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
@@ -429,12 +514,12 @@ func _setup_atmosphere() -> void:
 	quad.material = mat
 	p.mesh = quad
 	var color: Color = theme.key_color
-	var alpha: float = 0.22
+	var alpha: float = 0.06
 	match theme.atmosphere:
 		"embers":
 			color = Color("#ffb37a")
 			p.gravity = Vector3(0, 0.35, 0)
-			alpha = 0.5
+			alpha = 0.08
 		"bubbles":
 			color = theme.key_color
 			p.gravity = Vector3(0, 0.3, 0)
@@ -442,7 +527,7 @@ func _setup_atmosphere() -> void:
 		"snow":
 			color = Color.WHITE
 			p.gravity = Vector3(0, -0.35, 0)
-			alpha = 0.4
+			alpha = 0.08
 		"sand":
 			color = theme.key_color
 			p.gravity = Vector3(0.6, -0.05, 0)
@@ -451,17 +536,18 @@ func _setup_atmosphere() -> void:
 			p.direction = Vector3(0, 0, 1)
 			p.initial_velocity_min = 2.0
 			p.initial_velocity_max = 3.0
-			alpha = 0.35
+			alpha = 0.08
 		"puffs":
 			color = Color.WHITE
 			quad.size = Vector2(0.4, 0.4)
-			alpha = 0.12
+			alpha = 0.05
 		"sprinkles":
 			color = theme.story_accent.lightened(0.4)
 			p.gravity = Vector3(0, -0.25, 0)
-			alpha = 0.45
-	p.color = Palette.with_alpha(color, alpha)
-	p.emitting = theme.atmosphere_count > 0
+			alpha = 0.08
+	# ART_DIRECTION §7: decoration stays at or under 8 % opacity.
+	p.color = Palette.with_alpha(color, minf(alpha, ATMOSPHERE_MAX_ALPHA))
+	_apply_atmosphere_quality()
 
 
 # --- Juice (ART_DIRECTION §9) ----------------------------------------------------

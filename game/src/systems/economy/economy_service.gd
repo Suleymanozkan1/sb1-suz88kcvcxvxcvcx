@@ -258,7 +258,8 @@ func price_of(item_price: Dictionary) -> Dictionary:
 ## Grants the configured starting balance exactly once per profile. Returns
 ## true when it was applied now, false when it had already been applied.
 func apply_starting_balance() -> bool:
-	if bool(_profile.flags.get(STARTING_FLAG, false)):
+	var granted: Variant = _profile.flags.get(STARTING_FLAG, false)
+	if typeof(granted) == TYPE_BOOL and granted:
 		return false
 	var starting: Dictionary = config[KEY_STARTING] as Dictionary
 	for currency: StringName in CURRENCIES:

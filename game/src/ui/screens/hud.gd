@@ -46,8 +46,13 @@ func build() -> void:
 	_objective.add_child(UiKit.icon(&"target", 22, UiTokens.TEXT_MUTED))
 	_objective_label = UiKit.text("", &"caption", UiTokens.TEXT_MUTED)
 	_objective.add_child(_objective_label)
-	_objective.custom_minimum_size = Vector2(160, 0)
-	top.add_child(_objective)
+	# The slot keeps its width when the objective is hidden (reach-the-end
+	# levels) so the score stays at top centre, balanced by the right slot.
+	var left: HBoxContainer = UiKit.hbox(0)
+	left.custom_minimum_size = Vector2(160, 0)
+	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	left.add_child(_objective)
+	top.add_child(left)
 	var center: VBoxContainer = UiKit.vbox(0)
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center.alignment = BoxContainer.ALIGNMENT_BEGIN

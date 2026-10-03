@@ -345,6 +345,8 @@ func enter(payload: Dictionary) -> void:
 	for raw2: Variant in payload.get("achievements", []) as Array:
 		_ach_list.add_child(_achievement_row(raw2 as Dictionary))
 	_board_ids = PackedStringArray(payload.get("board_ids", []) as Array)
+	# The flow opens the first board (today's) on entry; the segment matches it.
+	_boards.select(_boards.options[0], false)
 	show_board(payload.get("board", {}) as Dictionary)
 	var tab: String = str(payload.get("tab", ""))
 	if TABS.has(tab):

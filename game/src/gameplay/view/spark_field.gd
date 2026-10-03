@@ -6,6 +6,11 @@ extends Node3D
 
 const SPARK_SHADER: Shader = preload("res://assets/shaders/spark.gdshader")
 const SPARK_Y: float = 0.38
+const TILTED: Basis = Basis(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1))
+
+## Colour-blind aid: phase-B sparks lie on their side (a horizontal diamond
+## next to phase A's upright one).
+var colorblind: bool = false
 
 var _spark_mm: MultiMeshInstance3D
 var _prism_mm: MultiMeshInstance3D
@@ -14,6 +19,9 @@ var _spark_slot: Dictionary = {}
 var _prism_slot: Dictionary = {}
 var _hidden: Dictionary = {}
 var _base_pos: Dictionary = {}
+## Sparks currently drawn displaced by the magnet pull.
+var _pulled: Dictionary = {}
+var _tilted: Dictionary = {}
 
 var _built: bool = false
 
@@ -53,6 +61,9 @@ func build(lvl: SimLevel, _theme: WorldTheme = null, from_index: int = 0) -> voi
 	_prism_slot.clear()
 	_hidden.clear()
 	_base_pos.clear()
+	_pulled.clear()
+	_tilted.clear()
+	_pulled.clear()
 	var sparks: Array[int] = []
 	var prisms: Array[int] = []
 	for i: int in range(maxi(0, from_index), lvl.entity_count()):
@@ -82,8 +93,14 @@ func _fill(mm: MultiMesh, list: Array[int], lvl: SimLevel, slots: Dictionary) ->
 		slots[i] = n
 		var pos: Vector3 = Vector3(SimConst.lane_x(lvl.e_lane[i], lvl.lane_count), SPARK_Y, -lvl.e_d[i])
 		_base_pos[i] = pos
-		mm.set_instance_transform(n, Transform3D(Basis.IDENTITY, pos))
+		if colorblind and lvl.e_color[i] == 1:
+			_tilted[i] = true
+		mm.set_instance_transform(n, Transform3D(_basis_of(i), pos))
 		mm.set_instance_color(n, color_of(i, lvl))
+
+
+func _basis_of(index: int) -> Basis:
+	return TILTED if _tilted.has(index) else Basis.IDENTITY
 
 
 func hide_entity(index: int) -> void:
@@ -96,6 +113,10 @@ func hide_entity(index: int) -> void:
 		_prism_mm.multimesh.set_instance_transform(
 			int(_prism_slot[index]), Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO)
 		)
+
+
+func hidden_entities() -> Dictionary:
+	return _hidden.duplicate()
 
 
 func position_of(index: int) -> Vector3:
@@ -111,9 +132,20 @@ func color_of(index: int, lvl: SimLevel) -> Color:
 	return Palette.ACCENT if lvl.e_type[index] == SimConst.EntityType.PRISM else Palette.PRIMARY
 
 
-## Pulls nearby sparks towards the core while a magnet/overdrive is active.
-func apply_magnet(core: Vector3, lvl: SimLevel, from_index: int, active: bool) -> void:
+## Pulls the sparks a magnet/overdrive will really collect towards the core:
+## the same lane radius and phase rule as FluxSim._check_collect, so no spark
+## is drawn flying in that the run then counts as missed. When the pull ends,
+## displaced sparks go back to their lanes.
+func apply_magnet(core: Vector3, lvl: SimLevel, from_index: int, active: bool, phase: int = -1) -> void:
 	if not active:
+		if not _pulled.is_empty():
+			for idx: Variant in _pulled:
+				var k: int = int(idx)
+				if _spark_slot.has(k) and not _hidden.has(k):
+					_spark_mm.multimesh.set_instance_transform(
+						int(_spark_slot[k]), Transform3D(_basis_of(k), _base_pos[k] as Vector3)
+					)
+			_pulled.clear()
 		return
 	var n: int = lvl.entity_count()
 	var i: int = from_index
@@ -121,10 +153,15 @@ func apply_magnet(core: Vector3, lvl: SimLevel, from_index: int, active: bool) -
 		if _spark_slot.has(i) and not _hidden.has(i):
 			var base: Vector3 = _base_pos[i] as Vector3
 			var dist: float = absf(base.z - core.z)
-			if dist < 3.0:
+			var color: int = lvl.e_color[i]
+			var collectable: bool = (
+				absf(base.x - core.x) <= SimConst.MAGNET_COLLECT_RADIUS and (color < 0 or color == phase)
+			)
+			if dist < 3.0 and collectable:
 				var t: float = clampf(1.0 - dist / 3.0, 0.0, 1.0)
 				var p: Vector3 = base.lerp(core, t * 0.6)
-				_spark_mm.multimesh.set_instance_transform(int(_spark_slot[i]), Transform3D(Basis.IDENTITY, p))
+				_spark_mm.multimesh.set_instance_transform(int(_spark_slot[i]), Transform3D(_basis_of(i), p))
+				_pulled[i] = true
 		i += 1
 
 
@@ -135,3 +172,5 @@ func clear() -> void:
 	_prism_slot.clear()
 	_hidden.clear()
 	_base_pos.clear()
+	_pulled.clear()
+	_tilted.clear()

@@ -77,7 +77,7 @@ func follow(core_pos: Vector3, delta: float) -> void:
 	global_position = target + offset + _impulse * shake_scale + shake_v
 	camera.look_at(Vector3(_lateral * 0.6, LOOK_HEIGHT, core_pos.z - LOOK_AHEAD) + shake_v * 0.5, Vector3.UP)
 	camera.rotate_object_local(Vector3.FORWARD, deg_to_rad(-_impulse.x * 3.0 * shake_scale))
-	camera.fov = BASE_FOV + _fov_punch + 8.0 * r
+	camera.fov = BASE_FOV + (_fov_punch + 8.0 * r) * shake_scale
 
 
 func reset_state() -> void:

@@ -261,12 +261,22 @@ func test_http_untrusted_names_and_flags_are_sanitized() -> void:
 	assert_eq(HttpLeaderboardBackend.sanitize_name("\tA\r\nB\u0085C", 24), "A B C")
 	_transport.next = {"ok": true, "status": 200, "body": {"accepted": null, "rank": null}, "error": ""}
 	var res: Dictionary = await http.submit("alltime:classic", {"score": null, "sim_version": "x"})
-	assert_true(bool(res["ok"]))
 	assert_false(bool(res["accepted"]), "null 'accepted' is not an acceptance")
-	assert_false(bool(res["retry"]))
+	assert_true(bool(res["retry"]), "a 2xx without a verdict is sent again later")
 	var body: Dictionary = _transport.calls[_transport.calls.size() - 1]["body"] as Dictionary
 	assert_eq(int(body["score"]), 0, "malformed score sent as 0")
 	assert_eq(int(body["sim_version"]), RunReplay.SIM_VERSION)
+	for reply: Dictionary in [
+		{"ok": true, "status": 200, "body": "<html>maintenance</html>", "error": ""},
+		{"ok": true, "status": 204, "body": "", "error": ""},
+		{"ok": true, "status": 200, "body": {"error": "maintenance"}, "error": ""},
+		{"ok": false, "status": 200, "body": "", "error": "body_size_mismatch"},
+	]:
+		_transport.next = reply
+		var r: Dictionary = await http.submit("alltime:classic", {"score": 5})
+		assert_false(bool(r["accepted"]), "not accepted: %s" % str(reply))
+		assert_true(bool(r["retry"]), "kept for retry: %s" % str(reply))
+	assert_eq(HttpLeaderboardBackend.sanitize_name("A\u2028B\u061cC\u2060D\u00adE", 24), "A BCDE")
 
 
 func test_normalize_response_variants() -> void:

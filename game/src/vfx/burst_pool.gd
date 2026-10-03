@@ -106,7 +106,9 @@ func set_amount_scale(value: float) -> void:
 	for name: String in _pools:
 		var cfg: Dictionary = PRESETS[name] as Dictionary
 		for p: CPUParticles3D in _pools[name] as Array[CPUParticles3D]:
-			p.amount = maxi(2, int(float(int(cfg["amount"])) * amount_scale))
+			# Presets are the art-direction budget: lower presets scale down,
+			# none scales a burst above it.
+			p.amount = maxi(2, int(float(int(cfg["amount"])) * minf(amount_scale, 1.0)))
 
 
 func _make(cfg: Dictionary) -> CPUParticles3D:

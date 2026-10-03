@@ -57,6 +57,7 @@ const CLAIM_LEVEL_NOT_VERIFIED: String = "level_not_verified"
 const CLAIM_STALE: String = "stale_claim"
 const CLAIM_FUTURE: String = "future_claim"
 const CLAIM_IMPLAUSIBLE_TIER: String = "implausible_tier"
+const CLAIM_REPEAT_EXCEEDS_RUNS: String = "more_claims_than_runs"
 
 const CLAIM_DAILY: String = "daily"
 const CLAIM_LEVEL: String = "level"
@@ -76,6 +77,7 @@ var clock: GameClock
 var config: Dictionary = {}
 
 var _cfg: Dictionary = {}
+var _tables: Dictionary = {}
 
 
 ## Accumulates rejection reasons (stable codes, deduplicated) and details.
@@ -209,9 +211,13 @@ func tap_rate_ok(tap_ticks: PackedInt32Array) -> bool:
 ## "date_key", "level_id", "tier", "first_clear": bool, "deltas": {"coins",
 ## "gems", "xp"}}. [param history] (server records for this install):
 ## {"verified_completions": [level ids incl. "daily_<date>"], "daily_claims":
-## {date_key: tier} or [date_key], "level_claims": [level ids]}.
+## {date_key: tier} or [date_key], "level_claims": [level ids]}. Both lists
+## hold one entry per verified run / accepted claim, so a level id may repeat:
+## every level reward claim must be backed by its own verified run.
+## [param level_data]: the authoritative level of a level claim (loaded from
+## the level files when omitted); its tier and kind bound the reward.
 ## Returns {"valid", "reasons", "allowed_tier" (daily claims only)}.
-func verify_reward_claim(claim: Dictionary, history: Dictionary) -> Dictionary:
+func verify_reward_claim(claim: Dictionary, history: Dictionary, level_data: Dictionary = {}) -> Dictionary:
 	var out: Verdict = Verdict.new()
 	var type: String = str(claim.get("type", ""))
 	var types: Array = _array(_cfg.get("reward_claim_types", [CLAIM_DAILY, CLAIM_LEVEL]))
@@ -224,14 +230,39 @@ func verify_reward_claim(claim: Dictionary, history: Dictionary) -> Dictionary:
 		_check_daily_claim(claim, history, verified, out)
 	else:
 		var level_id: String = str(claim.get("level_id", ""))
+		var first_clear: bool = ReplayVerifier._is_true(claim.get("first_clear", false))
 		if level_id.is_empty():
 			out.reject(CLAIM_INVALID, "level claim without level_id")
+		elif WorldCatalog.parse_level_id(level_id).is_empty():
+			# Daily and streamed runs are never level rewards (dailies pay
+			# through their own, tier-bounded claim).
+			out.reject(CLAIM_INVALID, "%s is not a campaign level" % level_id)
 		elif not verified.has(level_id):
 			out.reject(CLAIM_LEVEL_NOT_VERIFIED, "%s was never verified as completed" % level_id)
-		var first_clear: bool = ReplayVerifier._is_true(claim.get("first_clear", false))
-		if first_clear and _key_set(history.get("level_claims", [])).has(level_id):
+		else:
+			_check_level_deltas(claim.get("deltas", {}), level_id, first_clear, level_data, out)
+		var claimed: int = _count_of(history.get("level_claims", []), level_id)
+		if first_clear and claimed > 0:
 			out.reject(CLAIM_DUPLICATE_LEVEL, "first-clear reward for %s already claimed" % level_id)
+		var runs: int = _count_of(history.get("verified_completions", []), level_id)
+		if not level_id.is_empty() and runs > 0 and claimed >= runs:
+			out.reject(
+				CLAIM_REPEAT_EXCEEDS_RUNS, "%d reward claims for %s but %d verified runs" % [claimed + 1, level_id, runs]
+			)
 	return out.to_claim_dict()
+
+
+## Occurrences of [param id] in a history list (a dictionary counts each key
+## once).
+static func _count_of(raw: Variant, id: String) -> int:
+	if typeof(raw) == TYPE_DICTIONARY:
+		return 1 if (raw as Dictionary).has(id) else 0
+	var n: int = 0
+	if typeof(raw) == TYPE_ARRAY:
+		for v: Variant in raw as Array:
+			if str(v) == id:
+				n += 1
+	return n
 
 
 func _check_versions(submission: Dictionary, replay: RunReplay, out: Verdict) -> void:
@@ -278,6 +309,35 @@ func daily_window_reason(level_id: String) -> String:
 		return REASON_FUTURE_DAILY
 	if day < today - _days_back():
 		return REASON_STALE_DAILY
+	return ""
+
+
+## Cheap checks for a streamed course id, run before the server rebuilds the
+## course (that costs seconds): the mode must be ranked, the seed must be the
+## official seed of an accepted week, and [param end_tick] must fit the mode's
+## time limit. Returns "" or a REASON_* code (with details in [param details]).
+func stream_precheck_reason(
+	level_id: String, end_tick: int, details: PackedStringArray = PackedStringArray()
+) -> String:
+	var stream: Dictionary = ModeCatalog.shared().parse_stream_id(level_id)
+	if stream.is_empty():
+		return ""
+	var mode: StringName = stream["mode"] as StringName
+	if not bool(LeaderboardService.mode_rules_in(config, String(mode)).get("ranked", false)):
+		details.append("mode '%s' is not ranked" % mode)
+		return REASON_UNRANKED_MODE
+	var official: bool = false
+	var weeks_back: int = maxi(0, int(_cfg.get("weekly_accept_weeks_back", DEFAULT_WEEKS_BACK)))
+	for wk: String in LeaderboardService.recent_week_keys(clock.day_number(), weeks_back):
+		if ModeCatalog.endless_seed(mode, wk) == int(stream["seed"]):
+			official = true
+	if not official:
+		details.append("seed %d is not an official %s seed of an accepted week" % [int(stream["seed"]), mode])
+		return REASON_SEED_MISMATCH
+	var limit: float = float(ModeCatalog.shared().sim_modifiers(mode).get("time_limit", 0.0))
+	if limit > 0.0 and end_tick > ceili(limit / SimConst.DT) + 1:
+		details.append("end_tick %d beyond the %s time limit (%.0f s)" % [end_tick, mode, limit])
+		return REASON_END_TICK
 	return ""
 
 
@@ -389,6 +449,53 @@ func _check_daily_claim(claim: Dictionary, history: Dictionary, verified: Dictio
 		out.reject(CLAIM_IMPLAUSIBLE_TIER, "tier %s outside %d..%d" % [str(tier_v), min_tier, max_tier])
 		return
 	out.allowed_tier = mini(int(tier_v), plausible_tier(claims.keys(), day))
+	_check_tier_deltas(claim.get("deltas", {}), out.allowed_tier, out)
+
+
+## A level pays at most its tier's first-clear (or replay) coins, every star
+## new, the first perfect and full XP; coins and gems at most doubled by the
+## optional ad. Larger claims are impossible.
+func _check_level_deltas(
+	raw: Variant, level_id: String, first_clear: bool, level_data: Dictionary, out: Verdict
+) -> void:
+	if typeof(raw) != TYPE_DICTIONARY:
+		return
+	var data: Dictionary = level_data if not level_data.is_empty() else LevelRepository.new().load_level(level_id)
+	if data.is_empty():
+		out.reject(CLAIM_INVALID, "no level data for %s" % level_id)
+		return
+	if _tables.is_empty():
+		_tables = RewardEngine.load_tables()
+	var ceiling: Dictionary = RewardEngine.level_reward_ceiling(
+		_tables, str(data.get("tier", "")), str(data.get("kind", "normal")), first_clear
+	)
+	_check_against(raw as Dictionary, ceiling, "%s reward" % level_id, out)
+
+
+## A daily reward is the streak table's reward for the tier the history
+## supports (coins and gems at most doubled by the optional ad); a claim above
+## it is impossible however far below the global caps it stays.
+func _check_tier_deltas(raw: Variant, tier: int, out: Verdict) -> void:
+	if typeof(raw) != TYPE_DICTIONARY:
+		return
+	if _tables.is_empty():
+		_tables = RewardEngine.load_tables()
+	_check_against(raw as Dictionary, RewardEngine.daily_tier_reward(_tables, tier), "tier %d daily reward" % tier, out)
+
+
+## Rejects deltas above [param reward] (coins and gems may be doubled by the
+## optional rewarded ad, XP never).
+func _check_against(deltas: Dictionary, reward: Dictionary, what: String, out: Verdict) -> void:
+	var doubled: Array = _array(_dict(_tables.get("ad_double", {})).get("types", []))
+	for k: Variant in deltas:
+		var currency: String = str(k)
+		if not _is_whole(deltas[k]):
+			continue
+		var limit: int = int(reward.get(currency, 0)) * (2 if doubled.has(currency) else 1)
+		if int(deltas[k]) > limit:
+			out.reject(
+				CLAIM_IMPOSSIBLE_DELTA, "%s delta %d above the %s (%d)" % [currency, int(deltas[k]), what, limit]
+			)
 
 
 ## Highest daily reward tier reachable on [param day] given the dates of the

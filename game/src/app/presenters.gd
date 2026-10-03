@@ -136,7 +136,8 @@ static func level_grid(s: AppServices, world_id: String) -> Dictionary:
 
 static func modes(s: AppServices) -> Dictionary:
 	var progress: Dictionary = s.mode_progress()
-	var bests: Dictionary = s.profile.flags.get(RunController.MODE_BEST_FLAG, {}) as Dictionary
+	var raw_bests: Variant = s.profile.flags.get(RunController.MODE_BEST_FLAG, {})
+	var bests: Dictionary = raw_bests as Dictionary if typeof(raw_bests) == TYPE_DICTIONARY else {}
 	var rows: Array = []
 	for id: StringName in MODE_ORDER:
 		if not s.modes.has(id):
@@ -308,7 +309,9 @@ static func cosmetics(s: AppServices, mode: StringName) -> Dictionary:
 				"id": str(listing.get("id", "")),
 				"name": t(str(listing.get("name_key", ""))),
 				"items_label": t("shop.pack_items").format({"n": ids.size()}),
-				"available": s.store.is_available() and not s.store.owns(str(listing.get("id", "")))
+				"owned": bool(listing.get("owned", false)),
+				"price": str(listing.get("price", "")),
+				"available": bool(listing.get("purchasable", false))
 			}
 		)
 	return {

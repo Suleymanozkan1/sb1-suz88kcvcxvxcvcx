@@ -109,8 +109,7 @@ func is_url_allowed(url: String) -> bool:
 	for ch: String in FORBIDDEN_URL_CHARS:
 		if url.contains(ch):
 			return false
-	var authority: String = HttpTransport.authority_of(url)
-	if authority.is_empty() or authority.contains("@"):
+	if not HttpTransport.has_plain_authority(url):
 		return false
 	if url.begins_with(SECURE_PREFIX):
 		return true
@@ -119,6 +118,24 @@ func is_url_allowed(url: String) -> bool:
 		for prefix: String in LOCAL_PREFIXES:
 			local = local or url.begins_with(prefix)
 	return local
+
+
+## True when the URL names exactly one plain host: the part between "://" and
+## the first "/" (where the engine's URL parser ends the host) holds no
+## credentials, query or fragment. Otherwise "https://good.host?@other.host/"
+## would pass a check on "good.host" while the engine connects to the other
+## host.
+static func has_plain_authority(url: String) -> bool:
+	var start: int = url.find(SCHEME_SEPARATOR)
+	if start < 0:
+		return false
+	var rest: String = url.substr(start + SCHEME_SEPARATOR.length())
+	var slash: int = rest.find("/")
+	var host: String = rest if slash < 0 else rest.substr(0, slash)
+	for ch: String in ["@", "?", "#"]:
+		if host.contains(ch):
+			return false
+	return not host.is_empty()
 
 
 ## The "host[:port]" part of [param url] (with any "user@" kept so callers

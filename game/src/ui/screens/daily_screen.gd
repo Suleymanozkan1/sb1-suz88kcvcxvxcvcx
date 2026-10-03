@@ -54,6 +54,10 @@ func build() -> void:
 	body.add_child(_missions_section())
 
 
+func _reset_built_refs() -> void:
+	_tier_dots.clear()
+
+
 func _challenge_card() -> PanelContainer:
 	var card: PanelContainer = UiKit.card(&"RaisedCard")
 	var v: VBoxContainer = UiKit.vbox(UiTokens.UNIT)
@@ -155,8 +159,8 @@ func enter(payload: Dictionary) -> void:
 	_best.text = UiKit.format_int(best) if bool(status.get("played", false)) else "—"
 	var rank: Dictionary = payload.get("rank", {}) as Dictionary
 	_rank.text = (
-		tr("daily.rank_of").format({"rank": int(rank.get("rank", 0)), "of": int(rank.get("of", 0))})
-		if int(rank.get("of", 0)) > 0
+		tr("daily.rank_of").format({"rank": int(rank.get("rank", 0)), "of": int(rank.get("total", 0))})
+		if bool(status.get("played", false)) and int(rank.get("total", 0)) > 0
 		else "—"
 	)
 	_play.text = tr("daily.play_again") if bool(status.get("completed", false)) else tr("daily.play")
@@ -271,17 +275,18 @@ func _update_countdowns() -> void:
 	_missions_reset.text = tr("daily.resets_in").format({"t": format_duration(int(_reset_seconds.get(kind, 0)))})
 
 
-## "5h 04m" / "12m 09s" / "2d 03h": compact, unambiguous, no seconds above an hour.
+## "5h 04m" / "12m 09s" / "2d 03h" (localized units: "2 g 03 sa" in
+## Turkish): compact, unambiguous, no seconds above an hour.
 static func format_duration(seconds: int) -> String:
 	var s: int = maxi(0, seconds)
 	var d: int = s / 86400
 	var h: int = (s % 86400) / 3600
 	var m: int = (s % 3600) / 60
 	if d > 0:
-		return "%dd %02dh" % [d, h]
+		return TranslationServer.translate("time.days_hours").format({"d": d, "h": "%02d" % h})
 	if h > 0:
-		return "%dh %02dm" % [h, m]
-	return "%dm %02ds" % [m, s % 60]
+		return TranslationServer.translate("time.hours_minutes").format({"h": h, "m": "%02d" % m})
+	return TranslationServer.translate("time.minutes_seconds").format({"m": m, "s": "%02d" % (s % 60)})
 
 
 func handle_back() -> bool:

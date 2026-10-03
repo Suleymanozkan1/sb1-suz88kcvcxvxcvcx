@@ -101,7 +101,13 @@ access logs.
 
 Board ids: `daily:<YYYY-MM-DD>`, `weekly:<YYYY-Www>:<mode>`,
 `alltime:<mode>`, `level:<level_id>` (classic only). Revived runs and zen runs
-are never submitted.
+are never submitted. Streamed courses (endless, time attack) are submitted to
+the weekly board of the week whose official seed built them, and nowhere else.
+
+Before a streamed course is rebuilt (seconds of CPU), the CLI refuses it
+cheaply (`ReplayVerifier.stream_precheck_reason`) when the mode is unranked,
+the seed is not the official seed of the current or previous week, or the
+end tick exceeds the mode's time limit.
 
 ## What `ReplayVerifier.verify()` checks
 
@@ -137,7 +143,14 @@ For a backend that also grants server-side rewards: a claim
 `{"verified_completions": [...], "daily_claims": {date: tier}, "level_claims":
 [...]}`. Rejected: duplicate daily claims, levels (or dailies) never verified
 as completed, duplicate first-clear claims, negative / non-integer / unknown /
-above-cap currency deltas (`verifier.reward_caps`), stale or future dailies.
+above-cap currency deltas (`verifier.reward_caps`), stale or future dailies,
+daily or streamed ids claimed as level rewards. Both history lists hold one
+entry per verified run / accepted claim, and each level claim needs its own
+verified run. Deltas are bounded by what the content really pays: a daily by
+the streak-table reward of the allowed tier, a level by its tier and kind
+(`RewardEngine.level_reward_ceiling`: first-clear or replay coins, every star
+new, the first perfect, full XP), coins and gems at most doubled by the
+optional ad.
 Daily tiers are recomputed from the claim history with the same gentle streak
 rule as the client (`DailyChallengeService.tier_after`); a higher claimed tier
 is clamped (`allowed_tier`) rather than rejected, so honest players who

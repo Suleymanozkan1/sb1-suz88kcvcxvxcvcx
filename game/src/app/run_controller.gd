@@ -195,6 +195,7 @@ func finish(result: RunResult) -> Dictionary:
 			reward = _finish_scored(mode_id, result, outcome)
 	outcome["reward"] = reward
 	outcome["progress"] = _progress_of(result)
+	services.check_integrity()
 	# finish() is final: a revive is only offered from preview().
 	outcome["can_revive"] = false
 	outcome["can_double"] = (
@@ -239,7 +240,8 @@ func _finish_campaign(result: RunResult, outcome: Dictionary) -> RewardBundle:
 func _finish_scored(mode_id: StringName, result: RunResult, outcome: Dictionary) -> RewardBundle:
 	var metric: String = str(services.modes.mode(mode_id).get("best_metric", "score"))
 	var value: int = int(result.distance) if metric == "distance" else result.score
-	var bests: Dictionary = services.profile.flags.get(MODE_BEST_FLAG, {}) as Dictionary
+	var raw_bests: Variant = services.profile.flags.get(MODE_BEST_FLAG, {})
+	var bests: Dictionary = raw_bests as Dictionary if typeof(raw_bests) == TYPE_DICTIONARY else {}
 	var prev: int = int(bests.get(String(mode_id), 0))
 	outcome["new_best"] = value > prev
 	outcome["best"] = maxi(prev, value)
@@ -258,9 +260,13 @@ func grant_double(bundle: RewardBundle) -> RewardBundle:
 	return services.rewards.grant(services.rewards.double_for_ad(bundle))
 
 
+## Share of the course covered, or -1 for streamed courses (no finish line:
+## the fail screen shows the distance instead of a bar).
 func _progress_of(result: RunResult) -> float:
+	if session.sim_level != null and session.sim_level.endless:
+		return -1.0
 	var length: float = session.sim_level.length if session.sim_level != null else 0.0
-	if length <= 0.0 or (session.sim_level != null and session.sim_level.endless):
+	if length <= 0.0:
 		return 1.0 if result.completed else 0.0
 	return clampf(result.distance / length, 0.0, 1.0)
 

@@ -387,16 +387,53 @@ func _daily_streak(ctx: Dictionary) -> RewardBundle:
 	if tier < 1:
 		GameLog.warn("reward", "daily_streak needs ctx.tier >= 1")
 		return RewardBundle.new(TABLE_DAILY_STREAK)
-	var best: Dictionary = {}
 	var best_tier: int = 0
 	for raw: Variant in _array(_dict(tables.get(TABLE_DAILY_STREAK)).get("tiers")):
+		var entry_tier: int = EconomyService.int_or(_dict(raw).get("tier"), 0)
+		if entry_tier <= tier and entry_tier > best_tier:
+			best_tier = entry_tier
+	var source: String = "%s:%d" % [TABLE_DAILY_STREAK, mini(tier, maxi(best_tier, 1))]
+	return bundle_from_spec(daily_tier_reward(tables, tier), source)
+
+
+## Most one completed run of a level can pay before the optional ad double:
+## every star new and the first perfect included. The server bounds level
+## reward claims with it. [param tier] and [param kind] come from the level.
+static func level_reward_ceiling(data: Dictionary, tier: String, kind: String, first_clear: bool) -> Dictionary:
+	var lvl: Dictionary = _dict(data.get(SECTION_LEVEL))
+	var num: Callable = func(key: String) -> int:
+		var v: int = EconomyService.int_or(lvl.get(key), -1)
+		return v if v >= 0 else int(FALLBACK_LEVEL[key])
+	var bases: Dictionary = _dict(lvl.get("base_by_tier"))
+	if not bases.has(tier):
+		tier = str(lvl.get("default_tier", FALLBACK_LEVEL["default_tier"]))
+	var coins: int = 0
+	if first_clear:
+		coins = EconomyService.int_or(bases.get(tier), num.call("first_clear_coins"))
+		coins += maxi(0, EconomyService.int_or(_dict(lvl.get("kind_bonus")).get(kind), 0))
+	else:
+		coins = EconomyService.int_or(_dict(lvl.get("replay_coins_by_tier")).get(tier), num.call("replay_coins"))
+	coins = maxi(coins, maxi(num.call("replay_coins_min"), MIN_COMPLETED_COINS))
+	coins += num.call("coins_per_new_star") * MAX_STARS
+	return {
+		"coins": coins,
+		"gems": num.call("perfect_first_gems"),
+		"xp": num.call("xp_base") + num.call("xp_per_star") * MAX_STARS,
+	}
+
+
+## Reward spec of the highest streak-table entry at or below [param tier]
+## (shared with the server's reward-claim check).
+static func daily_tier_reward(data: Dictionary, tier: int) -> Dictionary:
+	var best: Dictionary = {}
+	var best_tier: int = 0
+	for raw: Variant in _array(_dict(data.get(TABLE_DAILY_STREAK)).get("tiers")):
 		var entry: Dictionary = _dict(raw)
 		var entry_tier: int = EconomyService.int_or(entry.get("tier"), 0)
 		if entry_tier <= tier and entry_tier > best_tier:
 			best = entry
 			best_tier = entry_tier
-	var source: String = "%s:%d" % [TABLE_DAILY_STREAK, mini(tier, maxi(best_tier, 1))]
-	return bundle_from_spec(_dict(best.get("reward")), source)
+	return _dict(best.get("reward"))
 
 
 func _level_up(ctx: Dictionary) -> RewardBundle:

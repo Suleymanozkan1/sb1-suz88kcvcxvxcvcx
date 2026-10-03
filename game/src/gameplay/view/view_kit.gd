@@ -61,7 +61,12 @@ var chevron_material: ShaderMaterial
 var shield_material: StandardMaterial3D
 var magnet_material: ShaderMaterial
 
+## Colour-blind aid: phase gates carry a shape marker (A = ring, B = diamond).
+var colorblind: bool = false
+
 var _phase_materials: Array[ShaderMaterial] = []
+var _phase_marker_meshes: Array[Mesh] = []
+var _phase_marker_materials: Array[ShaderMaterial] = []
 var _arch_meshes: Dictionary = {}
 var _membrane_meshes: Dictionary = {}
 var _track_meshes: Dictionary = {}
@@ -208,6 +213,32 @@ static func _blob_texture() -> GradientTexture2D:
 
 func phase_material(color: int) -> ShaderMaterial:
 	return _phase_materials[clampi(color, 0, 1)]
+
+
+## Shape marker for a phase (colour-blind aid): phase A is a ring, phase B a
+## diamond, so the two phases differ by silhouette, not only by hue.
+func phase_marker_mesh(color: int) -> Mesh:
+	if _phase_marker_meshes.is_empty():
+		var ring: TorusMesh = TorusMesh.new()
+		ring.inner_radius = 0.15
+		ring.outer_radius = 0.23
+		ring.rings = 24
+		ring.ring_segments = 6
+		_phase_marker_meshes.append(ring)
+		_phase_marker_meshes.append(MeshFactory.shard(0.22, 0.5))
+	return _phase_marker_meshes[clampi(color, 0, 1)]
+
+
+func phase_marker_material(color: int) -> ShaderMaterial:
+	if _phase_marker_materials.is_empty():
+		for c: Color in Palette.PHASE:
+			var m: ShaderMaterial = ShaderMaterial.new()
+			m.shader = CORE_SHADER
+			m.set_shader_parameter("color_a", c)
+			m.set_shader_parameter("color_b", c.darkened(0.3))
+			m.set_shader_parameter("intensity", 1.4)
+			_phase_marker_materials.append(m)
+	return _phase_marker_materials[clampi(color, 0, 1)]
 
 
 ## Chamfered arch spanning every lane (gates): posts + lintel in the

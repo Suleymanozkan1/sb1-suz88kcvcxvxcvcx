@@ -194,3 +194,26 @@ func test_main_scene_boots_headless() -> void:
 	assert_eq(flow.fsm.current, GameStateMachine.State.MAIN_MENU)
 	flow.queue_free()
 	await wait_frames(2)
+
+
+func test_leaving_the_app_on_a_revivable_fail_applies_the_run() -> void:
+	var scene: PackedScene = load("res://scenes/main.tscn") as PackedScene
+	var flow: GameFlow = scene.instantiate() as GameFlow
+	flow.s = _app
+	tree.root.add_child(flow)
+	await wait_frames(3)
+	flow._start_run(&"classic", "w01_l05")
+	assert_true(_app.hold_autosave, "no autosave while a run is played")
+	flow.session.step_ticks(60 * 120)
+	var result: RunResult = RunResult.from_sim(flow.session.sim, flow.session.level_data, &"classic")
+	assert_false(result.completed, "the run failed")
+	# The fail card is up with a revive on offer: the run is still pending.
+	flow._uncommitted = result
+	flow.router.push_overlay(&"fail", {"result": result, "best": 0, "progress": 0.5, "can_revive": true})
+	var played: int = _app.stats.value(StatsService.RUNS_PLAYED)
+	flow._notification(Node.NOTIFICATION_APPLICATION_PAUSED)
+	assert_true(flow._uncommitted == null, "applied before the OS can kill the app")
+	assert_eq(_app.stats.value(StatsService.RUNS_PLAYED), played + 1, "counted once")
+	assert_false((flow.router.screen(&"fail") as FailOverlay)._revive.visible, "revive offer withdrawn")
+	flow.queue_free()
+	await wait_frames(2)

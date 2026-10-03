@@ -9,6 +9,15 @@ extends RefCounted
 
 const SCHEMA_VERSION: int = 1
 const LEDGER_LIMIT: int = 50
+## Flags other systems read with a fixed type (mode bests are a dictionary of
+## whole numbers).
+const TYPED_FLAGS: Dictionary = {
+	"mode_best": TYPE_DICTIONARY,
+	"economy_starting_granted": TYPE_BOOL,
+	"tutorial_done": TYPE_BOOL,
+	"last_level": TYPE_STRING,
+	"notifications.daily_day": TYPE_INT,
+}
 
 const DEFAULT_SETTINGS: Dictionary = {
 	"sound": true,
@@ -156,7 +165,7 @@ static func from_dict(data: Dictionary) -> PlayerProfile:
 	for raw: Variant in _array(data.get("pending_submissions", [])):
 		if typeof(raw) == TYPE_DICTIONARY:
 			p.pending_submissions.append(raw as Dictionary)
-	p.flags = _dict(data.get("flags", {}))
+	p.flags = PlayerProfile._sanitize_flags(_dict(data.get("flags", {})))
 	for raw2: Variant in _array(data.get("ledger", [])):
 		if typeof(raw2) == TYPE_DICTIONARY:
 			p.ledger.append(raw2 as Dictionary)
@@ -246,4 +255,36 @@ static func _sanitize_levels(v: Variant) -> Dictionary:
 			"best_combo": maxi(0, _int(r, "best_combo", 0)),
 			"best_time": maxf(0.0, _float(r, "best_time")),
 		}
+	return out
+
+
+## Known flags with the wrong type (a damaged or edited save) are dropped, so
+## readers never meet e.g. a list where a dictionary of bests belongs.
+## Unknown flags are kept as they are.
+static func _sanitize_flags(raw: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for k: Variant in raw:
+		var key: String = str(k)
+		var v: Variant = raw[k]
+		if not TYPED_FLAGS.has(key):
+			out[key] = v
+			continue
+		match int(TYPED_FLAGS[key]):
+			TYPE_BOOL:
+				if typeof(v) == TYPE_BOOL:
+					out[key] = v
+			TYPE_STRING:
+				if typeof(v) == TYPE_STRING:
+					out[key] = v
+			TYPE_INT:
+				if typeof(v) == TYPE_INT or (typeof(v) == TYPE_FLOAT and is_finite(float(v))):
+					out[key] = int(v)
+			TYPE_DICTIONARY:
+				if typeof(v) == TYPE_DICTIONARY:
+					var numbers: Dictionary = {}
+					for sub: Variant in v as Dictionary:
+						var n: Variant = (v as Dictionary)[sub]
+						if typeof(n) == TYPE_INT or (typeof(n) == TYPE_FLOAT and is_finite(float(n))):
+							numbers[str(sub)] = maxi(0, int(n))
+					out[key] = numbers
 	return out

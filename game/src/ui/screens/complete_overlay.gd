@@ -112,7 +112,7 @@ func enter(payload: Dictionary) -> void:
 				reward_values.append(int(item["amount"]))
 	_double.visible = bool(payload.get("can_double", false))
 	_next.visible = bool(payload.get("has_next", true))
-	_actions.modulate.a = 0.0
+	_set_actions_live(false)
 	_play_sequence(result, reward_labels, reward_values)
 
 
@@ -158,8 +158,26 @@ func _play_sequence(result: RunResult, labels: Array[Label], values: Array[int])
 			. set_trans(Tween.TRANS_CUBIC)
 			. set_ease(Tween.EASE_OUT)
 		)
+	_seq_tween.tween_callback(_set_actions_live.bind(true))
 	_seq_tween.tween_property(_actions, "modulate:a", 1.0, 0.2)
 	_seq_tween.tween_callback(func() -> void: _next.grab_focus())
+
+
+## The actions are invisible during the star/count-up sequence, so they must
+## not take taps either: a tap there skips the sequence instead of pressing
+## an unseen Next, Home or "Double it" (which would start an ad).
+func _set_actions_live(live: bool) -> void:
+	if not live:
+		_actions.modulate.a = 0.0
+	_actions.mouse_behavior_recursive = (
+		Control.MOUSE_BEHAVIOR_INHERITED if live else Control.MOUSE_BEHAVIOR_DISABLED
+	)
+
+
+func _reset_built_refs() -> void:
+	if _seq_tween != null:
+		_seq_tween.kill()
+	_stars.clear()
 
 
 func _land_star(index: int, earned: bool) -> void:

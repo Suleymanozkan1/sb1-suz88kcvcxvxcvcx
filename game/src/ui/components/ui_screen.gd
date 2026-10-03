@@ -27,6 +27,21 @@ func enter(_payload: Dictionary) -> void:
 	pass
 
 
+## Tears the built controls down and builds them again. build() bakes
+## translated text into the controls, so this runs after a language change.
+func rebuild() -> void:
+	for c: Node in get_children():
+		remove_child(c)
+		c.queue_free()
+	_reset_built_refs()
+	build()
+
+
+## Drops references that build() collected (override where build() appends).
+func _reset_built_refs() -> void:
+	pass
+
+
 func exit() -> void:
 	pass
 
@@ -54,6 +69,7 @@ func add_scrim(alpha: float = 0.82) -> ColorRect:
 
 func transition_in(reduce_motion: bool = false) -> void:
 	visible = true
+	mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_INHERITED
 	if _tween != null:
 		_tween.kill()
 	modulate.a = 0.0
@@ -67,7 +83,10 @@ func transition_in(reduce_motion: bool = false) -> void:
 	)
 
 
+## The screen stops taking input as soon as it starts leaving: an overlay
+## fading out over live gameplay must not swallow the next tap.
 func transition_out(reduce_motion: bool = false) -> void:
+	mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_DISABLED
 	if _tween != null:
 		_tween.kill()
 	_tween = create_tween().set_parallel(true)

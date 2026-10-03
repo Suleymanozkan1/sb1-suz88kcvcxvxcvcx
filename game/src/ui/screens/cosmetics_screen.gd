@@ -227,11 +227,15 @@ func _update_detail() -> void:
 		_action.text = tr("shop.equipped") if bool(it.get("equipped", false)) else tr("shop.equip")
 		_action.disabled = bool(it.get("equipped", false))
 	elif not price.is_empty():
+		# The cost and currency are always on the button before a purchase.
 		var currency: String = "coins" if price.has("coins") else "gems"
+		var cost: String = tr("shop.price_" + currency).format({"price": UiKit.format_int(int(price[currency]))})
+		var affordable: bool = bool(it.get("affordable", false))
 		_detail_info.text = rarity
-		_action.text = tr("shop.buy").format({"price": UiKit.format_int(int(price[currency]))})
-		_action.set_glyph_color(UiTokens.TEXT_ON_PRIMARY)
-		_action.disabled = not bool(it.get("affordable", false))
+		if not affordable:
+			_detail_info.text += "  ·  " + tr("shop.not_enough").format({"currency": tr("common." + currency).to_lower()})
+		_action.text = "%s  ·  %s" % [tr("shop.buy"), cost]
+		_action.disabled = not affordable
 	else:
 		_detail_info.text = rarity + "  ·  " + str(it.get("requirement", ""))
 		_action.text = tr("shop.locked")
@@ -268,13 +272,17 @@ func _build_packs() -> void:
 		info.add_child(desc)
 		row.add_child(info)
 		var owned: bool = bool(p.get("owned", false))
-		# Short state on the button; the honest "store unavailable" sentence is
-		# shown once under the list instead of truncated on every row.
-		var b: UiButton = UiKit.button(
-			tr("shop.owned") if owned else (tr("shop.view_store") if store_ok else tr("shop.unavailable_short")),
-			UiKit.ButtonRole.SECONDARY
-		)
-		b.disabled = owned or not store_ok
+		var price: String = str(p.get("price", ""))
+		# Short state on the button (the store's localized price when it has
+		# one); the honest "store unavailable" sentence is shown once under
+		# the list instead of truncated on every row.
+		var label: String = tr("shop.unavailable_short")
+		if owned:
+			label = tr("shop.owned")
+		elif store_ok:
+			label = price if not price.is_empty() else tr("shop.view_store")
+		var b: UiButton = UiKit.button(label, UiKit.ButtonRole.SECONDARY)
+		b.disabled = owned or not store_ok or not bool(p.get("available", false))
 		var pid: String = str(p.get("id", ""))
 		b.pressed.connect(func() -> void: pack_requested.emit(pid))
 		row.add_child(b)

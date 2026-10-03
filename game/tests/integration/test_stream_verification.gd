@@ -85,3 +85,25 @@ func test_off_week_seed_is_rejected_on_the_weekly_board() -> void:
 	assert_false(bool(verdict["valid"]), "a self-chosen course cannot enter the weekly board")
 	assert_has(verdict["reasons"], ReplayVerifier.REASON_SEED_MISMATCH)
 	(cli as Object).free()
+
+
+func test_cli_refuses_bad_streams_before_rebuilding_them() -> void:
+	var cli: Object = VERIFY_CLI.new()
+	var config: Dictionary = DailyChallengeService.load_config()
+	var verifier: ReplayVerifier = ReplayVerifier.new(_server_clock(), config)
+	var week: String = _server_clock().week_key()
+	var official_ta: String = ModeCatalog.stream_id(&"time_attack", ModeCatalog.endless_seed(&"time_attack", week))
+	var official_endless: String = ModeCatalog.stream_id(&"endless", ModeCatalog.endless_seed(&"endless", week))
+	var cases: Dictionary = {
+		"zen_12345": ReplayVerifier.REASON_UNRANKED_MODE,
+		"endless_777": ReplayVerifier.REASON_SEED_MISMATCH,
+		official_ta: ReplayVerifier.REASON_END_TICK,
+	}
+	for id: String in cases:
+		var t0: int = Time.get_ticks_msec()
+		var verdict: Dictionary = cli.call("precheck", verifier, id, 108000) as Dictionary
+		assert_false(bool(verdict.get("valid", true)), id)
+		assert_has(verdict["reasons"], cases[id], id)
+		assert_lt(float(Time.get_ticks_msec() - t0), 50.0, "%s refused without a rebuild" % id)
+	assert_true((cli.call("precheck", verifier, official_endless, 6000) as Dictionary).is_empty(), "official seed")
+	assert_true((cli.call("precheck", verifier, "w03_l10", 3000) as Dictionary).is_empty(), "campaign untouched")

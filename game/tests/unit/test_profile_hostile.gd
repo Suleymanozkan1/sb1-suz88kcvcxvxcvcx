@@ -46,3 +46,24 @@ func test_wrong_types_fall_back_to_safe_defaults() -> void:
 func test_non_finite_times_are_zeroed() -> void:
 	var p: PlayerProfile = PlayerProfile.from_dict({"levels": {"w01_l01": {"best_time": INF, "clears": 1}}})
 	assert_eq(float(p.level_result("w01_l01")["best_time"]), 0.0)
+
+
+func test_known_flags_of_the_wrong_type_are_dropped() -> void:
+	var data: Dictionary = PlayerProfile.new().to_dict()
+	data["flags"] = {
+		"mode_best": {"endless": "lots", "classic": 50.0, "zen": INF},
+		"economy_starting_granted": "yes",
+		"tutorial_done": 1,
+		"last_level": 7,
+		"notifications.daily_day": 20000.0,
+		"custom": "kept",
+	}
+	var p: PlayerProfile = PlayerProfile.from_dict(data)
+	assert_eq(p.flags["mode_best"], {"classic": 50}, "only whole-number bests survive")
+	assert_false(p.flags.has("economy_starting_granted"))
+	assert_false(p.flags.has("tutorial_done"))
+	assert_false(p.flags.has("last_level"))
+	assert_eq(p.flags["notifications.daily_day"], 20000)
+	assert_eq(p.flags["custom"], "kept", "unknown flags untouched")
+	data["flags"] = {"mode_best": [1, 2, 3]}
+	assert_false(PlayerProfile.from_dict(data).flags.has("mode_best"), "a list is not a table of bests")

@@ -89,20 +89,31 @@ func run(args: PackedStringArray) -> int:
 			var raw_end: Variant = (submission["replay"] as Dictionary).get("end_tick", 0)
 			if typeof(raw_end) == TYPE_INT or typeof(raw_end) == TYPE_FLOAT:
 				end_tick = int(raw_end)
-		if end_tick > MAX_STREAM_TICKS or end_tick < 0:
-			# Rejected before any course is rebuilt (bounded verification cost).
-			verdict = {
-				"valid": false,
-				"score": 0,
-				"reasons": PackedStringArray([ReplayVerifier.REASON_STRUCTURE]),
-				"details": PackedStringArray(["end_tick %d outside 0..%d" % [end_tick, MAX_STREAM_TICKS]]),
-			}
-			return _report(verdict, level_id, clock)
+		var refused: Dictionary = precheck(verifier, level_id, end_tick)
+		if not refused.is_empty():
+			return _report(refused, level_id, clock)
 		var level: Dictionary = load_level(level_id, config, end_tick)
 		if level.is_empty():
 			return _fail("unknown or unloadable level '%s'" % level_id)
 		verdict = verifier.verify(submission, level)
 	return _report(verdict, level_id, clock)
+
+
+## Cheap refusals before any course is rebuilt (bounded verification cost): an
+## end tick outside 0..MAX_STREAM_TICKS, and for streamed courses an unranked
+## mode, an unofficial seed or a length beyond the mode's time limit. Returns
+## a rejecting verdict, or {} to go on.
+func precheck(verifier: ReplayVerifier, level_id: String, end_tick: int) -> Dictionary:
+	var reason: String = ""
+	var details: PackedStringArray = PackedStringArray()
+	if end_tick > MAX_STREAM_TICKS or end_tick < 0:
+		reason = ReplayVerifier.REASON_STRUCTURE
+		details.append("end_tick %d outside 0..%d" % [end_tick, MAX_STREAM_TICKS])
+	else:
+		reason = verifier.stream_precheck_reason(level_id, end_tick, details)
+	if reason.is_empty():
+		return {}
+	return {"valid": false, "score": 0, "reasons": PackedStringArray([reason]), "details": details}
 
 
 ## Parses the user arguments into {"submission": path, "now": unix or -1},

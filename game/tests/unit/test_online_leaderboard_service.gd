@@ -91,6 +91,23 @@ func test_board_ids_for_modes() -> void:
 	assert_eq(late[0], "daily:2026-10-02", "daily board uses the level's date")
 
 
+func test_streamed_courses_rank_on_their_own_week_only() -> void:
+	var svc: LeaderboardService = _service(false)
+	var this_week: String = ModeCatalog.stream_id(&"time_attack", ModeCatalog.endless_seed(&"time_attack", "2026-W40"))
+	assert_eq(
+		svc.board_ids_for(_run(this_week, &"time_attack", true, 500), DATE),
+		PackedStringArray(["weekly:2026-W40:time_attack"]),
+		"no all-time board for a weekly course"
+	)
+	# Started on Sunday of W39, finished after midnight (W40): last week's course.
+	var last_week: String = ModeCatalog.stream_id(&"endless", ModeCatalog.endless_seed(&"endless", "2026-W39"))
+	assert_eq(
+		svc.board_ids_for(_run(last_week, &"endless", false, 900), DATE),
+		PackedStringArray(["weekly:2026-W39:endless"]),
+		"board of the week whose seed built the course"
+	)
+
+
 func test_revived_zen_incomplete_and_unknown_runs_not_ranked() -> void:
 	var svc: LeaderboardService = _service(true)
 	_transport.online = true
@@ -328,3 +345,28 @@ func test_parse_board_round_trips() -> void:
 	assert_eq(LeaderboardService.parse_board("level:w01_l01")["level_id"], "w01_l01")
 	for bad: String in ["", "daily:2026-13-01", "weekly:2026-W40", "alltime:", "level", "season:1", "daily:a:b"]:
 		assert_empty(LeaderboardService.parse_board(bad), "rejects '%s'" % bad)
+
+
+func test_earlier_queue_goes_out_after_the_next_server_answer() -> void:
+	var svc: LeaderboardService = _service(true)
+	var changes: Array[int] = []
+	svc.queue_changed.connect(func() -> void: changes.append(1))
+	await svc.submit_run(_run("w03_l10", &"classic", true, 4115))
+	assert_eq(svc.pending_count(), 3, "queued offline (an earlier session)")
+	assert_gt(float(changes.size()), 0.0, "queue changes ask for a save")
+	# Next session: the network works from the start (no offline->online event).
+	_transport.online = true
+	await svc.submit_run(_run("w03_l11", &"classic", true, 3000))
+	await wait_frames(3)
+	assert_eq(svc.pending_count(), 0, "queued runs sent after the server answered")
+	assert_eq(_signals.size(), 6, "both runs reached a verdict")
+
+
+func test_submissions_carry_integrity_codes() -> void:
+	var svc: LeaderboardService = _service(true)
+	svc.integrity = IntegrityMonitor.new(_profile, {}, _clock)
+	_profile.coins = 999999999
+	_transport.online = true
+	await svc.submit_run(_run("w03_l10", &"classic", true, 4115))
+	var body: Dictionary = _transport.calls[0]["body"] as Dictionary
+	assert_has(Array(body["integrity"]), IntegrityMonitor.IMPLAUSIBLE_BALANCE, "anomaly sent for review")

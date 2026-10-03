@@ -77,12 +77,25 @@ func enter(payload: Dictionary) -> void:
 	_score.text = UiKit.format_int(result.score)
 	var best: int = int(payload.get("best", 0))
 	_best.text = tr("result.best") + "  " + UiKit.format_int(best) if best > 0 else ""
-	var progress: float = clampf(float(payload.get("progress", 0.0)), 0.0, 1.0)
-	_progress.value = progress
-	_progress_label.text = tr("fail.progress").format({"percent": int(round(progress * 100.0))})
+	var raw_progress: float = float(payload.get("progress", 0.0))
+	# Streamed courses (Endless, Time Attack, Zen) have no finish line: the
+	# distance is the measure, a "0% of the way" bar would be false.
+	_progress.visible = raw_progress >= 0.0
+	if raw_progress < 0.0:
+		_progress_label.text = tr("fail.distance").format({"m": UiKit.format_int(int(result.distance))})
+	else:
+		var progress: float = clampf(raw_progress, 0.0, 1.0)
+		_progress.value = progress
+		_progress_label.text = tr("fail.progress").format({"percent": int(round(progress * 100.0))})
 	_tip.text = tr(str(TIP_KEYS.get(result.fail_reason, "fail.tip.general")))
 	_revive.visible = bool(payload.get("can_revive", false))
 	_retry.grab_focus.call_deferred()
+
+
+## Withdraws the revive offer (the run was applied, e.g. the app was left).
+func disable_revive() -> void:
+	if _revive != null:
+		_revive.visible = false
 
 
 func handle_back() -> bool:
