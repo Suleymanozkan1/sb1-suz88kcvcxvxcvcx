@@ -95,15 +95,12 @@ func request(method: String, url: String, body: Dictionary = {}, timeout_s: floa
 	var completed: Array = await http.request_completed
 	in_flight -= 1
 	http.queue_free()
-	return HttpTransport.parse_completion(
-		int(completed[0]), int(completed[1]), completed[3] as PackedByteArray
-	)
+	return HttpTransport.parse_completion(int(completed[0]), int(completed[1]), completed[3] as PackedByteArray)
 
 
 ## The 3-argument transport Callable (method, url, body) -> Dictionary.
 func as_callable() -> Callable:
-	return func(method: String, url: String, body: Dictionary) -> Dictionary:
-		return await request(method, url, body)
+	return func(method: String, url: String, body: Dictionary) -> Dictionary: return await request(method, url, body)
 
 
 ## True for HTTPS URLs (and localhost HTTP when allowed) with a plain host:

@@ -379,6 +379,8 @@ func _spawn_entities(lvl: SimLevel, d: float) -> void:
 		var type: int = lvl.e_type[i]
 		if type == SimConst.EntityType.SPARK or type == SimConst.EntityType.PRISM:
 			continue
+		if type == SimConst.EntityType.SHIELD and not session.sim.shields_allowed:
+			continue
 		if lvl.e_d[i] < d - VIEW_BEHIND:
 			continue
 		var view: EntityView = _pool.acquire() as EntityView

@@ -36,8 +36,21 @@ const SPACE: int = 0x20
 const RAW_NAME_FACTOR: int = 4
 ## Invisible direction / zero-width marks that could disguise a name.
 const INVISIBLE_MARKS: PackedInt32Array = [
-	0x200B, 0x200C, 0x200D, 0x200E, 0x200F, 0x202A, 0x202B, 0x202C, 0x202D, 0x202E,
-	0x2066, 0x2067, 0x2068, 0x2069, 0xFEFF,
+	0x200B,
+	0x200C,
+	0x200D,
+	0x200E,
+	0x200F,
+	0x202A,
+	0x202B,
+	0x202C,
+	0x202D,
+	0x202E,
+	0x2066,
+	0x2067,
+	0x2068,
+	0x2069,
+	0xFEFF,
 ]
 const ERROR_DISABLED: String = "disabled"
 const ERROR_OFFLINE: String = "offline"
@@ -56,11 +69,7 @@ var name_max_length: int = DEFAULT_NAME_MAX_LENGTH
 ## HTTP contract above; [param p_app_version] defaults to AppInfo.version();
 ## [param config] is the "leaderboard" section of data/daily/daily.json.
 func _init(
-	p_base_url: String,
-	p_transport: Callable,
-	p_install_id: String,
-	p_app_version: String = "",
-	config: Dictionary = {}
+	p_base_url: String, p_transport: Callable, p_install_id: String, p_app_version: String = "", config: Dictionary = {}
 ) -> void:
 	var url: String = p_base_url.strip_edges()
 	while url.ends_with("/"):

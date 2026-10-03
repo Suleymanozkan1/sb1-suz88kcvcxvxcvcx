@@ -158,8 +158,14 @@ func play_sfx(kind: StringName, pitch_step: int = 0, strength: float = 1.0) -> b
 	_start_voice(kind, stream, bus, semis, volume, int(entry["max_polyphony"]))
 	var shimmer: Dictionary = _bank.shimmer()
 	if (shimmer["kinds"] as Array).has(kind) and pitch_step >= int(shimmer["min_step"]):
-		_start_voice(SHIMMER_KIND, stream, bus, semis + float(shimmer["semitones"]),
-			volume + float(shimmer["volume_db"]), SHIMMER_POLYPHONY)
+		_start_voice(
+			SHIMMER_KIND,
+			stream,
+			bus,
+			semis + float(shimmer["semitones"]),
+			volume + float(shimmer["volume_db"]),
+			SHIMMER_POLYPHONY
+		)
 	return true
 
 
@@ -390,8 +396,9 @@ func _apply_deck_volume(deck: MusicDeck) -> void:
 	deck.hi.volume_db = _gain_db(g * _intensity) + _bank.mixer_float("hi_volume_db")
 
 
-func _start_voice(kind: StringName, stream: AudioStream, bus: StringName, semis: float, volume_db: float,
-		max_polyphony: int) -> void:
+func _start_voice(
+	kind: StringName, stream: AudioStream, bus: StringName, semis: float, volume_db: float, max_polyphony: int
+) -> void:
 	var idx: int = _pick_voice(kind, max_polyphony)
 	var voice: AudioStreamPlayer = _voices[idx]
 	voice.stop()

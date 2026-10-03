@@ -233,7 +233,9 @@ func level_for(p_date_key: String) -> Dictionary:
 		var generator: LevelGenerator = LevelGenerator.new()
 		var data: Dictionary = generator.generate(spec)
 		if data.is_empty():
-			GameLog.warn("daily", "generation attempt %d for %s failed: %s" % [attempt, p_date_key, ", ".join(generator.errors)])
+			GameLog.warn(
+				"daily", "generation attempt %d for %s failed: %s" % [attempt, p_date_key, ", ".join(generator.errors)]
+			)
 			continue
 		var duration: float = float(data.get("duration", 0.0))
 		if duration < spec.duration_bounds.x or duration > spec.duration_bounds.y:
@@ -242,7 +244,9 @@ func level_for(p_date_key: String) -> Dictionary:
 		if validate:
 			var report: LevelValidator.Report = _get_validator().validate(data)
 			if not report.ok():
-				GameLog.info("daily", "attempt %d for %s rejected by validator: %s" % [attempt, p_date_key, report.codes()])
+				GameLog.info(
+					"daily", "attempt %d for %s rejected by validator: %s" % [attempt, p_date_key, report.codes()]
+				)
 				continue
 		data["kind"] = KIND
 		var day: int = DailyChallengeService.day_for_date_key(p_date_key)

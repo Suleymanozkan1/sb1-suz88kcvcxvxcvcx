@@ -51,6 +51,8 @@ var is_booted: bool = false
 var auto_boot: bool = true
 
 var _save_left: float = 0.0
+## Level-up reveals waiting to be shown ({eyebrow, title, subtitle, bundle}).
+var _level_up_reveals: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -199,10 +201,30 @@ func _wire() -> void:
 	bus.quality_changed.connect(
 		func(preset: StringName, automatic: bool) -> void:
 			if automatic:
-				analytics.track(&"quality_auto_reduced", {"preset": String(preset)})
+				analytics.track(&"quality_auto_reduced", {"to": String(preset)})
 	)
 	bus.save_recovered.connect(func(source: String) -> void: analytics.track(&"save_recovered", {"source": source}))
-	bus.achievement_unlocked.connect(func(id: String) -> void: analytics.track(&"achievement_unlocked", {"id": id}))
+	bus.achievement_unlocked.connect(
+		func(id: String) -> void: analytics.track(&"achievement_unlocked", {"achievement_id": id})
+	)
+	bus.player_level_up.connect(_on_level_up)
+	bus.reward_granted.connect(_on_reward_granted)
+	bus.world_unlocked.connect(
+		func(world_id: String) -> void:
+			analytics.track(&"world_unlocked", {"world_id": world_id, "total_stars": profile.total_stars()})
+	)
+	bus.daily_completed.connect(
+		func(date_key: String, score: int) -> void:
+			analytics.track(
+				&"daily_completed",
+				{
+					"date_key": date_key,
+					"score": score,
+					"streak": int(daily.status().get("streak", 0)),
+					"first_clear": true
+				}
+			)
+	)
 	bus.network_state_changed.connect(
 		func(online: bool) -> void:
 			if online:
@@ -231,7 +253,7 @@ func _on_setting(key: StringName, value: Variant) -> void:
 			quality.apply_to_viewport(get_viewport())
 		"battery_saver":
 			quality.apply_to_viewport(get_viewport())
-	analytics.track(&"settings_changed", {"key": String(key)})
+	analytics.track(&"settings_changed", {"key": String(key), "value": str(value)})
 
 
 ## Reward specs ({"coins", "gems", "xp", "cosmetic", "badge"} or a table
@@ -241,6 +263,48 @@ func grant_reward_spec(spec: Dictionary, source: String = "reward") -> RewardBun
 	if spec.has(RewardEngine.REQUEST_TABLE):
 		return rewards.grant_table(spec)
 	return rewards.grant_spec(spec, source)
+
+
+## Every level gained (in a run, from a mission claim, from an achievement)
+## pays its level-up table reward right away and queues a reveal.
+func _on_level_up(level: int) -> void:
+	var bundle: RewardBundle = rewards.grant_table({"table": RewardEngine.TABLE_LEVEL_UP, "level": level})
+	(
+		_level_up_reveals
+		. append(
+			{
+				"eyebrow": TranslationServer.translate("reveal.level_up"),
+				"title": TranslationServer.translate("reveal.level_n").format({"n": level}),
+				"subtitle": "",
+				"bundle": bundle,
+			}
+		)
+	)
+
+
+## Pending level-up reveals (cleared by the call).
+func take_level_up_reveals() -> Array[Dictionary]:
+	var out: Array[Dictionary] = _level_up_reveals.duplicate()
+	_level_up_reveals.clear()
+	return out
+
+
+func _on_reward_granted(bundle: RewardBundle) -> void:
+	if bundle == null or bundle.is_empty():
+		return
+	(
+		analytics
+		. track(
+			&"reward_claimed",
+			{
+				"source": bundle.source,
+				"coins": bundle.amount_of(&"coins"),
+				"gems": bundle.amount_of(&"gems"),
+				"xp": bundle.amount_of(&"xp"),
+				"doubled": bundle.source.ends_with(RewardEngine.AD_DOUBLE_SOURCE_SUFFIX),
+			}
+		)
+	)
 
 
 ## Remote overrides never block boot: applied, cached and pushed into the ad
@@ -268,11 +332,17 @@ func _progress_query() -> Dictionary:
 
 ## Mode unlock facts (see [ModeCatalog.is_unlocked]).
 func mode_progress() -> Dictionary:
+	# Distinct achievements only: replaying one boss must not unlock modes
+	# that promise "beat 2 bosses" / "finish 2 worlds".
+	var distinct_bosses: int = 0
+	for i: int in range(1, catalog.world_count() + 1):
+		if profile.is_cleared(WorldCatalog.level_id(i, catalog.levels_in(i))):
+			distinct_bosses += 1
 	return {
 		"levels_cleared": profile.stat("unique_levels_cleared"),
 		"perfects": profile.stat("unique_perfects"),
-		"bosses_cleared": profile.stat("bosses_cleared"),
-		"worlds_cleared": profile.stat("bosses_cleared"),
+		"bosses_cleared": distinct_bosses,
+		"worlds_cleared": profile.stat("worlds_completed"),
 	}
 
 
@@ -285,6 +355,10 @@ func ui_feedback(kind: StringName) -> void:
 func _process(delta: float) -> void:
 	if not is_booted:
 		return
+	# Crash reports are written as soon as they are captured (a later native
+	# crash or OS kill must not lose them).
+	if errors.has_pending():
+		errors.flush()
 	_save_left -= delta
 	if _save_left <= 0.0:
 		_save_left = SAVE_INTERVAL

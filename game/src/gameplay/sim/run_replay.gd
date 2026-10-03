@@ -9,6 +9,10 @@ extends RefCounted
 const SIM_VERSION: int = 1
 ## A human cannot produce two distinct taps less than this many ticks apart.
 const MIN_TAP_GAP_TICKS: int = 2
+## Human tap-rate ceiling shared by the client queue and the server verifier
+## (data/daily/daily.json "verifier" mirrors these; a test keeps them equal).
+const MAX_TAPS_PER_WINDOW: int = 12
+const TAP_WINDOW_TICKS: int = 60
 
 var level_id: String = ""
 var level_seed: int = 0

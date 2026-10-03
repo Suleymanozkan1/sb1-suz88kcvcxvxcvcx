@@ -77,12 +77,18 @@ func submit(board_id: String, entry: Dictionary) -> Dictionary:
 	board["updated"] = maxi(int(board["updated"]), at)
 	if pos >= entries_per_board:
 		return result
-	entries.insert(pos, {
-		"score": score,
-		"level_id": str(entry.get("level_id", "")),
-		"mode": str(entry.get("mode", "")),
-		"at": at,
-	})
+	(
+		entries
+		. insert(
+			pos,
+			{
+				"score": score,
+				"level_id": str(entry.get("level_id", "")),
+				"mode": str(entry.get("mode", "")),
+				"at": at,
+			}
+		)
+	)
 	while entries.size() > entries_per_board:
 		entries.pop_back()
 	result["stored"] = true
@@ -101,15 +107,20 @@ func fetch(board_id: String, limit: int) -> Dictionary:
 	var n: int = mini(maxi(limit, 0), stored.size())
 	for i: int in n:
 		var e: Dictionary = stored[i] as Dictionary
-		entries.append({
-			"rank": i + 1,
-			"name": player_name,
-			"name_key": NAME_KEY,
-			"score": _int_or(e.get("score", 0), 0),
-			"level_id": str(e.get("level_id", "")),
-			"at": _int_or(e.get("at", 0), 0),
-			"is_player": true,
-		})
+		(
+			entries
+			. append(
+				{
+					"rank": i + 1,
+					"name": player_name,
+					"name_key": NAME_KEY,
+					"score": _int_or(e.get("score", 0), 0),
+					"level_id": str(e.get("level_id", "")),
+					"at": _int_or(e.get("at", 0), 0),
+					"is_player": true,
+				}
+			)
+		)
 	var player: Dictionary = (entries[0] as Dictionary).duplicate() if not entries.is_empty() else {}
 	return LeaderboardBackend.fetch_result(true, entries, player)
 

@@ -174,21 +174,24 @@ func list(include_hidden: bool) -> Array[Dictionary]:
 		if bool(def["hidden"]) and not include_hidden and not unlocked:
 			continue
 		var p: Dictionary = progress(id)
-		out.append(
-			{
-				"id": id,
-				"name_key": def["name_key"],
-				"desc_key": def["desc_key"],
-				"desc_args": {"target": def["target"]},
-				"category": def["category"],
-				"stat": def["stat"],
-				"target": def["target"],
-				"value": p["value"],
-				"unlocked": unlocked,
-				"unlocked_at": p["unlocked_at"],
-				"hidden": def["hidden"],
-				"reward": (def["reward"] as Dictionary).duplicate(),
-			}
+		(
+			out
+			. append(
+				{
+					"id": id,
+					"name_key": def["name_key"],
+					"desc_key": def["desc_key"],
+					"desc_args": {"target": def["target"]},
+					"category": def["category"],
+					"stat": def["stat"],
+					"target": def["target"],
+					"value": p["value"],
+					"unlocked": unlocked,
+					"unlocked_at": p["unlocked_at"],
+					"hidden": def["hidden"],
+					"reward": (def["reward"] as Dictionary).duplicate(),
+				}
+			)
 		)
 	return out
 

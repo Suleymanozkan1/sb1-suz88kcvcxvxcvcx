@@ -114,4 +114,3 @@ func _report(codes: Array[String], code: String, detail: Dictionary) -> void:
 	var entry: Dictionary = detail.duplicate()
 	entry["code"] = code
 	last_details.append(entry)
-

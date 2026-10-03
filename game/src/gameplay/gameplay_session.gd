@@ -40,6 +40,8 @@ var _pending_taps: int = 0
 ## Tick of the last applied player tap (queued taps keep the replay's minimum
 ## spacing, so honest runs always pass server validation).
 var _last_tap_tick: int = -RunReplay.MIN_TAP_GAP_TICKS
+## Ticks of the most recent applied taps (window check, same rule as the server).
+var _recent_taps: PackedInt32Array = PackedInt32Array()
 var _frame_events: PackedInt32Array = PackedInt32Array()
 
 
@@ -96,6 +98,7 @@ func _reset_run_state() -> void:
 	_accum = 0.0
 	_pending_taps = 0
 	_last_tap_tick = -RunReplay.MIN_TAP_GAP_TICKS
+	_recent_taps.clear()
 	_frame_events.clear()
 	_autopilot_index = 0
 	time_scale = 1.0
@@ -128,6 +131,8 @@ func is_running() -> bool:
 func revive() -> bool:
 	if phase != Phase.ENDED or sim.status != SimConst.Status.FAILED or revived:
 		return false
+	if not can_revive_reason(sim.fail_reason):
+		return false
 	revived = true
 	if sim.fail_entity >= 0:
 		sim.ent_flags[sim.fail_entity] |= FluxSim.FLAG_CONSUMED
@@ -135,8 +140,19 @@ func revive() -> bool:
 	sim.fail_reason = SimConst.FailReason.NONE
 	sim.invuln = REVIVE_INVULN
 	sim.damage += 1
+	# Input from before the failure must not fire into the continued run.
+	_pending_taps = 0
+	_accum = 0.0
+	hit_stop = 0.0
+	_last_tap_tick = sim.tick
 	begin(0.5)
 	return true
+
+
+## Only a collision can be continued: an objective, time-limit or missed-spark
+## failure would fail again on the next tick, so no revive is offered for them.
+static func can_revive_reason(reason: int) -> bool:
+	return reason == SimConst.FailReason.COLLISION or reason == SimConst.FailReason.WRONG_PHASE
 
 
 func _process(delta: float) -> void:
@@ -184,8 +200,16 @@ func _next_tap() -> bool:
 			return true
 		return false
 	if _pending_taps > 0 and sim.tick - _last_tap_tick >= RunReplay.MIN_TAP_GAP_TICKS:
+		while not _recent_taps.is_empty() and sim.tick - _recent_taps[0] >= RunReplay.TAP_WINDOW_TICKS:
+			_recent_taps.remove_at(0)
+		if _recent_taps.size() >= RunReplay.MAX_TAPS_PER_WINDOW:
+			# Beyond a human rate: drop the tap rather than record a replay the
+			# server would refuse (mashing never helps; no form needs > 12/s).
+			_pending_taps -= 1
+			return false
 		_pending_taps -= 1
 		_last_tap_tick = sim.tick
+		_recent_taps.append(sim.tick)
 		return true
 	return false
 

@@ -134,10 +134,19 @@ func test_cli_malformed_replay_is_never_valid() -> void:
 func test_cli_refuses_out_of_window_daily_before_generating() -> void:
 	var far: String = "daily_2099-01-01"
 	var replay: Dictionary = {
-		"level_id": far, "seed": 1, "mode": "daily", "sim_version": RunReplay.SIM_VERSION, "taps": [], "end_tick": 10,
+		"level_id": far,
+		"seed": 1,
+		"mode": "daily",
+		"sim_version": RunReplay.SIM_VERSION,
+		"taps": [],
+		"end_tick": 10,
 	}
 	var submission: Dictionary = {
-		"board": "daily:2099-01-01", "score": 1, "level_id": far, "mode": "daily", "sim_version": RunReplay.SIM_VERSION,
+		"board": "daily:2099-01-01",
+		"score": 1,
+		"level_id": far,
+		"mode": "daily",
+		"sim_version": RunReplay.SIM_VERSION,
 		"replay": replay,
 	}
 	var now: String = "--now=%d" % (DailyChallengeService.day_for_date_key(DATE) * SECONDS_PER_DAY + NOON)

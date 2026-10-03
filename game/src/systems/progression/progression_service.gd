@@ -350,22 +350,27 @@ func progress_summary() -> Dictionary:
 		var unlocked: bool = is_world_unlocked(id)
 		cleared_total += cleared
 		unlocked_count += 1 if unlocked else 0
-		worlds.append({
-			"index": index,
-			"id": id,
-			"name": str(_catalog.world_at(index).get("name", id)),
-			"name_key": WORLD_NAME_KEY % id,
-			"stars": stars,
-			"max": levels * MAX_LEVEL_STARS,
-			"cleared": cleared,
-			"levels": levels,
-			"unlocked": unlocked,
-			"perfect": levels > 0 and stars == levels * MAX_LEVEL_STARS,
-			"complete": levels > 0 and cleared == levels,
-			"stars_required": _unlock_stars(index),
-			"stars_needed": 0 if unlocked else maxi(_unlock_stars(index) - total, 0),
-			"boss_cleared": _boss_cleared(index),
-		})
+		(
+			worlds
+			. append(
+				{
+					"index": index,
+					"id": id,
+					"name": str(_catalog.world_at(index).get("name", id)),
+					"name_key": WORLD_NAME_KEY % id,
+					"stars": stars,
+					"max": levels * MAX_LEVEL_STARS,
+					"cleared": cleared,
+					"levels": levels,
+					"unlocked": unlocked,
+					"perfect": levels > 0 and stars == levels * MAX_LEVEL_STARS,
+					"complete": levels > 0 and cleared == levels,
+					"stars_required": _unlock_stars(index),
+					"stars_needed": 0 if unlocked else maxi(_unlock_stars(index) - total, 0),
+					"boss_cleared": _boss_cleared(index),
+				}
+			)
+		)
 	return {
 		"worlds": worlds,
 		"total_stars": total,

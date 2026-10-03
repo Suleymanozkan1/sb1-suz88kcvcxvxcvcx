@@ -160,6 +160,11 @@ func enter(payload: Dictionary) -> void:
 		else "—"
 	)
 	_play.text = tr("daily.play_again") if bool(status.get("completed", false)) else tr("daily.play")
+	# Locked for brand-new players: the button says exactly what unlocks it.
+	var unlocked: bool = bool(payload.get("unlocked", true))
+	_play.disabled = not unlocked
+	if not unlocked:
+		_play.text = str(payload.get("requirement", ""))
 	var streak: int = int(status.get("streak", 0))
 	var tier: int = clampi(int(status.get("tier", 1)), 1, MAX_TIER)
 	_streak_value.text = tr("daily.streak_days").format({"n": streak})

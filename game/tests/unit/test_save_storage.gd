@@ -109,8 +109,11 @@ func test_memory_rejects_unsafe_names() -> void:
 func test_names_with_control_characters_are_rejected() -> void:
 	var storage: MemorySaveStorage = MemorySaveStorage.new()
 	var bad_names: Array[String] = [
-		"line\nbreak.json", "tab\there.json", "carriage\r.json",
-		"esc%s.json" % String.chr(0x1B), "del%s.json" % String.chr(SaveStorage.DELETE_CODE),
+		"line\nbreak.json",
+		"tab\there.json",
+		"carriage\r.json",
+		"esc%s.json" % String.chr(0x1B),
+		"del%s.json" % String.chr(SaveStorage.DELETE_CODE),
 	]
 	for bad: String in bad_names:
 		assert_eq(storage.write_text(bad, "x"), ERR_INVALID_PARAMETER, "name %s" % bad.c_escape())
@@ -130,7 +133,7 @@ func test_file_creates_nested_directory() -> void:
 func test_file_write_read_overwrite_and_list() -> void:
 	var dir_path: String = _unique_dir("rw")
 	var storage: FileSaveStorage = FileSaveStorage.new(dir_path)
-	var text: String = "{\"coins\": 12, \"name\": \"Çekirdek ışığı\"}"
+	var text: String = '{"coins": 12, "name": "Çekirdek ışığı"}'
 	assert_eq(storage.write_text("profile.json", text), OK)
 	assert_eq(storage.read_text("profile.json"), text, "UTF-8 text survives")
 	assert_eq(storage.write_text("profile.json", "v2"), OK)
@@ -184,7 +187,7 @@ func test_file_purges_stale_temp_on_startup() -> void:
 	var first: FileSaveStorage = FileSaveStorage.new(dir_path)
 	first.write_text("profile.json", "good")
 	var stale: FileAccess = FileAccess.open(dir_path.path_join("profile.json.tmp"), FileAccess.WRITE)
-	stale.store_string("{\"half\": ")
+	stale.store_string('{"half": ')
 	stale.close()
 	assert_eq(first.list_names(), PackedStringArray(["profile.json"]), "temp files are not listed")
 	var second: FileSaveStorage = FileSaveStorage.new(dir_path)

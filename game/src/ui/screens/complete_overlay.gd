@@ -181,6 +181,11 @@ func _gui_input(event: InputEvent) -> void:
 		_seq_tween.custom_step(10.0)
 
 
+## Hides the optional double after it was used (one per result).
+func disable_double() -> void:
+	_double.visible = false
+
+
 func handle_back() -> bool:
 	home_requested.emit()
 	return true

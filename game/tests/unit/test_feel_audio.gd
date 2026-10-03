@@ -3,7 +3,7 @@ extends TestCase
 ## exact loop lengths, normalisation, size budget, licensing and bad data.
 
 const SAMPLE_RATE: int = 22050
-const PEAK_LIMIT: int = 29205 # -1 dBFS of 16-bit full scale, rounded up
+const PEAK_LIMIT: int = 29205  # -1 dBFS of 16-bit full scale, rounded up
 const SFX_MIN_S: float = 0.05
 const SFX_MAX_S: float = 1.5
 const AUDIO_BUDGET_BYTES: int = 25 * 1024 * 1024
@@ -66,7 +66,7 @@ func test_bank_covers_every_kind_with_sane_entries() -> void:
 func test_every_gameplay_feedback_kind_has_a_sound() -> void:
 	var source: String = FileAccess.get_file_as_string(GAMEPLAY_VIEW_PATH)
 	assert_false(source.is_empty())
-	var re: RegEx = RegEx.create_from_string("&\"([a-z_]+)\"")
+	var re: RegEx = RegEx.create_from_string('&"([a-z_]+)"')
 	var bank: SoundBank = SoundBank.from_file()
 	var found: int = 0
 	for line: String in source.split("\n"):
@@ -171,11 +171,16 @@ func test_audio_fits_size_budget_and_is_licensed() -> void:
 
 
 func test_bank_survives_bad_data() -> void:
-	var bank: SoundBank = SoundBank.new({
-		"mixer": {"voices": "many"},
-		"sfx": {"tap": {"file": "res://assets/audio/sfx/none.wav", "bus": "Bogus", "volume_db": "loud"}},
-		"music": {"neon_core": {"base": "", "bpm": 120}},
-	})
+	var bank: SoundBank = (
+		SoundBank
+		. new(
+			{
+				"mixer": {"voices": "many"},
+				"sfx": {"tap": {"file": "res://assets/audio/sfx/none.wav", "bus": "Bogus", "volume_db": "loud"}},
+				"music": {"neon_core": {"base": "", "bpm": 120}},
+			}
+		)
+	)
 	assert_false(bank.is_valid())
 	assert_has(bank.problems, "missing file res://assets/audio/sfx/none.wav")
 	assert_eq(bank.sfx(&"tap")["bus"], &"SFX", "unknown bus falls back")

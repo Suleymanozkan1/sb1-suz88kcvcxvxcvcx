@@ -73,10 +73,23 @@ func uninstall() -> void:
 
 
 func enqueue(error: Dictionary) -> void:
+	# The app context is captured now (state/level at the moment of the error),
+	# not when the report is written.
+	var stamped: Dictionary = error.duplicate()
+	if not stamped.has("context") and context_provider.is_valid():
+		stamped["context"] = context_provider.call()
+	stamped["captured_at"] = int(Time.get_unix_time_from_system())
 	_mutex.lock()
 	if _pending.size() < MAX_PER_SESSION:
-		_pending.append(error)
+		_pending.append(stamped)
 	_mutex.unlock()
+
+
+func has_pending() -> bool:
+	_mutex.lock()
+	var any: bool = not _pending.is_empty()
+	_mutex.unlock()
+	return any
 
 
 ## Call from the main thread (once per frame or on demand) to persist reports.
@@ -94,9 +107,14 @@ func flush() -> int:
 
 func build_report(error: Dictionary) -> Dictionary:
 	var report: Dictionary = AppInfo.context()
-	report["timestamp"] = int(Time.get_unix_time_from_system())
+	var captured: Variant = error.get("captured_at", null)
+	var now: int = int(Time.get_unix_time_from_system())
+	report["timestamp"] = int(captured) if typeof(captured) == TYPE_INT else now
 	report["error"] = error
-	if context_provider.is_valid():
+	var snap: Variant = error.get("context", null)
+	if typeof(snap) == TYPE_DICTIONARY:
+		report["context"] = snap
+	elif context_provider.is_valid():
 		var extra: Variant = context_provider.call()
 		if typeof(extra) == TYPE_DICTIONARY:
 			report["context"] = extra

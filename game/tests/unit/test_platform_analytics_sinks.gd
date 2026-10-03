@@ -120,7 +120,7 @@ func test_file_sink_recovers_a_line_cut_short_by_a_crash() -> void:
 	var path: String = _unique_dir().path_join("events.jsonl")
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
-	f.store_string("{\"event\": \"level_started\", \"seq\": 0}\n{\"event\": \"level_sta")
+	f.store_string('{"event": "level_started", "seq": 0}\n{"event": "level_sta')
 	f.close()
 	var sink: FileAnalyticsSink = FileAnalyticsSink.new(path, 10)
 	sink.send(_events(1, 5))

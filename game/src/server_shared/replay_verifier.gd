@@ -66,6 +66,9 @@ const DEFAULT_TAP_WINDOW_TICKS: int = 60
 const DEFAULT_DAILY_DAYS_BACK: int = 1
 const DEFAULT_WEEKS_BACK: int = 1
 const DEFAULT_MAX_TICKS: int = 36000
+## Streamed courses (endless, time attack) may run up to 30 minutes; the
+## client ends endless runs there (modes.json time_limit) so they stay verifiable.
+const DEFAULT_MAX_STREAM_TICKS: int = 108000
 ## Largest valid level seed (seeds are unsigned 32-bit hashes).
 const MAX_SEED: int = 0xFFFFFFFF
 
@@ -142,6 +145,7 @@ func verify(submission: Dictionary, level_data: Dictionary) -> Dictionary:
 		)
 	_check_daily_window(level_id, out)
 	var board: String = _text_or(submission.get("board", ""), "")
+	_check_stream_seed(level_id, mode, board, out)
 	if not board.is_empty() and not _board_ok(board, mode, level_id, rules):
 		out.reject(REASON_BOARD_MISMATCH, "board '%s' does not match %s/%s" % [board, mode, level_id])
 	if not tap_rate_ok(replay.tap_ticks):
@@ -183,7 +187,7 @@ func simulate(level_data: Dictionary, replay: RunReplay, rules: Dictionary) -> F
 	sim.shields_allowed = bool(rules.get("shields", true))
 	sim.strict = bool(rules.get("strict", false))
 	sim.setup(lvl)
-	replay.play_on(sim, _max_replay_ticks())
+	replay.play_on(sim, max_ticks_for(replay.level_id))
 	return sim
 
 
@@ -298,6 +302,26 @@ func _board_ok(board: String, mode: String, level_id: String, rules: Dictionary)
 	return ok
 
 
+## Streamed courses rank only on their weekly board and only on that week's
+## official seed: otherwise a player could search offline for an easy seed.
+func _check_stream_seed(level_id: String, mode: String, board: String, out: Verdict) -> void:
+	var stream: Dictionary = ModeCatalog.shared().parse_stream_id(level_id)
+	if stream.is_empty():
+		return
+	if String(stream["mode"] as StringName) != mode:
+		out.reject(
+			REASON_MODE_MISMATCH, "course %s belongs to mode %s" % [level_id, String(stream["mode"] as StringName)]
+		)
+		return
+	var b: Dictionary = LeaderboardService.parse_board(board)
+	if str(b.get("type", "")) != LeaderboardService.BOARD_WEEKLY:
+		out.reject(REASON_BOARD_MISMATCH, "streamed courses rank on their weekly board only")
+		return
+	var week: String = str(b.get("week_key", ""))
+	if int(stream["seed"]) != ModeCatalog.endless_seed(StringName(mode), week):
+		out.reject(REASON_SEED_MISMATCH, "course seed is not the official %s seed for %s" % [mode, week])
+
+
 ## True for the server's current ISO week or one of the accepted previous ones.
 func _recent_week(week_key: String) -> bool:
 	var weeks_back: int = maxi(0, int(_cfg.get("weekly_accept_weeks_back", DEFAULT_WEEKS_BACK)))
@@ -317,7 +341,7 @@ static func _level_kind_ok(rules: Dictionary, level_data: Dictionary) -> bool:
 ## to hand to RunReplay.from_dict).
 func _replay_type_problems(raw: Dictionary) -> PackedStringArray:
 	var problems: PackedStringArray = PackedStringArray()
-	var max_ticks: int = _max_replay_ticks()
+	var max_ticks: int = max_ticks_for(str(raw.get("level_id", "")) if _is_text(raw.get("level_id", null)) else "")
 	if not _is_text(raw.get("level_id", null)):
 		problems.append("level_id must be a string")
 	if not _is_text(raw.get("mode", null)):
@@ -417,6 +441,15 @@ func _days_back() -> int:
 
 func _max_replay_ticks() -> int:
 	return maxi(1, int(_cfg.get("max_replay_ticks", DEFAULT_MAX_TICKS)))
+
+
+## Longest accepted replay for [param level_id]: streamed courses get the
+## stream limit, every authored or daily level the regular one.
+func max_ticks_for(level_id: String) -> int:
+	if not ModeCatalog.shared().parse_stream_id(level_id).is_empty():
+		var stream_cap: Variant = _cfg.get("max_stream_replay_ticks", DEFAULT_MAX_STREAM_TICKS)
+		return maxi(1, int(stream_cap) if _is_number(stream_cap) else DEFAULT_MAX_STREAM_TICKS)
+	return _max_replay_ticks()
 
 
 static func _is_number(v: Variant) -> bool:

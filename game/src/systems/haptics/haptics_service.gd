@@ -13,8 +13,17 @@ extends RefCounted
 const LOG_CHANNEL: String = "haptics"
 const DEFAULT_PATTERNS_PATH: String = "res://data/haptics/patterns.json"
 const REQUIRED_KINDS: Array[StringName] = [
-	&"tap", &"collect", &"perfect", &"hit", &"combo", &"complete",
-	&"reward", &"near_miss", &"shatter", &"ui", &"fail",
+	&"tap",
+	&"collect",
+	&"perfect",
+	&"hit",
+	&"combo",
+	&"complete",
+	&"reward",
+	&"near_miss",
+	&"shatter",
+	&"ui",
+	&"fail",
 ]
 const GLOBAL_MIN_INTERVAL_MS: int = 40
 const BATTERY_SAVER_AMPLITUDE_SCALE: float = 0.5
@@ -177,8 +186,9 @@ func _load(doc: Dictionary) -> void:
 	if typeof(aliases) == TYPE_DICTIONARY:
 		for alias: Variant in aliases as Dictionary:
 			_aliases[StringName(str(alias))] = StringName(str((aliases as Dictionary)[alias]))
-	_global_min_interval_ms = maxi(GLOBAL_MIN_INTERVAL_MS, int(_num(doc, "global_min_interval_ms",
-		GLOBAL_MIN_INTERVAL_MS)))
+	_global_min_interval_ms = maxi(
+		GLOBAL_MIN_INTERVAL_MS, int(_num(doc, "global_min_interval_ms", GLOBAL_MIN_INTERVAL_MS))
+	)
 	_battery_scale = clampf(_num(doc, "battery_saver_amplitude_scale", BATTERY_SAVER_AMPLITUDE_SCALE), 0.0, 1.0)
 	_feedback_floor = clampf(_num(doc, "feedback_strength_floor", FEEDBACK_STRENGTH_FLOOR), 0.0, 1.0)
 

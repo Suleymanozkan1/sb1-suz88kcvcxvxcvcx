@@ -72,19 +72,22 @@ func test_unknown_key_returns_null() -> void:
 
 func test_overrides_reject_bad_values_individually() -> void:
 	var rc: RemoteConfig = _config()
-	var rejected: PackedStringArray = rc.apply_overrides(
-		{
-			"economy.coin_multiplier": 1.5,
-			"difficulty.global_speed_scale": 5.0,
-			"ads.interstitial_every_n_levels": 4.0,
-			"ads.interstitial_min_level": 7.5,
-			"ads.enabled": "yes",
-			"daily.enabled": false,
-			"events.weekend_coin_bonus": -0.2,
-			"leaderboard.base_url": "http://insecure.example.invalid",
-			"analytics.endpoint": "https://analytics.example.invalid/v1/events",
-			"unknown.key": 3,
-		}
+	var rejected: PackedStringArray = (
+		rc
+		. apply_overrides(
+			{
+				"economy.coin_multiplier": 1.5,
+				"difficulty.global_speed_scale": 5.0,
+				"ads.interstitial_every_n_levels": 4.0,
+				"ads.interstitial_min_level": 7.5,
+				"ads.enabled": "yes",
+				"daily.enabled": false,
+				"events.weekend_coin_bonus": -0.2,
+				"leaderboard.base_url": "http://insecure.example.invalid",
+				"analytics.endpoint": "https://analytics.example.invalid/v1/events",
+				"unknown.key": 3,
+			}
+		)
 	)
 	for key: String in [
 		"difficulty.global_speed_scale",
@@ -110,7 +113,8 @@ func test_overrides_reject_bad_values_individually() -> void:
 
 func test_values_are_typed_and_clamped_even_with_bad_schema_defaults() -> void:
 	var schema: Dictionary = {
-		"schema": {
+		"schema":
+		{
 			"a.float": {"type": "float", "min": 0.5, "max": 2.0, "default": 9.0},
 			"a.int": {"type": "int", "min": 1, "max": 3, "default": "two"},
 			"a.bool": {"type": "bool", "default": 1},
@@ -171,7 +175,7 @@ func test_fetch_success_applies_snapshot_and_caches() -> void:
 func test_fetch_accepts_flat_and_text_bodies() -> void:
 	var rc: RemoteConfig = _config()
 	var transport: ScriptedTransport = ScriptedTransport.new()
-	transport.response = {"ok": true, "status": 200, "body": "{\"economy.coin_multiplier\": 0.75}", "error": ""}
+	transport.response = {"ok": true, "status": 200, "body": '{"economy.coin_multiplier": 0.75}', "error": ""}
 	assert_true(await rc.fetch(transport.respond, CONFIG_URL))
 	assert_eq(rc.get_value("economy.coin_multiplier"), 0.75)
 	transport.response = {"ok": true, "status": 200, "body": [1, 2], "error": ""}
@@ -199,13 +203,16 @@ func test_fetch_offline_keeps_cached_values() -> void:
 func test_cache_round_trip() -> void:
 	var cache: InMemoryCache = InMemoryCache.new()
 	var rc: RemoteConfig = _config(cache)
-	rc.apply_overrides(
-		{
-			"economy.daily_reward_multiplier": 1.75,
-			"daily.enabled": false,
-			"config.url": "https://config.example.invalid/c.json",
-			"ads.interstitial_min_level": 10,
-		}
+	(
+		rc
+		. apply_overrides(
+			{
+				"economy.daily_reward_multiplier": 1.75,
+				"daily.enabled": false,
+				"config.url": "https://config.example.invalid/c.json",
+				"ads.interstitial_min_level": 10,
+			}
+		)
 	)
 	rc.save_cache()
 	var restored: RemoteConfig = _config(cache)

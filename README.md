@@ -52,6 +52,70 @@ internet permissions) and **iOS** (Xcode project, arm64, iOS 14+). Data JSON is 
 * iOS needs macOS + Xcode; CI exports the Xcode project and compiles it for the simulator without
   signing. Device builds need an Apple team ID and provisioning profile.
 
+## Architecture in one paragraph
+
+One deterministic simulation (`game/src/gameplay/sim/flux_sim.gd`, 60 Hz fixed tick) drives gameplay,
+the level generator, the level validator, the autopilot, the server replay verifier and the tests.
+A composition root (`game/src/core/services.gd`, autoload `Services`) builds every system with
+constructor injection; systems talk through a typed `EventBus`. `GameFlow` (main scene) owns the
+persistent session/view, a screen router and the app state machine; screens are dumb views fed by
+`Presenters`. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Directories
+
+```
+game/                 Godot project (project.godot, export_presets.cfg)
+  scenes/             main.tscn → src/app/game_flow.gd
+  src/core/           composition root, event bus, state machine, clock, RNG, JSON IO, errors, pools
+  src/gameplay/       sim/ (rules), session, modes/ (catalog, endless streamer), view/ (rendering)
+  src/levels/         world catalog, difficulty model, generator, validator, autopilot, repository
+  src/systems/        profile, settings, i18n, economy, rewards, stats, progression, cosmetics,
+                      achievements, missions, daily, leaderboard, analytics, remote config, ads,
+                      store, notifications, network, audio, haptics, quality
+  src/save/           versioned, checksummed, atomic, backed-up persistence
+  src/server_shared/  replay verifier (shared with server/)
+  src/app/            GameFlow, RunController, Presenters
+  src/ui/             design-system kit, components, 13 screens, router
+  src/vfx/ src/art/   bursts, trail; palette roles, procedural meshes
+  data/               all tunables and content as JSON (worlds, 520 levels, curve, modes, economy, …)
+  assets/             fonts (OFL), shaders, generated audio, icons, LICENSES.json
+  server/             verify_replay.gd CLI + README
+  tests/              runner, unit/, integration/
+  tools/              generate/validate levels, capture level/UI screenshots
+tools/ci/             placeholder scan, licence check
+tools/audio/          procedural audio synthesiser
+tools/report/         requirement matrix + completion calculator
+docs/                 design, architecture, art direction, requirements, reports
+.github/workflows/    CI
+```
+
+## Dependencies
+
+| Dependency | Version | Licence | Use |
+|---|---|---|---|
+| Godot Engine | 4.7.2-stable (official) | MIT | engine, export templates |
+| Outfit font | @fontsource/outfit 5.3.0 | OFL-1.1 | UI typography |
+| gdtoolkit (dev) | 4.5.0 | MIT | gdlint / gdformat |
+| numpy (dev) | see tools/audio/requirements.txt | BSD-3 | audio synthesis tool |
+| Python | 3.11 (dev) | PSF | CI scans, report tool |
+
+No third-party runtime code is shipped. Reference repositories inspected (and why they were not used):
+[docs/REPOSITORIES.md](docs/REPOSITORIES.md).
+
+## Known issues and limits
+
+* **iOS**: no macOS/Xcode/Apple account in the build environment — the iOS export is defined (preset +
+  CI job) but was not produced here (BLOCKED).
+* **Release signing**: no release keystore / store accounts — only a signed *debug* APK was produced.
+* **CodeRabbit**: the CLI could not be installed (network policy); substitute independent reviews are
+  logged in [docs/CODERABBIT_REPORT.md](docs/CODERABBIT_REPORT.md).
+* **Online services**: no hosted backend; leaderboards are local-only until `leaderboard.base_url` is
+  configured. Ads, in-app purchases and push notifications use null providers that report
+  "unavailable" honestly; real SDKs and accounts are needed.
+* **Device testing**: no physical device was available — performance, battery, thermal and haptics were
+  verified by code, headless tests and software-rendered screenshots, not on hardware.
+* The repository root still contains an unrelated legacy web project (see note above).
+
 ## Documentation
 
 | Doc | Contents |

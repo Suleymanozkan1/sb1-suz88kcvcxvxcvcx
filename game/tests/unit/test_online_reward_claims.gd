@@ -41,7 +41,9 @@ func test_rejects_duplicate_daily_claim() -> void:
 func test_rejects_claims_for_unverified_completions() -> void:
 	var daily: Dictionary = _verifier.verify_reward_claim(_daily_claim(1), _history([]))
 	assert_has(daily["reasons"], ReplayVerifier.CLAIM_LEVEL_NOT_VERIFIED)
-	var level_claim: Dictionary = {"type": "level", "level_id": "w02_l07", "first_clear": true, "deltas": {"coins": 120}}
+	var level_claim: Dictionary = {
+		"type": "level", "level_id": "w02_l07", "first_clear": true, "deltas": {"coins": 120}
+	}
 	var unverified: Dictionary = _verifier.verify_reward_claim(level_claim, _history(["w02_l06"]))
 	assert_has(unverified["reasons"], ReplayVerifier.CLAIM_LEVEL_NOT_VERIFIED)
 	assert_true(bool(_verifier.verify_reward_claim(level_claim, _history(["w02_l07"]))["valid"]), "verified level ok")

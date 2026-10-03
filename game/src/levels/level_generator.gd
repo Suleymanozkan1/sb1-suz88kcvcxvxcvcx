@@ -44,6 +44,7 @@ var _segment_left: int = 0
 var _last_dash_d: float = -INF
 var _slot_index: int = 0
 var _window_min_seen: float = INF
+var _dropped: int = 0
 
 
 ## Generates a complete level dictionary (or an empty dictionary on failure).
@@ -114,6 +115,8 @@ func start(level_spec: LevelSpec, attempt: int = 0) -> void:
 
 ## Fixed ramp distance (independent of final length so planning == playback).
 func _ramp_distance() -> float:
+	if spec.ramp_distance > 0.0:
+		return snappedf(spec.ramp_distance, 0.01)
 	return snappedf(LEAD_IN + TAIL + spec.spacing * float(spec.slot_count), 0.01)
 
 
@@ -138,6 +141,35 @@ func planned_taps() -> PackedInt32Array:
 ## Distance up to which slots have been planned (endless streaming frontier).
 func frontier() -> float:
 	return _cursor_d
+
+
+## Entities forgotten by [method compact] so far (streaming index offset).
+func dropped_count() -> int:
+	return _dropped
+
+
+## Streaming only: forgets up to [param max_drop] of the oldest committed
+## entities that lie more than [param behind] metres behind the planning
+## checkpoint. They can no longer influence planning (the checkpoint treats
+## everything behind the core as resolved), so the course is unchanged while
+## the per-slot cost stays bounded however long the run lasts.
+func compact(max_drop: int, behind: float) -> int:
+	if _checkpoint == null or max_drop <= 0:
+		return 0
+	var cutoff: float = _checkpoint.d - behind
+	var n: int = 0
+	while n < max_drop and n < _entities.size() and float(_entities[n].get("d", 0.0)) < cutoff:
+		n += 1
+	if n == 0:
+		return 0
+	var kept: Array[Dictionary] = []
+	for i: int in range(n, _entities.size()):
+		kept.append(_entities[i])
+	_entities = kept
+	_dropped += n
+	_rebuild_level()
+	_checkpoint = _retarget(_checkpoint, _level)
+	return n
 
 
 ## Level header for an endless stream: the base level fields with no length

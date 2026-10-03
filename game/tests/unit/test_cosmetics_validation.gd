@@ -125,14 +125,17 @@ func test_detects_premium_item_not_sold() -> void:
 func test_detects_products_with_unknown_or_non_cosmetic_content() -> void:
 	var products: Dictionary = _fixture_products()
 	var list: Array = products["products"] as Array
-	list.append(
-		{
-			"id": "pack_bad",
-			"type": "non_consumable",
-			"name_key": "cos.product.pack_bad.name",
-			"items": ["ghost_item", "t_core"],
-			"coins": 5000,
-		}
+	(
+		list
+		. append(
+			{
+				"id": "pack_bad",
+				"type": "non_consumable",
+				"name_key": "cos.product.pack_bad.name",
+				"items": ["ghost_item", "t_core"],
+				"coins": 5000,
+			}
+		)
 	)
 	list.append({"id": "pack_gems", "type": "consumable", "name_key": "cos.product.pack_gems.name", "items": []})
 	var c: CosmeticCatalog = CosmeticCatalog.from_data(_fixture(), products)
@@ -219,7 +222,8 @@ func _fixture() -> Dictionary:
 
 func _fixture_products() -> Dictionary:
 	return {
-		"products": [
+		"products":
+		[
 			{
 				"id": "pack_t",
 				"type": "non_consumable",

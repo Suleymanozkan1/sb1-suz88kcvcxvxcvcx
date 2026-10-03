@@ -42,6 +42,8 @@ var cluster_chance: float = 0.0
 
 var hop_time: float = SimConst.HOP_TIME
 var speed_ramp: float = 0.0
+## Distance over which speed_ramp is applied; 0 = derived from the slot plan.
+var ramp_distance: float = 0.0
 var forgiving: bool = false
 var tutorial: bool = false
 var min_window: float = 0.3

@@ -70,13 +70,18 @@ func test_price_of_normalises_formats() -> void:
 
 
 func test_sanitize_config_uses_fallbacks_for_bad_values() -> void:
-	var config: Dictionary = EconomyService.sanitize_config({
-		"max_single_grant": {"coins": -5, "gems": "many"},
-		"balance_cap": "broken",
-		"duplicate_cosmetic_coins": "abc",
-		"starting": {"coins": 999999, "gems": -1},
-		"integrity": [],
-	})
+	var config: Dictionary = (
+		EconomyService
+		. sanitize_config(
+			{
+				"max_single_grant": {"coins": -5, "gems": "many"},
+				"balance_cap": "broken",
+				"duplicate_cosmetic_coins": "abc",
+				"starting": {"coins": 999999, "gems": -1},
+				"integrity": [],
+			}
+		)
+	)
 	var max_grant: Dictionary = config[EconomyService.KEY_MAX_SINGLE_GRANT] as Dictionary
 	assert_eq(int(max_grant["coins"]), int(EconomyService.FALLBACK_MAX_SINGLE_GRANT["coins"]))
 	assert_eq(int(max_grant["gems"]), int(EconomyService.FALLBACK_MAX_SINGLE_GRANT["gems"]))

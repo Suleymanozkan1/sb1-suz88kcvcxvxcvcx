@@ -91,14 +91,16 @@ static func merge_remote(data: Dictionary, remote: RemoteConfig) -> Dictionary:
 func to_dict() -> Dictionary:
 	return {
 		"enabled": enabled,
-		"interstitial": {
+		"interstitial":
+		{
 			"enabled": interstitial_enabled,
 			"placements": Array(interstitial_placements),
 			"min_levels_cleared": min_levels_cleared,
 			"every_n_levels": every_n_levels,
 			"cooldown_seconds": cooldown_seconds,
 		},
-		"rewarded": {
+		"rewarded":
+		{
 			"enabled": rewarded_enabled,
 			"placements": Array(rewarded_placements),
 			"revives_per_run": revives_per_run,

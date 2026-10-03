@@ -39,7 +39,9 @@ static func world_name(world: Dictionary) -> String:
 
 static func main_menu(s: AppServices) -> Dictionary:
 	var p: PlayerProfile = s.profile
-	var need: int = maxi(1, s.progression.xp_for_next(p.player_level))
+	# XP inside the current level (profile.xp is the lifetime total).
+	var xp_state: Dictionary = s.progression.xp_progress()
+	var need: int = maxi(1, int(xp_state.get("needed", 1)))
 	var next_id: String = s.progression.next_level_to_play()
 	var loc: Dictionary = WorldCatalog.parse_level_id(next_id)
 	var world: Dictionary = s.catalog.world_at(int(loc.get("world_index", 1)))
@@ -54,7 +56,8 @@ static func main_menu(s: AppServices) -> Dictionary:
 	var daily: Dictionary = s.daily.status()
 	var claimable: int = s.missions.claimable_count()
 	var badge: String = ""
-	if not bool(daily.get("completed", false)):
+	var daily_open: bool = s.modes.is_unlocked(&"daily", s.mode_progress())
+	if daily_open and not bool(daily.get("completed", false)):
 		badge = t("menu.daily_new")
 	elif claimable > 0:
 		badge = str(claimable)
@@ -62,7 +65,7 @@ static func main_menu(s: AppServices) -> Dictionary:
 		"coins": s.economy.balance(EconomyService.COINS),
 		"gems": s.economy.balance(EconomyService.GEMS),
 		"player_level": p.player_level,
-		"xp_progress": float(p.xp) / float(need),
+		"xp_progress": float(int(xp_state.get("into_level", 0))) / float(need),
 		"next_level_label":
 		t("menu.next_level").format({"world": world_name(world), "n": int(loc.get("local_index", 1))}),
 		"unlock": unlock,
@@ -172,7 +175,10 @@ static func daily(s: AppServices) -> Dictionary:
 		for m: Dictionary in s.missions.active(kind):
 			list.append(m)
 		missions[kind] = list
+	var req: Dictionary = s.modes.requirement(&"daily")
 	return {
+		"unlocked": s.modes.is_unlocked(&"daily", s.mode_progress()),
+		"requirement": t(str(req["key"])).format(req["args"] as Dictionary),
 		"date_label": t("daily.date").format({"date": str(status.get("date_key", ""))}),
 		"world_name": world_name(world),
 		"status": status,
@@ -217,8 +223,8 @@ static func progress(s: AppServices, tab: String, board: Dictionary) -> Dictiona
 			perfect_count += 1
 	return {
 		"player_level": p.player_level,
-		"xp": p.xp,
-		"xp_next": s.progression.xp_for_next(p.player_level),
+		"xp": int(s.progression.xp_progress().get("into_level", 0)),
+		"xp_next": maxi(1, int(s.progression.xp_progress().get("needed", 1))),
 		"stars": s.progression.total_stars(),
 		"max_stars": s.progression.max_stars(),
 		"perfects": perfect_count,

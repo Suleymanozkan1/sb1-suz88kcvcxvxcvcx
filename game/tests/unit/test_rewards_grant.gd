@@ -168,7 +168,9 @@ func test_double_for_ad_follows_data() -> void:
 
 
 func test_bundle_from_spec_builds_every_type() -> void:
-	var spec: Dictionary = {"coins": 40, "gems": 2.0, "xp": 15, "cosmetic": "trail_helix", "badge": "badge_first_perfect"}
+	var spec: Dictionary = {
+		"coins": 40, "gems": 2.0, "xp": 15, "cosmetic": "trail_helix", "badge": "badge_first_perfect"
+	}
 	var bundle: RewardBundle = engine.bundle_from_spec(spec, "achievement:first_perfect")
 	assert_eq(bundle.source, "achievement:first_perfect")
 	assert_eq(bundle.amount_of(RewardBundle.TYPE_COINS), 40)

@@ -78,7 +78,8 @@ func test_migrates_enveloped_v0_save() -> void:
 
 func test_migrated_save_is_rewritten_and_legacy_kept_as_backup() -> void:
 	var legacy_text: String = SaveService.encode_payload(
-		{"coins": 77, "stars": {"w01_l01": 2}, "best": {"w01_l01": 999}}, SaveMigrations.LEGACY_VERSION, 0)
+		{"coins": 77, "stars": {"w01_l01": 2}, "best": {"w01_l01": 999}}, SaveMigrations.LEGACY_VERSION, 0
+	)
 	_storage.corrupt(SaveService.MAIN, legacy_text)
 	var service: SaveService = _service()
 	var p: PlayerProfile = service.load_profile()

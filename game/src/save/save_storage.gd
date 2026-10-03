@@ -13,7 +13,7 @@ const TEMP_SUFFIX: String = ".tmp"
 ## Longest accepted entry name (well below every platform's file name limit).
 const MAX_NAME_LENGTH: int = 96
 ## Characters that would let a name escape the storage directory.
-const FORBIDDEN_NAME_CHARS: PackedStringArray = ["/", "\\", ":", "*", "?", "\"", "<", ">", "|"]
+const FORBIDDEN_NAME_CHARS: PackedStringArray = ["/", "\\", ":", "*", "?", '"', "<", ">", "|"]
 ## Lowest character code allowed in a name (everything below is a control code).
 const FIRST_PRINTABLE_CODE: int = 0x20
 ## The DEL control character, also refused in names.

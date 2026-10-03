@@ -84,7 +84,9 @@ func test_v0_with_many_levels_keeps_every_level() -> void:
 	for i: int in 3000:
 		stars["lvl_%05d" % i] = i % 4
 		best["lvl_%05d" % (i + 1500)] = i
-	var levels: Dictionary = SaveMigrations.migrate({"coins": 1, "stars": stars, "best": best}, 0)["levels"] as Dictionary
+	var levels: Dictionary = (
+		SaveMigrations.migrate({"coins": 1, "stars": stars, "best": best}, 0)["levels"] as Dictionary
+	)
 	assert_eq(levels.size(), 4500, "union of both maps")
 	assert_eq((levels["lvl_00003"] as Dictionary)["stars"], 3)
 	assert_eq((levels["lvl_04499"] as Dictionary)["best_score"], 2999)

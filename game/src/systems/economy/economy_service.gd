@@ -296,13 +296,18 @@ func recent_ledger(currency: StringName = &"", limit: int = 0) -> Array[Dictiona
 			continue
 		if currency != &"" and entry_currency != String(currency):
 			continue
-		out.append({
-			LEDGER_TIME: int_or(entry.get(LEDGER_TIME), 0),
-			LEDGER_CURRENCY: entry_currency,
-			LEDGER_DELTA: int_or(entry.get(LEDGER_DELTA), 0),
-			LEDGER_SOURCE: str(entry.get(LEDGER_SOURCE, UNKNOWN_SOURCE)),
-			LEDGER_BALANCE: int_or(entry.get(LEDGER_BALANCE), 0),
-		})
+		(
+			out
+			. append(
+				{
+					LEDGER_TIME: int_or(entry.get(LEDGER_TIME), 0),
+					LEDGER_CURRENCY: entry_currency,
+					LEDGER_DELTA: int_or(entry.get(LEDGER_DELTA), 0),
+					LEDGER_SOURCE: str(entry.get(LEDGER_SOURCE, UNKNOWN_SOURCE)),
+					LEDGER_BALANCE: int_or(entry.get(LEDGER_BALANCE), 0),
+				}
+			)
+		)
 		if limit > 0 and out.size() >= limit:
 			break
 	return out
@@ -317,13 +322,19 @@ func _apply(currency: StringName, new_balance: int, delta: int, source: String) 
 	var label: String = source.strip_edges()
 	if label.is_empty():
 		label = UNKNOWN_SOURCE
-	_profile.ledger.append({
-		LEDGER_TIME: _clock.now_unix(),
-		LEDGER_CURRENCY: String(currency),
-		LEDGER_DELTA: delta,
-		LEDGER_SOURCE: label.left(MAX_SOURCE_LENGTH),
-		LEDGER_BALANCE: new_balance,
-	})
+	(
+		_profile
+		. ledger
+		. append(
+			{
+				LEDGER_TIME: _clock.now_unix(),
+				LEDGER_CURRENCY: String(currency),
+				LEDGER_DELTA: delta,
+				LEDGER_SOURCE: label.left(MAX_SOURCE_LENGTH),
+				LEDGER_BALANCE: new_balance,
+			}
+		)
+	)
 	while _profile.ledger.size() > PlayerProfile.LEDGER_LIMIT:
 		_profile.ledger.remove_at(0)
 	if _bus != null:
@@ -342,4 +353,3 @@ static func _currency_map(raw: Variant, fallback: Dictionary, minimum: int) -> D
 			value = int(fallback[key])
 		out[key] = value
 	return out
-

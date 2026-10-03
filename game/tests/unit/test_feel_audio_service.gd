@@ -30,7 +30,9 @@ func _spawn_audio() -> AudioService:
 
 func test_malformed_shimmer_config_is_sanitised() -> void:
 	var data: Dictionary = JsonIO.read_dict(SoundBank.DEFAULT_PATH)
-	(data["mixer"] as Dictionary)["shimmer"] = {"kinds": "collect", "min_step": "ten", "semitones": {}, "volume_db": [1]}
+	(data["mixer"] as Dictionary)["shimmer"] = {
+		"kinds": "collect", "min_step": "ten", "semitones": {}, "volume_db": [1]
+	}
 	var bank: SoundBank = SoundBank.new(data)
 	assert_false(bank.is_valid())
 	assert_has(bank.problems, "mixer.shimmer.kinds must be a list")

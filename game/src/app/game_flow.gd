@@ -30,6 +30,8 @@ var _last_outcome: Dictionary = {}
 var _settings_return: StringName = &""
 var _restore_status: String = ""
 var _ending: bool = false
+var _uncommitted: RunResult = null
+var _reveal_return: GameStateMachine.State = GameStateMachine.State.MAIN_MENU
 
 
 func _ready() -> void:
@@ -174,11 +176,7 @@ func _build_ui() -> void:
 	router.register(&"reward", reward)
 	reward.continue_requested.connect(_next_reveal)
 	reward.item_landed.connect(func(_i: int) -> void: s.audio.play_sfx(&"coin"))
-	router.back_unhandled.connect(
-		func() -> void:
-			if router.current_id == &"main":
-				s.flush_now()
-	)
+	router.back_unhandled.connect(_on_back_unhandled)
 
 
 # --- Navigation ------------------------------------------------------------------
@@ -194,6 +192,7 @@ func _show_main() -> void:
 	router.show_screen(&"main", Presenters.main_menu(s))
 	if not attract:
 		_start_attract()
+	_reveals.append_array(s.take_level_up_reveals())
 	if not _reveals.is_empty():
 		_next_reveal()
 
@@ -218,7 +217,11 @@ func _show_daily() -> void:
 	s.missions.refresh()
 	_go(GameStateMachine.State.DAILY)
 	router.show_screen(&"daily", Presenters.daily(s))
-	s.analytics.track(&"daily_started", {})
+	var daily_status: Dictionary = s.daily.status()
+	s.analytics.track(
+		&"daily_started",
+		{"date_key": str(daily_status.get("date_key", "")), "streak": int(daily_status.get("streak", 0))}
+	)
 
 
 func _on_tab(tab: StringName) -> void:
@@ -230,7 +233,7 @@ func _on_tab(tab: StringName) -> void:
 		&"shop":
 			_go(GameStateMachine.State.SHOP)
 			router.show_screen(&"shop", Presenters.cosmetics(s, &"shop"))
-			s.analytics.track(&"shop_opened", {})
+			s.analytics.track(&"shop_opened", {"source": "menu", "tab": "shop"})
 		&"collection":
 			_go(GameStateMachine.State.COLLECTION)
 			router.show_screen(&"collection", Presenters.cosmetics(s, &"collection"))
@@ -287,6 +290,8 @@ func _play_campaign(level_id: String, mode_id: StringName) -> void:
 
 func _start_run(mode_id: StringName, level_id: String = "") -> void:
 	if not s.modes.is_unlocked(mode_id, s.mode_progress()):
+		var req: Dictionary = s.modes.requirement(mode_id)
+		toast.show_message(Presenters.t(str(req["key"])).format(req["args"] as Dictionary), &"lock")
 		return
 	attract = false
 	session.autopilot = PackedInt32Array()
@@ -308,7 +313,18 @@ func _start_run(mode_id: StringName, level_id: String = "") -> void:
 	_go(GameStateMachine.State.PLAYING)
 	var world: Dictionary = s.catalog.world(str(session.level_data.get("world", "")))
 	s.audio.play_music(str(world.get("id", "menu")), str(session.level_data.get("kind", "")) == "boss")
-	s.analytics.track(&"level_started", {"level": str(runs.context.get("level_id", "")), "mode": String(mode_id)})
+	(
+		s
+		. analytics
+		. track(
+			&"level_started",
+			{
+				"level_id": str(runs.context.get("level_id", "")),
+				"world_id": str(runs.context.get("world_id", "")),
+				"mode": String(mode_id),
+			}
+		)
+	)
 
 
 func _present_level(data: Dictionary) -> void:
@@ -318,6 +334,7 @@ func _present_level(data: Dictionary) -> void:
 
 
 func _restart() -> void:
+	_commit_pending()
 	router.close_overlays()
 	_ending = false
 	if runs.streamer != null:
@@ -335,8 +352,20 @@ func _restart() -> void:
 	s.bus.run_restarted.emit(str(runs.context.get("level_id", "")))
 
 
+## Android Back / Escape with no screen handler: pauses a run, leaves the app
+## from the main menu (after saving), otherwise goes home.
+func _on_back_unhandled() -> void:
+	if fsm.current == GameStateMachine.State.PLAYING or fsm.current == GameStateMachine.State.COUNTDOWN:
+		_pause()
+	elif router.current_id == &"main":
+		s.flush_now()
+		get_tree().quit()
+
+
 func _pause() -> void:
-	if attract or not session.is_running():
+	# The READY beat counts too: a run must never start while nobody watches.
+	var live: bool = session.phase == GameplaySession.Phase.RUNNING or session.phase == GameplaySession.Phase.READY
+	if attract or session.paused or not live:
 		return
 	session.set_paused(true)
 	_go(GameStateMachine.State.PAUSED)
@@ -352,6 +381,7 @@ func _resume() -> void:
 
 
 func _quit_run() -> void:
+	_commit_pending()
 	session.set_paused(false)
 	_ending = false
 	router.close_overlays()
@@ -375,7 +405,13 @@ func _on_run_ended(result: RunResult) -> void:
 		s.bus.run_completed.emit(result)
 	else:
 		s.bus.run_failed.emit(result)
-	_last_outcome = runs.finish(result)
+	if runs.can_offer_revive(result):
+		# Nothing is applied yet: if the player revives, the continued run is
+		# applied once when it ends; otherwise it is applied on leaving.
+		_last_outcome = runs.preview(result)
+		_uncommitted = result
+	else:
+		_last_outcome = runs.finish(result)
 	await get_tree().create_timer(RESULT_DELAY).timeout
 	_ending = false
 	# The result card owns the screen: the HUD steps away underneath it.
@@ -422,14 +458,29 @@ func _schedule_reveals(delay: float) -> void:
 
 
 ## Shows queued reveals (level-up, unlocks, achievements) one at a time on top
-## of the result screen; the result screen stays underneath.
+## of the result screen; the result screen stays underneath. When the last one
+## closes, the state machine returns to the state it came from.
 func _next_reveal() -> void:
 	router.close_overlay(&"reward")
 	if _reveals.is_empty():
+		if fsm.current == GameStateMachine.State.REWARD and _reveal_return != GameStateMachine.State.REWARD:
+			fsm.transition_to(_reveal_return)
 		return
 	var r: Dictionary = _reveals.pop_front() as Dictionary
+	if fsm.current != GameStateMachine.State.REWARD:
+		_reveal_return = fsm.current
 	_go(GameStateMachine.State.REWARD)
 	router.push_overlay(&"reward", r)
+
+
+## Applies a failed run that was held back for a possible revive.
+func _commit_pending() -> void:
+	if _uncommitted == null:
+		return
+	var result: RunResult = _uncommitted
+	_uncommitted = null
+	var outcome: Dictionary = runs.finish(result)
+	_reveals.append_array(outcome.get("reveals", []) as Array)
 
 
 func _next_level() -> void:
@@ -442,19 +493,28 @@ func _next_level() -> void:
 
 
 func _revive() -> void:
+	if _uncommitted == null:
+		return
 	var shown: Dictionary = await s.ads.show_rewarded(&"revive")
 	if not bool(shown.get("granted", false)):
 		return
 	if session.revive():
+		# The run continues; it is applied once, cumulatively, when it ends.
+		_uncommitted = null
+		_reveals.clear()
 		router.close_overlays()
 		router.show_screen(&"hud", {})
-		_go(GameStateMachine.State.PLAYING)
+		fsm.transition_to(GameStateMachine.State.PLAYING)
 
 
 func _double_reward() -> void:
 	var bundle: RewardBundle = _last_outcome.get("reward") as RewardBundle
-	if bundle == null:
+	if bundle == null or bool(_last_outcome.get("doubled", false)):
 		return
+	# One optional double per result: the button goes away before the ad runs.
+	_last_outcome["doubled"] = true
+	_last_outcome["can_double"] = false
+	(router.screen(&"complete") as CompleteOverlay).disable_double()
 	var shown: Dictionary = await s.ads.show_rewarded(&"double_reward")
 	if not bool(shown.get("granted", false)):
 		return
@@ -477,7 +537,8 @@ func _claim_mission(mission_id: String) -> void:
 	var bundle: RewardBundle = s.missions.claim(mission_id)
 	if bundle == null or bundle.is_empty():
 		return
-	s.analytics.track(&"mission_claimed", {"id": mission_id})
+	s.analytics.track(&"mission_claimed", {"mission_id": mission_id})
+	_reveals.append_array(s.take_level_up_reveals())
 	router.show_screen(&"daily", Presenters.daily(s))
 	_reveals.append(
 		{

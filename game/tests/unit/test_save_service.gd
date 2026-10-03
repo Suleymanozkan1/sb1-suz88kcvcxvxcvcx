@@ -66,13 +66,25 @@ func _rich_profile() -> PlayerProfile:
 	p.xp = 7890
 	p.player_level = 12
 	p.levels = {
-		"w01_l01": {
-			"stars": 3, "best_score": 4200, "perfect": true, "clears": 5,
-			"attempts": 9, "best_combo": 31, "best_time": 41.25,
+		"w01_l01":
+		{
+			"stars": 3,
+			"best_score": 4200,
+			"perfect": true,
+			"clears": 5,
+			"attempts": 9,
+			"best_combo": 31,
+			"best_time": 41.25,
 		},
-		"w02_l07": {
-			"stars": 1, "best_score": 120, "perfect": false, "clears": 1,
-			"attempts": 4, "best_combo": 3, "best_time": 63.0,
+		"w02_l07":
+		{
+			"stars": 1,
+			"best_score": 120,
+			"perfect": false,
+			"clears": 1,
+			"attempts": 4,
+			"best_combo": 3,
+			"best_time": 63.0,
 		},
 	}
 	p.unlocked_worlds = ["neon_core", "crystal_valley"]
@@ -158,8 +170,8 @@ func test_decode_rejects_damaged_inputs() -> void:
 		"garbage": "%$#@! not a save ~~~",
 		"truncated": JSON.stringify(good).substr(0, 40),
 		"array root": "[1, 2, 3]",
-		"bare object": "{\"hello\": \"world\"}",
-		"bare legacy object": "{\"coins\": 999999, \"stars\": {\"w01_l01\": 3}, \"best\": {}}",
+		"bare object": '{"hello": "world"}',
+		"bare legacy object": '{"coins": 999999, "stars": {"w01_l01": 3}, "best": {}}',
 	}
 	var variants: Dictionary = {
 		"wrong format": {"format": "another-game"},
@@ -187,7 +199,8 @@ func _golden_payload() -> Dictionary:
 		"created_at": 1789990000,
 		"coins": 4321,
 		"gems": 7,
-		"levels": {
+		"levels":
+		{
 			"w01_l01": {"stars": 3, "best_score": 4200, "perfect": true, "best_time": 41.25},
 			"w03_l12": {"stars": 1, "best_score": 120, "perfect": false, "best_time": 63.0},
 		},

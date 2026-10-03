@@ -17,8 +17,13 @@ func _service() -> ProgressionService:
 func _clear_direct(world_index: int, from_local: int, to_local: int, stars: int) -> void:
 	for local_index: int in range(from_local, to_local + 1):
 		profile.levels[WorldCatalog.level_id(world_index, local_index)] = {
-			"stars": stars, "best_score": 100, "perfect": stars == 3, "clears": 1,
-			"attempts": 1, "best_combo": 3, "best_time": 20.0,
+			"stars": stars,
+			"best_score": 100,
+			"perfect": stars == 3,
+			"clears": 1,
+			"attempts": 1,
+			"best_combo": 3,
+			"best_time": 20.0,
 		}
 
 

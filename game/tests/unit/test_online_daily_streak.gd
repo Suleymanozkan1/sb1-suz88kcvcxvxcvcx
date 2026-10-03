@@ -272,7 +272,7 @@ func test_corrupted_daily_slice_is_tolerated() -> void:
 	var status: Dictionary = svc.status()
 	assert_eq(int(status["best_score"]), 800)
 	var rank: Dictionary = svc.rank_text_local(100)
-	assert_eq(int(rank["total"]), 2, "only real completions count (\"yes\" is not true)")
+	assert_eq(int(rank["total"]), 2, 'only real completions count ("yes" is not true)')
 
 
 func test_state_survives_profile_round_trip() -> void:

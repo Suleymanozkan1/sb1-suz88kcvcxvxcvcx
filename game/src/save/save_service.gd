@@ -194,13 +194,16 @@ static func encode_payload(payload: Dictionary, version: int, now_unix: int) -> 
 		GameLog.error("save", "payload cannot be encoded as JSON")
 		return ""
 	# Same text JsonIO.canonical(envelope) yields, without re-serialising the payload.
-	return "{\"checksum\":%s,\"format\":%s,\"payload\":%s,\"saved_at\":%d,\"version\":%d}" % [
-		JSON.stringify(_checksum(parsed as Dictionary)),
-		JSON.stringify(FORMAT),
-		payload_text,
-		maxi(0, now_unix),
-		version,
-	]
+	return (
+		'{"checksum":%s,"format":%s,"payload":%s,"saved_at":%d,"version":%d}'
+		% [
+			JSON.stringify(_checksum(parsed as Dictionary)),
+			JSON.stringify(FORMAT),
+			payload_text,
+			maxi(0, now_unix),
+			version,
+		]
+	)
 
 
 ## Parses and verifies a save. Returns

@@ -352,7 +352,7 @@ func _template_problems(raw: Variant, kind: String, known_stats: PackedStringArr
 			or str((req as Dictionary).get("stat", "")).is_empty()
 			or not _is_integral((req as Dictionary).get("min", null))
 		):
-			problems.append("requires must be {\"stat\": String, \"min\": int}")
+			problems.append('requires must be {"stat": String, "min": int}')
 		elif not known_stats.is_empty() and not known_stats.has(str((req as Dictionary)["stat"])):
 			problems.append("unknown stat '%s' in requires" % str((req as Dictionary)["stat"]))
 	if t.has("daily_cap") and (not _is_integral(t["daily_cap"]) or int(t["daily_cap"]) <= 0):
@@ -388,17 +388,20 @@ func _assign(kind: String, key: String, day: int) -> Dictionary:
 		var target_index: int = _reachable_index(targets, rolled, _reach_limit(t, days_left))
 		var stat_name: String = t["stat"]
 		var id: String = "%s:%s:%s" % [kind, key, t["id"]]
-		records.append(
-			{
-				"id": id,
-				"template": t["id"],
-				"desc_key": t["desc_key"],
-				"stat": stat_name,
-				"target": targets[target_index],
-				"baseline": 0 if _is_virtual(stat_name) else _profile.stat(stat_name),
-				"claimed": claimed_before.has(id),
-				"reward": _scaled_reward(t["reward"], target_index),
-			}
+		(
+			records
+			. append(
+				{
+					"id": id,
+					"template": t["id"],
+					"desc_key": t["desc_key"],
+					"stat": stat_name,
+					"target": targets[target_index],
+					"baseline": 0 if _is_virtual(stat_name) else _profile.stat(stat_name),
+					"claimed": claimed_before.has(id),
+					"reward": _scaled_reward(t["reward"], target_index),
+				}
+			)
 		)
 	GameLog.info(LOG_CHANNEL, "assigned %d %s missions for %s" % [records.size(), kind, key])
 	return {"key": key, "assigned_at": _clock.now_unix(), "best_combo": 0, "missions": records}

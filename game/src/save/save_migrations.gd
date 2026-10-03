@@ -27,8 +27,10 @@ static func is_supported(version: int) -> bool:
 ## an empty dictionary so callers can refuse them without losing the original.
 static func migrate(payload: Dictionary, from_version: int) -> Dictionary:
 	if not is_supported(from_version):
-		GameLog.warn("save", "cannot migrate save version %d (supported %d..%d)" % [
-			from_version, LEGACY_VERSION, CURRENT_VERSION])
+		GameLog.warn(
+			"save",
+			"cannot migrate save version %d (supported %d..%d)" % [from_version, LEGACY_VERSION, CURRENT_VERSION]
+		)
 		return {}
 	var data: Dictionary = payload.duplicate(true)
 	var version: int = from_version

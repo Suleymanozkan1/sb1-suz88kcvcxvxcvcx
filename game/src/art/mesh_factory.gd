@@ -178,6 +178,67 @@ static func rib(profile: String) -> ArrayMesh:
 				_crystal(st, Vector3(base_x, 0.0, 0.0), 0.34, RIB_HEIGHT * 0.95, 0.0)
 				_crystal(st, Vector3(base_x - side3 * 0.42, 0.0, 0.18), 0.22, RIB_HEIGHT * 0.55, -side3 * 0.22)
 				_crystal(st, Vector3(base_x + side3 * 0.38, 0.0, -0.2), 0.2, RIB_HEIGHT * 0.45, side3 * 0.3)
+		"truss":
+			# Foundry gantry: heavy columns, a crane beam and K-bracing under it.
+			_pillars(st, RIB_HEIGHT, t * 1.5)
+			_append_chamfered_box(
+				st,
+				Vector3(RIB_SPAN * 2.0 + t * 2.0, t * 1.6, t * 1.3),
+				CHAMFER_RATIO,
+				Transform3D(Basis.IDENTITY, Vector3(0, RIB_HEIGHT, 0))
+			)
+			for side5: float in [-1.0, 1.0]:
+				var from: Vector3 = Vector3(side5 * RIB_SPAN, RIB_HEIGHT * 0.62, 0.0)
+				var to: Vector3 = Vector3(side5 * RIB_SPAN * 0.35, RIB_HEIGHT - t * 0.8, 0.0)
+				_strut(st, from, to, t * 0.7)
+		"icicle":
+			# Pointed ice arch (two straight limbs meeting at the apex) with spikes
+			# hanging from it; the spike lengths follow a fixed rule, not noise.
+			var apex: Vector3 = Vector3(0.0, RIB_HEIGHT * 1.12, 0.0)
+			for side6: float in [-1.0, 1.0]:
+				var foot: Vector3 = Vector3(side6 * RIB_SPAN, 0.0, 0.0)
+				var knee: Vector3 = Vector3(side6 * RIB_SPAN, RIB_HEIGHT * 0.55, 0.0)
+				_strut(st, foot, knee, t)
+				_strut(st, knee, apex, t)
+				for k: int in 3:
+					var u: float = 0.25 + 0.25 * float(k)
+					var at: Vector3 = knee.lerp(apex, u) - Vector3(0, t * 0.5, 0)
+					_spike(st, at, t * 0.55, 0.35 + 0.22 * float((k + 1) % 3))
+		"ring":
+			# Station hoop: a near-complete circle around the shaft (the part
+			# that would sit below the floor is omitted).
+			var ring_r: float = RIB_SPAN * 1.12
+			var ring_c: Vector3 = Vector3(0.0, RIB_HEIGHT * 0.5, 0.0)
+			var seg_count: int = 14
+			for s3: int in seg_count:
+				var a0r: float = TAU * float(s3) / float(seg_count)
+				var a1r: float = TAU * float(s3 + 1) / float(seg_count)
+				var q0: Vector3 = ring_c + Vector3(cos(a0r), sin(a0r), 0.0) * ring_r
+				var q1: Vector3 = ring_c + Vector3(cos(a1r), sin(a1r), 0.0) * ring_r
+				if minf(q0.y, q1.y) < 0.05:
+					continue
+				_strut(st, q0, q1, t)
+		"candy":
+			# Twisted columns (stacked chamfered blocks turned a fixed step) and a
+			# scalloped beam: playful, but still the one block family.
+			for side7: float in [-1.0, 1.0]:
+				var blocks: int = 9
+				var bh: float = RIB_HEIGHT / float(blocks)
+				for b: int in blocks:
+					var twist: Basis = Basis(Vector3.UP, float(b) * PI / 9.0)
+					_append_chamfered_box(
+						st,
+						Vector3(t * 1.7, bh * 0.92, t * 1.7),
+						CHAMFER_RATIO * 2.0,
+						Transform3D(twist, Vector3(side7 * RIB_SPAN, bh * (float(b) + 0.5), 0.0))
+					)
+			var scallops: int = 5
+			for k2: int in scallops:
+				var x0: float = lerpf(-RIB_SPAN, RIB_SPAN, float(k2) / float(scallops))
+				var x1: float = lerpf(-RIB_SPAN, RIB_SPAN, float(k2 + 1) / float(scallops))
+				var lift: float = 0.22
+				_strut(st, Vector3(x0, RIB_HEIGHT, 0.0), Vector3((x0 + x1) * 0.5, RIB_HEIGHT + lift, 0.0), t)
+				_strut(st, Vector3((x0 + x1) * 0.5, RIB_HEIGHT + lift, 0.0), Vector3(x1, RIB_HEIGHT, 0.0), t)
 		_:
 			_pillars(st, RIB_HEIGHT, t)
 			_append_chamfered_box(
@@ -190,6 +251,33 @@ static func rib(profile: String) -> ArrayMesh:
 	var mesh: ArrayMesh = st.commit()
 	_cache[key] = mesh
 	return mesh
+
+
+## Chamfered beam from [param a] to [param b] (in the XY plane of the rib).
+static func _strut(st: SurfaceTool, a: Vector3, b: Vector3, thickness: float) -> void:
+	var mid: Vector3 = (a + b) * 0.5
+	var ang: float = atan2(b.y - a.y, b.x - a.x)
+	_append_chamfered_box(
+		st,
+		Vector3(a.distance_to(b) + thickness, thickness, thickness),
+		CHAMFER_RATIO,
+		Transform3D(Basis(Vector3.BACK, ang), mid)
+	)
+
+
+## Downward hexagonal spike hanging from [param top], built from the same
+## flat-shaded triangles as the blocks (one vertex format per mesh).
+static func _spike(st: SurfaceTool, top: Vector3, radius: float, length: float) -> void:
+	var xform: Transform3D = Transform3D(Basis.IDENTITY, top - Vector3(0, length * 0.5, 0))
+	var apex: Vector3 = Vector3(0, -length * 0.5, 0)
+	var cap: Vector3 = Vector3(0, length * 0.5, 0)
+	for k: int in 6:
+		var a0: float = TAU * float(k) / 6.0
+		var a1: float = TAU * float(k + 1) / 6.0
+		var p0: Vector3 = Vector3(cos(a0) * radius, length * 0.5, sin(a0) * radius)
+		var p1: Vector3 = Vector3(cos(a1) * radius, length * 0.5, sin(a1) * radius)
+		_add_tri(st, p0, p1, apex, xform)
+		_add_tri(st, p1, p0, cap, xform)
 
 
 static func _crystal(st: SurfaceTool, base: Vector3, radius: float, height: float, lean: float) -> void:

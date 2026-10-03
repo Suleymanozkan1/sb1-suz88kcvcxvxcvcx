@@ -3,12 +3,39 @@ extends TestCase
 
 ## Stat names other modules (achievements/missions) rely on.
 const REQUIRED_STATS: PackedStringArray = [
-	"runs_played", "runs_failed", "levels_cleared", "unique_levels_cleared", "perfects", "unique_perfects",
-	"sparks_collected", "prisms_collected", "near_misses", "shatters", "chain_links", "gates_passed",
-	"portals_used", "currents_ridden", "overdrives", "max_combo", "total_score", "damage_free_clears",
-	"bosses_cleared", "challenges_cleared", "fast_clears", "daily_completed", "daily_streak_max",
-	"coins_earned", "cosmetics_owned", "achievements_unlocked", "worlds_completed", "worlds_perfected",
-	"taps", "revives_used", "zen_runs", "endless_best_distance", "time_played_seconds",
+	"runs_played",
+	"runs_failed",
+	"levels_cleared",
+	"unique_levels_cleared",
+	"perfects",
+	"unique_perfects",
+	"sparks_collected",
+	"prisms_collected",
+	"near_misses",
+	"shatters",
+	"chain_links",
+	"gates_passed",
+	"portals_used",
+	"currents_ridden",
+	"overdrives",
+	"max_combo",
+	"total_score",
+	"damage_free_clears",
+	"bosses_cleared",
+	"challenges_cleared",
+	"fast_clears",
+	"daily_completed",
+	"daily_streak_max",
+	"coins_earned",
+	"cosmetics_owned",
+	"achievements_unlocked",
+	"worlds_completed",
+	"worlds_perfected",
+	"taps",
+	"revives_used",
+	"zen_runs",
+	"endless_best_distance",
+	"time_played_seconds",
 ]
 
 var profile: PlayerProfile
@@ -55,8 +82,11 @@ func _result(completed: bool) -> RunResult:
 
 func _ctx(kind: String, duration: float, first_clear: bool = false, first_perfect: bool = false) -> Dictionary:
 	return {
-		"kind": kind, "first_clear": first_clear, "first_perfect": first_perfect,
-		"design_duration": duration, "mode": &"classic",
+		"kind": kind,
+		"first_clear": first_clear,
+		"first_perfect": first_perfect,
+		"design_duration": duration,
+		"mode": &"classic",
 	}
 
 

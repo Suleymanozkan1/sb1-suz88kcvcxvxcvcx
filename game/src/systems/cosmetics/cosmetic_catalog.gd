@@ -89,7 +89,8 @@ const CONFIG_TIERS: String = "perfect_tiers"
 
 ## Typed parameter schema per category.
 const PARAM_SCHEMA: Dictionary = {
-	"core_skin": {
+	"core_skin":
+	{
 		"style": ParamKind.INT,
 		"color_a": ParamKind.COLOR,
 		"color_b": ParamKind.COLOR,
@@ -98,14 +99,16 @@ const PARAM_SCHEMA: Dictionary = {
 	},
 	"trail": {"style": ParamKind.INT, "head": ParamKind.COLOR, "tail": ParamKind.COLOR},
 	"particle": {"colors": ParamKind.COLOR_LIST, "size_mult": ParamKind.FLOAT, "count_mult": ParamKind.FLOAT},
-	"background": {
+	"background":
+	{
 		"use_world_palette": ParamKind.BOOL,
 		"sky_top": ParamKind.COLOR,
 		"sky_bottom": ParamKind.COLOR,
 		"star_density": ParamKind.FLOAT,
 	},
 	"theme": {"accent": ParamKind.COLOR, "accent_2": ParamKind.COLOR, "panel_tint": ParamKind.COLOR},
-	"effect": {
+	"effect":
+	{
 		"fail_color": ParamKind.COLOR,
 		"perfect_color": ParamKind.COLOR,
 		"accent": ParamKind.COLOR,

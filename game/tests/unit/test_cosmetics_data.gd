@@ -167,7 +167,9 @@ func test_achievement_ids_and_badges_match_meta_data() -> void:
 		var reward: Dictionary = a.get("reward", {}) as Dictionary
 		if reward.has("badge"):
 			var badge: String = str(reward["badge"])
-			assert_eq(_catalog.category_of(badge), "badge", "achievement %s rewards defined badge %s" % [a["id"], badge])
+			assert_eq(
+				_catalog.category_of(badge), "badge", "achievement %s rewards defined badge %s" % [a["id"], badge]
+			)
 	for it: Dictionary in _catalog.items:
 		var unlock: Dictionary = _catalog.unlock_of(str(it["id"]))
 		if str(unlock["type"]) == "achievement":

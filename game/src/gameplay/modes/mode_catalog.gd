@@ -171,6 +171,7 @@ func stream_spec(mode_id: StringName, stream_seed: int, world: Dictionary, model
 	spec.lanes = clampi(int(cfg.get("lanes", spec.lanes)), 2, 3)
 	spec.speed = float(cfg.get("speed", spec.speed))
 	spec.speed_ramp = float(cfg.get("speed_ramp", spec.speed_ramp))
+	spec.ramp_distance = float(cfg.get("ramp_distance", 0.0))
 	spec.spacing = spec.spacing * float(cfg.get("spacing_scale", 1.0))
 	if not world.is_empty():
 		spec.world_id = str(world.get("id", spec.world_id))

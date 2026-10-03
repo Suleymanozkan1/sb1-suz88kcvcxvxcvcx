@@ -531,9 +531,13 @@ func _prism_reachable(data: Dictionary, lvl: SimLevel, index: int, taps: PackedI
 		if tap:
 			before_tap[ti] = base.clone()
 			ti += 1
+		var was_open: bool = (base.ent_flags[index] & FluxSim.FLAG_CONSUMED) == 0
+		var prisms_before: int = base.prisms
 		base.step(tap)
-		if (base.ent_flags[index] & FluxSim.FLAG_CONSUMED) != 0 and base.prisms > 0:
+		if _collected_now(base, index, was_open, prisms_before):
 			return true
+		if not was_open:
+			break
 	var tick_at: int = base.tick
 	# 2) Delay one of the last solution taps before the prism (others unchanged).
 	var first_k: int = maxi(0, ti - PRISM_TAPS_CONSIDERED)
@@ -554,14 +558,28 @@ func _prism_reachable(data: Dictionary, lvl: SimLevel, index: int, taps: PackedI
 ## from [param next_tap_index]; true if the prism is collected and the run survives.
 func _prism_trial(from: FluxSim, lvl: SimLevel, index: int, taps: PackedInt32Array, next_tap_index: int) -> bool:
 	var trial: FluxSim = from.clone()
+	var collected: bool = false
+	var open: bool = (trial.ent_flags[index] & FluxSim.FLAG_CONSUMED) == 0
+	var before: int = trial.prisms
 	trial.step(true)
+	collected = _collected_now(trial, index, open, before)
 	var tj: int = next_tap_index
 	while trial.is_running() and trial.d < lvl.e_d[index] + 10.0:
 		var t2: bool = tj < taps.size() and taps[tj] == trial.tick
 		if t2:
 			tj += 1
+		open = (trial.ent_flags[index] & FluxSim.FLAG_CONSUMED) == 0
+		before = trial.prisms
 		trial.step(t2)
-	return trial.status != SimConst.Status.FAILED and (trial.ent_flags[index] & FluxSim.FLAG_CONSUMED) != 0
+		collected = collected or _collected_now(trial, index, open, before)
+	return trial.status != SimConst.Status.FAILED and collected
+
+
+## True when this step resolved prism [param index] by collecting it (the
+## consumed flag is also set when a prism is merely passed, so the prism
+## counter must have risen on the same step).
+static func _collected_now(sim: FluxSim, index: int, was_open: bool, prisms_before: int) -> bool:
+	return was_open and (sim.ent_flags[index] & FluxSim.FLAG_CONSUMED) != 0 and sim.prisms > prisms_before
 
 
 func _check_duration(data: Dictionary, r: Report) -> void:

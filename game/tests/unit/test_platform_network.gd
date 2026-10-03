@@ -166,7 +166,7 @@ func test_url_guard_refuses_credentials_and_lookalike_hosts() -> void:
 
 
 func test_parse_completion() -> void:
-	var ok: Dictionary = HttpTransport.parse_completion(HTTPRequest.RESULT_SUCCESS, 200, "{\"a\": 1}".to_utf8_buffer())
+	var ok: Dictionary = HttpTransport.parse_completion(HTTPRequest.RESULT_SUCCESS, 200, '{"a": 1}'.to_utf8_buffer())
 	assert_true(bool(ok["ok"]))
 	assert_eq(ok["status"], 200)
 	assert_eq((ok["body"] as Dictionary)["a"], 1.0)
@@ -201,7 +201,7 @@ func test_http_transport_round_trip_with_local_server() -> void:
 	var transport: HttpTransport = _transport_in_tree()
 	var send: Callable = transport.as_callable()
 	var url: String = "http://127.0.0.1:%d/v1/scores" % port
-	var reply_body: String = "{\"accepted\": true, \"rank\": 3}"
+	var reply_body: String = '{"accepted": true, "rank": 3}'
 	var head: String = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\n"
 	var reply: String = (head % reply_body.to_utf8_buffer().size()) + "Connection: close\r\n\r\n" + reply_body
 	var post: Callable = func() -> Dictionary: return await send.call("POST", url, {"hello": "world"})
@@ -212,7 +212,9 @@ func test_http_transport_round_trip_with_local_server() -> void:
 	if not exchange.has("result"):
 		return
 	var result: Dictionary = exchange["result"] as Dictionary
-	var detail: String = "%s after %d frames; server saw: %s" % [str(result), exchange["frames"], request_text.c_escape()]
+	var detail: String = (
+		"%s after %d frames; server saw: %s" % [str(result), exchange["frames"], request_text.c_escape()]
+	)
 	assert_true(bool(result["ok"]), detail)
 	assert_eq(result["status"], 200, detail)
 	assert_eq(typeof(result["body"]), TYPE_DICTIONARY, "JSON body parsed: " + detail)
@@ -221,7 +223,7 @@ func test_http_transport_round_trip_with_local_server() -> void:
 	assert_eq(transport.in_flight, 0)
 	assert_true(request_text.begins_with("POST /v1/scores HTTP/1.1"))
 	assert_has(request_text, "Content-Type: application/json")
-	assert_has(request_text, "{\"hello\":\"world\"}")
+	assert_has(request_text, '{"hello":"world"}')
 	assert_has(request_text, "User-Agent: FluxDrop/")
 
 

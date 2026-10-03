@@ -62,13 +62,16 @@ func test_extra_core_skins_vary_colours_and_animation() -> void:
 	var seen: Dictionary = {}
 	for it: Dictionary in _catalog.in_category(CosmeticCatalog.CORE_SKIN):
 		var p: Dictionary = _catalog.typed_params(str(it["id"]))
-		var signature: String = "%d|%s|%s|%s|%.2f" % [
-			int(p["style"]),
-			(p["color_a"] as Color).to_html(),
-			(p["color_b"] as Color).to_html(),
-			(p["rim"] as Color).to_html(),
-			float(p["anim_speed"]),
-		]
+		var signature: String = (
+			"%d|%s|%s|%s|%.2f"
+			% [
+				int(p["style"]),
+				(p["color_a"] as Color).to_html(),
+				(p["color_b"] as Color).to_html(),
+				(p["rim"] as Color).to_html(),
+				float(p["anim_speed"]),
+			]
+		)
 		assert_false(seen.has(signature), "core skin %s duplicates %s" % [it["id"], str(seen.get(signature))])
 		seen[signature] = it["id"]
 

@@ -151,7 +151,8 @@ func test_unknown_kind_is_ignored() -> void:
 
 func test_malformed_data_is_sanitised() -> void:
 	var doc: Dictionary = {
-		"patterns": {
+		"patterns":
+		{
 			"tap": {"duration_ms": -5, "amplitude": 9.0, "min_interval_ms": "soon"},
 			"ui": "not an object",
 		},

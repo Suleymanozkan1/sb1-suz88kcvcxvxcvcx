@@ -288,11 +288,14 @@ func _load(doc: Dictionary) -> void:
 	_detect = _dict(doc.get("auto_detect", {}))
 	var down: Dictionary = _dict(doc.get("auto_downgrade", {}))
 	_cooldown_s = maxf(0.0, _num(down, "cooldown_s", DEFAULT_COOLDOWN_S))
-	_monitor = FrameMonitor.new(
-		_num(down, "window_s", FrameMonitor.DEFAULT_WINDOW_S),
-		_num(down, "slow_ratio", FrameMonitor.DEFAULT_SLOW_RATIO),
-		_num(down, "ema_tau_s", FrameMonitor.DEFAULT_EMA_TAU_S),
-		_num(down, "max_sample_s", FrameMonitor.DEFAULT_MAX_SAMPLE_S),
+	_monitor = (
+		FrameMonitor
+		. new(
+			_num(down, "window_s", FrameMonitor.DEFAULT_WINDOW_S),
+			_num(down, "slow_ratio", FrameMonitor.DEFAULT_SLOW_RATIO),
+			_num(down, "ema_tau_s", FrameMonitor.DEFAULT_EMA_TAU_S),
+			_num(down, "max_sample_s", FrameMonitor.DEFAULT_MAX_SAMPLE_S),
+		)
 	)
 
 

@@ -3,13 +3,22 @@ extends TestCase
 ## appended chunk by chunk while running — must verify against the course the
 ## server rebuilds from the seed alone.
 
-const WEEK: String = "2026-W40"
+const SERVER_UNIX: int = 1790000000
+const VERIFY_CLI: GDScript = preload("res://server/verify_replay.gd")
 
 
-func _client_run(mode_id: StringName) -> Dictionary:
+func _server_clock() -> GameClock:
+	var clock: GameClock = GameClock.new()
+	clock.set_fixed_unix(SERVER_UNIX)
+	return clock
+
+
+func _client_run(mode_id: StringName, seed_override: int = -1) -> Dictionary:
 	var modes: ModeCatalog = ModeCatalog.shared()
 	var catalog: WorldCatalog = WorldCatalog.load_default()
-	var seed_value: int = ModeCatalog.endless_seed(mode_id, WEEK)
+	var seed_value: int = ModeCatalog.endless_seed(mode_id, _server_clock().week_key())
+	if seed_override >= 0:
+		seed_value = seed_override
 	var streamer: EndlessStreamer = modes.make_streamer(mode_id, seed_value, catalog, DifficultyModel.new(catalog))
 	var data: Dictionary = streamer.begin()
 	var session: GameplaySession = GameplaySession.new()
@@ -34,22 +43,45 @@ func test_time_attack_replay_verifies_on_rebuilt_course() -> void:
 	assert_true(result.completed, "the planned path survives until the time limit")
 	assert_near(result.time_seconds, 60.0, 0.1)
 	var replay: RunReplay = run["replay"] as RunReplay
+	var week: String = _server_clock().week_key()
 	var submission: Dictionary = {
 		"score": result.score,
+		"board": "weekly:%s:time_attack" % week,
 		"mode": "time_attack",
 		"level_id": run["level_id"],
 		"sim_version": replay.sim_version,
 		"replay": replay.to_dict(),
 	}
-	var cli: Object = (load("res://server/verify_replay.gd") as GDScript).new()
+	var cli: Object = VERIFY_CLI.new()
 	var config: Dictionary = DailyChallengeService.load_config()
 	var level: Dictionary = cli.call("load_level", str(run["level_id"]), config, replay.end_tick) as Dictionary
 	assert_false(level.is_empty(), "server rebuilds the streamed course from its id")
-	var verdict: Dictionary = ReplayVerifier.new(GameClock.new(), config).verify(submission, level)
+	var verdict: Dictionary = ReplayVerifier.new(_server_clock(), config).verify(submission, level)
 	assert_true(bool(verdict["valid"]), "genuine streamed run verifies: %s" % str(verdict["details"]))
 	assert_eq(int(verdict["score"]), result.score, "authoritative score matches")
 	submission["score"] = result.score + 500
 	assert_false(
-		bool(ReplayVerifier.new(GameClock.new(), config).verify(submission, level)["valid"]), "tampered score rejected"
+		bool(ReplayVerifier.new(_server_clock(), config).verify(submission, level)["valid"]), "tampered score rejected"
 	)
+	(cli as Object).free()
+
+
+func test_off_week_seed_is_rejected_on_the_weekly_board() -> void:
+	var run: Dictionary = _client_run(&"time_attack", 1)
+	var result: RunResult = run["result"] as RunResult
+	var replay: RunReplay = run["replay"] as RunReplay
+	var config: Dictionary = DailyChallengeService.load_config()
+	var submission: Dictionary = {
+		"score": result.score,
+		"board": "weekly:%s:time_attack" % _server_clock().week_key(),
+		"mode": "time_attack",
+		"level_id": run["level_id"],
+		"sim_version": replay.sim_version,
+		"replay": replay.to_dict(),
+	}
+	var cli: Object = VERIFY_CLI.new()
+	var level: Dictionary = cli.call("load_level", str(run["level_id"]), config, replay.end_tick) as Dictionary
+	var verdict: Dictionary = ReplayVerifier.new(_server_clock(), config).verify(submission, level)
+	assert_false(bool(verdict["valid"]), "a self-chosen course cannot enter the weekly board")
+	assert_has(verdict["reasons"], ReplayVerifier.REASON_SEED_MISMATCH)
 	(cli as Object).free()

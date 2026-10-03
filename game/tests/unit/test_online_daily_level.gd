@@ -24,8 +24,23 @@ func test_date_key_parsing_round_trips_and_rejects_garbage() -> void:
 	for day: int in [0, 59, 365, 10957, 19723, 20729, 20730, 24000]:
 		var key: String = GameClock.date_key_for_day(day)
 		assert_eq(DailyChallengeService.day_for_date_key(key), day, "round trip %s" % key)
-	for bad: String in ["", "2026-13-01", "2026-02-30", "2025-02-29", "26-10-03", "2026/10/03", "2026-1-03", "abcd-ef-gh",
-		"1969-12-31", "2026-10-03x", "+026-10-03", "2026-11-+5", "2026-+1-05", "2026-10- 3", "2026-10-3 "]:
+	for bad: String in [
+		"",
+		"2026-13-01",
+		"2026-02-30",
+		"2025-02-29",
+		"26-10-03",
+		"2026/10/03",
+		"2026-1-03",
+		"abcd-ef-gh",
+		"1969-12-31",
+		"2026-10-03x",
+		"+026-10-03",
+		"2026-11-+5",
+		"2026-+1-05",
+		"2026-10- 3",
+		"2026-10-3 "
+	]:
 		assert_eq(DailyChallengeService.day_for_date_key(bad), -1, "rejects '%s'" % bad)
 	# Non-canonical spellings must not create a second daily (level + board) for a day.
 	assert_eq(DailyChallengeService.date_key_from_level_id("daily_2026-11-+5"), "")
@@ -36,7 +51,9 @@ func test_date_key_parsing_round_trips_and_rejects_garbage() -> void:
 
 func test_weekday_monday_is_zero() -> void:
 	assert_eq(DailyChallengeService.weekday_for_day(DailyChallengeService.day_for_date_key("2026-10-05")), 0, "Monday")
-	assert_eq(DailyChallengeService.weekday_for_day(DailyChallengeService.day_for_date_key("2026-10-03")), 5, "Saturday")
+	assert_eq(
+		DailyChallengeService.weekday_for_day(DailyChallengeService.day_for_date_key("2026-10-03")), 5, "Saturday"
+	)
 	assert_eq(DailyChallengeService.weekday_for_day(DailyChallengeService.day_for_date_key("2026-10-04")), 6, "Sunday")
 
 
@@ -199,8 +216,12 @@ func test_i18n_parts_match_and_cover_code_keys() -> void:
 			for token: String in ["{score}", "{count}", "{tier}", "{max}", "{rank}", "{total}", "{time}"]:
 				assert_eq(str(en[key]).contains(token), str(tr[key]).contains(token), "%s keeps %s" % [key, token])
 	var used: Array[String] = [
-		"online.rank.first_daily", "online.rank.personal", "online.rank.personal_best", "online.lb.you",
-		"online.lb.offline", "online.lb.local_only",
+		"online.rank.first_daily",
+		"online.rank.personal",
+		"online.rank.personal_best",
+		"online.lb.you",
+		"online.lb.offline",
+		"online.lb.local_only",
 	]
 	var cfg: Dictionary = DailyChallengeService.load_config()
 	for row: Variant in (cfg["daily"] as Dictionary)["weekday_difficulty"] as Array:

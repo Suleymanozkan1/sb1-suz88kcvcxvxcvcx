@@ -169,15 +169,18 @@ func listings() -> Array[Dictionary]:
 	for id: String in _order:
 		var p: Dictionary = _catalog[id] as Dictionary
 		var owned: bool = owns(id)
-		out.append(
-			{
-				"id": id,
-				"name_key": p["name_key"],
-				"items": (p["items"] as Array).duplicate(),
-				"owned": owned,
-				"price": str(prices.get(id, "")),
-				"purchasable": available and not owned,
-			}
+		(
+			out
+			. append(
+				{
+					"id": id,
+					"name_key": p["name_key"],
+					"items": (p["items"] as Array).duplicate(),
+					"owned": owned,
+					"price": str(prices.get(id, "")),
+					"purchasable": available and not owned,
+				}
+			)
 		)
 	return out
 

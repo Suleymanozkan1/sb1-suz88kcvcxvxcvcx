@@ -242,7 +242,9 @@ func test_consent_off_records_and_sends_nothing() -> void:
 	var memory: MemoryAnalyticsSink = MemoryAnalyticsSink.new()
 	var transport: ScriptedTransport = ScriptedTransport.new()
 	transport.online = true
-	var http: HttpAnalyticsSink = HttpAnalyticsSink.new("https://analytics.example.invalid/v1/events", transport.respond)
+	var http: HttpAnalyticsSink = HttpAnalyticsSink.new(
+		"https://analytics.example.invalid/v1/events", transport.respond
+	)
 	var file_sink: FileAnalyticsSink = FileAnalyticsSink.new(_unique_dir().path_join("events.jsonl"), 50)
 	svc.add_sink(memory)
 	svc.add_sink(http)
@@ -262,7 +264,9 @@ func test_withdrawing_consent_clears_stored_events() -> void:
 	var svc: AnalyticsService = _service()
 	var memory: MemoryAnalyticsSink = MemoryAnalyticsSink.new()
 	var transport: ScriptedTransport = ScriptedTransport.new()
-	var http: HttpAnalyticsSink = HttpAnalyticsSink.new("https://analytics.example.invalid/v1/events", transport.respond)
+	var http: HttpAnalyticsSink = HttpAnalyticsSink.new(
+		"https://analytics.example.invalid/v1/events", transport.respond
+	)
 	var file_sink: FileAnalyticsSink = FileAnalyticsSink.new(_unique_dir().path_join("events.jsonl"), 50)
 	svc.add_sink(memory)
 	svc.add_sink(http)
@@ -283,7 +287,9 @@ func test_withdrawing_consent_during_upload_never_requeues() -> void:
 	var transport: ScriptedTransport = ScriptedTransport.new()
 	transport.tree = tree
 	var svc: AnalyticsService = _service()
-	var http: HttpAnalyticsSink = HttpAnalyticsSink.new("https://analytics.example.invalid/v1/events", transport.respond)
+	var http: HttpAnalyticsSink = HttpAnalyticsSink.new(
+		"https://analytics.example.invalid/v1/events", transport.respond
+	)
 	svc.add_sink(http)
 	svc.track(&"level_started", {"level_id": "w01_l01"})
 	svc.track(&"level_failed", {"level_id": "w01_l01", "score": 3})
@@ -371,7 +377,9 @@ func test_service_flush_with_coroutine_transport() -> void:
 	transport.tree = tree
 	transport.online = true
 	var svc: AnalyticsService = _service()
-	var sink: HttpAnalyticsSink = HttpAnalyticsSink.new("https://analytics.example.invalid/v1/events", transport.respond)
+	var sink: HttpAnalyticsSink = HttpAnalyticsSink.new(
+		"https://analytics.example.invalid/v1/events", transport.respond
+	)
 	svc.add_sink(sink)
 	svc.track(&"level_started", {"level_id": "w01_l01"})
 	svc.track(&"level_failed", {"level_id": "w01_l01", "score": 3})

@@ -138,7 +138,9 @@ func test_http_disabled_without_base_url() -> void:
 
 
 func test_http_submission_contract() -> void:
-	var http: HttpLeaderboardBackend = HttpLeaderboardBackend.new(BASE_URL + "//", _transport.request, "abc123", "1.2.3")
+	var http: HttpLeaderboardBackend = HttpLeaderboardBackend.new(
+		BASE_URL + "//", _transport.request, "abc123", "1.2.3"
+	)
 	var replay: RunReplay = RunReplay.new()
 	replay.level_id = "w01_l05"
 	replay.level_seed = 99
@@ -192,15 +194,22 @@ func test_http_fetch_url_and_sanitizing() -> void:
 	_transport.next = {
 		"ok": true,
 		"status": 200,
-		"body": JSON.stringify({
-			"entries": [
-				{"rank": 2, "name": "Bo\nlt", "score": 800},
-				{"rank": 1, "name": long_name, "score": 900},
-				{"rank": 3, "name": "NoScore"},
-				"junk",
-			],
-			"player": {"rank": 40, "name": "Me", "score": 120},
-		}),
+		"body":
+		(
+			JSON
+			. stringify(
+				{
+					"entries":
+					[
+						{"rank": 2, "name": "Bo\nlt", "score": 800},
+						{"rank": 1, "name": long_name, "score": 900},
+						{"rank": 3, "name": "NoScore"},
+						"junk",
+					],
+					"player": {"rank": 40, "name": "Me", "score": 120},
+				}
+			)
+		),
 		"error": "",
 	}
 	var board: Dictionary = await http.fetch("daily:2026-10-03", 500)
@@ -229,8 +238,10 @@ func test_http_untrusted_names_and_flags_are_sanitized() -> void:
 	_transport.next = {
 		"ok": true,
 		"status": 200,
-		"body": {
-			"entries": [
+		"body":
+		{
+			"entries":
+			[
 				{"rank": 1, "name": "\u202eevil\u200b\u0001one", "score": 10, "is_player": null},
 				{"rank": 2, "name": 12345, "score": 9},
 				{"rank": 3, "name": "  Nova   Star  ".repeat(500), "score": 8},
@@ -265,7 +276,7 @@ func test_normalize_response_variants() -> void:
 	var bare_ok: Dictionary = HttpLeaderboardBackend.normalize_response({"ok": true})
 	assert_eq(int(bare_ok["status"]), 200, "ok without status treated as 200")
 	assert_true(bool(bare_ok["ok"]))
-	var raw_text: Dictionary = {"ok": true, "status": 200, "body": "{\"rank\": 3}"}
+	var raw_text: Dictionary = {"ok": true, "status": 200, "body": '{"rank": 3}'}
 	var text_body: Dictionary = HttpLeaderboardBackend.normalize_response(raw_text)
 	assert_eq(int((text_body["body"] as Dictionary)["rank"]), 3, "JSON text bodies parsed")
 	var not_json: Dictionary = HttpLeaderboardBackend.normalize_response({"ok": true, "status": 200, "body": "<html>"})

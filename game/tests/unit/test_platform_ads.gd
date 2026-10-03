@@ -279,7 +279,8 @@ func test_disabled_policy_blocks_everything() -> void:
 
 func test_policy_data_cannot_loosen_hard_rules() -> void:
 	var data: Dictionary = {
-		"interstitial": {
+		"interstitial":
+		{
 			"placements": ["level_end", "gameplay", "app_open"],
 			"every_n_levels": 1,
 			"cooldown_seconds": 0,

@@ -37,10 +37,7 @@ var _generation: int = 0
 
 
 func _init(
-	endpoint_url: String,
-	transport: Callable,
-	batch: int = DEFAULT_BATCH_SIZE,
-	queue_limit: int = DEFAULT_MAX_QUEUE
+	endpoint_url: String, transport: Callable, batch: int = DEFAULT_BATCH_SIZE, queue_limit: int = DEFAULT_MAX_QUEUE
 ) -> void:
 	endpoint = endpoint_url.strip_edges()
 	_transport = transport

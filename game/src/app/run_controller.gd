@@ -13,6 +13,15 @@ const LAST_LEVEL_FLAG: String = "last_level"
 const BOSS_LOCAL_INDEX: int = 52
 const TUTORIAL_DONE_FLAG: String = "tutorial_done"
 const TUTORIAL_LAST_LEVEL: String = "w01_l05"
+## Runs reaching this combo are reported (funnel for the combo system).
+const COMBO_EVENT_MIN: int = 10
+const FAIL_CAUSES: Dictionary = {
+	SimConst.FailReason.COLLISION: "collision",
+	SimConst.FailReason.WRONG_PHASE: "wrong_phase",
+	SimConst.FailReason.OBJECTIVE: "objective",
+	SimConst.FailReason.TIME_UP: "time_up",
+	SimConst.FailReason.MISSED_SPARK: "missed_spark",
+}
 
 var services: AppServices
 var session: GameplaySession
@@ -20,14 +29,12 @@ var session: GameplaySession
 ## "boss_queue", "rush_index", "rush_score", "design_duration", "tier"}.
 var context: Dictionary = {}
 var streamer: EndlessStreamer
-var _levels_gained: Array[int] = []
 var _worlds_unlocked: Array[String] = []
 
 
 func _init(app: AppServices, gameplay_session: GameplaySession) -> void:
 	services = app
 	session = gameplay_session
-	services.bus.player_level_up.connect(func(level: int) -> void: _levels_gained.append(level))
 	services.bus.world_unlocked.connect(func(world_id: String) -> void: _worlds_unlocked.append(world_id))
 
 
@@ -101,11 +108,13 @@ func pump() -> bool:
 func advance_rush(result: RunResult) -> bool:
 	if str(context.get("source", "")) != "boss_rush" or not result.completed:
 		return false
-	context["rush_score"] = int(context["rush_score"]) + result.score
 	var queue: PackedStringArray = context["boss_queue"] as PackedStringArray
 	var next_index: int = int(context["rush_index"]) + 1
 	if next_index >= queue.size():
 		return false
+	# Bank only bosses that are followed by another; finish() adds the bank to
+	# the final boss's own score exactly once.
+	context["rush_score"] = int(context["rush_score"]) + result.score
 	context["rush_index"] = next_index
 	return _load(services.levels.load_level(queue[next_index]))
 
@@ -113,11 +122,45 @@ func advance_rush(result: RunResult) -> bool:
 # --- Results -----------------------------------------------------------------------
 
 
+## True when a failed run may be continued with the optional rewarded revive
+## (never for dailies, revived runs, or failures a revive cannot help).
+func can_offer_revive(result: RunResult) -> bool:
+	return (
+		not result.completed
+		and not session.revived
+		and str(context.get("source", "")) != "daily"
+		and GameplaySession.can_revive_reason(result.fail_reason)
+		and services.ads.is_rewarded_available(&"revive")
+	)
+
+
+## The fail screen's numbers without applying anything (used while a revive is
+## still possible; [method finish] applies the run exactly once later).
+func preview(result: RunResult) -> Dictionary:
+	var src: String = str(context.get("source", "campaign"))
+	var best: int = result.score
+	if src == "campaign":
+		best = maxi(
+			int(services.profile.level_result(str(context.get("level_id", ""))).get("best_score", 0)), result.score
+		)
+	return {
+		"result": result,
+		"reveals": [],
+		"reward": RewardBundle.new("run"),
+		"best": best,
+		"new_best": false,
+		"progress": _progress_of(result),
+		"can_revive": true,
+		"can_double": false,
+		"has_next": false,
+		"next_level_id": "",
+	}
+
+
 ## Applies a finished run. Returns the outcome for the UI:
 ## {"result", "best", "new_best", "reward": RewardBundle, "has_next", "next_level_id",
 ##  "progress", "can_revive", "can_double", "reveals": Array[Dictionary], "daily": Dictionary}
 func finish(result: RunResult) -> Dictionary:
-	_levels_gained.clear()
 	_worlds_unlocked.clear()
 	var mode_id: StringName = context.get("mode", &"classic") as StringName
 	var src: String = str(context.get("source", "campaign"))
@@ -152,12 +195,8 @@ func finish(result: RunResult) -> Dictionary:
 			reward = _finish_scored(mode_id, result, outcome)
 	outcome["reward"] = reward
 	outcome["progress"] = _progress_of(result)
-	outcome["can_revive"] = (
-		not result.completed
-		and not session.revived
-		and services.ads.is_rewarded_available(&"revive")
-		and src != "daily"
-	)
+	# finish() is final: a revive is only offered from preview().
+	outcome["can_revive"] = false
 	outcome["can_double"] = (
 		result.completed and not reward.is_empty() and services.ads.is_rewarded_available(&"double_reward")
 	)
@@ -226,40 +265,43 @@ func _progress_of(result: RunResult) -> float:
 	return clampf(result.distance / length, 0.0, 1.0)
 
 
+## Funnel events with the schema's parameter names (data/analytics/events.json).
 func _track_run(result: RunResult, mode_id: StringName) -> void:
+	var attempt: int = int(services.profile.level_result(result.level_id).get("attempts", 1))
 	var params: Dictionary = {
-		"level": result.level_id,
+		"level_id": result.level_id,
+		"world_id": str(context.get("world_id", "")),
 		"mode": String(mode_id),
 		"score": result.score,
-		"stars": result.stars,
-		"seconds": snappedf(result.time_seconds, 0.1)
+		"time_seconds": snappedf(result.time_seconds, 0.1),
+		"attempt": attempt,
 	}
 	if result.completed:
+		params["stars"] = result.stars
+		params["grade"] = str(RunResult.Grade.keys()[result.grade]).to_lower()
+		params["max_combo"] = result.max_combo
+		params["taps"] = result.taps
+		params["revived"] = result.revived
 		services.analytics.track(&"level_completed", params)
 		if result.perfect:
-			services.analytics.track(&"perfect_completed", {"level": result.level_id})
+			services.analytics.track(
+				&"perfect_completed", {"level_id": result.level_id, "mode": String(mode_id), "score": result.score}
+			)
 	else:
-		params["reason"] = result.fail_reason
+		params["distance"] = snappedf(result.distance, 0.1)
+		params["cause"] = str(FAIL_CAUSES.get(result.fail_reason, "other"))
 		services.analytics.track(&"level_failed", params)
+	if result.max_combo >= COMBO_EVENT_MIN:
+		services.analytics.track(&"combo_reached", {"level_id": result.level_id, "combo": result.max_combo})
 
 
 ## Level-ups (granting their table reward), worlds, achievements and cosmetics
 ## unlocked by this run, in the order the player should see them.
 func _collect_reveals(outcome: Dictionary) -> void:
 	var reveals: Array = outcome["reveals"] as Array
-	var levels: Array[int] = _levels_gained.duplicate()
-	for level: int in levels:
-		var bundle: RewardBundle = services.grant_reward_spec(
-			{"table": RewardEngine.TABLE_LEVEL_UP, "level": level}, "level_up"
-		)
-		reveals.append(
-			{
-				"eyebrow": tr_key("reveal.level_up"),
-				"title": tr_key("reveal.level_n").format({"n": level}),
-				"subtitle": "",
-				"bundle": bundle
-			}
-		)
+	# Level-up rewards are granted by AppServices the moment a level is gained
+	# (also outside runs, e.g. mission XP); here they are only revealed.
+	reveals.append_array(services.take_level_up_reveals())
 	for world_id: String in _worlds_unlocked.duplicate():
 		var world: Dictionary = services.catalog.world(world_id)
 		reveals.append(

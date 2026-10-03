@@ -104,7 +104,7 @@ func test_missing_main_uses_backup() -> void:
 
 func test_both_corrupted_start_new_and_emit_recovered() -> void:
 	_save_two_generations()
-	_storage.corrupt(SaveService.MAIN, "{\"format\": \"fluxdrop-save\", \"payl")
+	_storage.corrupt(SaveService.MAIN, '{"format": "fluxdrop-save", "payl')
 	_storage.corrupt(SaveService.BACKUP, "not json")
 	var service: SaveService = _service()
 	var p: PlayerProfile = service.load_profile()
@@ -148,7 +148,7 @@ func test_main_damaged_between_saves_is_not_copied_to_backup() -> void:
 	assert_eq(service.save_profile(_profile(100)), OK)
 	assert_eq(service.save_profile(_profile(200)), OK)
 	var good_backup: String = _storage.read_text(SaveService.BACKUP)
-	_storage.corrupt(SaveService.MAIN, "{\"format\": \"fluxdrop-save\", \"version\": 1, \"payload\": {}}")
+	_storage.corrupt(SaveService.MAIN, '{"format": "fluxdrop-save", "version": 1, "payload": {}}')
 	assert_eq(service.save_profile(_profile(300)), OK)
 	assert_eq(_storage.read_text(SaveService.BACKUP), good_backup, "service re-verifies a changed main")
 	assert_eq(_service().load_profile().coins, 300)
@@ -157,7 +157,8 @@ func test_main_damaged_between_saves_is_not_copied_to_backup() -> void:
 func test_future_main_is_preserved_and_backup_used() -> void:
 	_save_two_generations()
 	var future_text: String = SaveService.encode_payload(
-		{"coins": 5000, "brand_new_system": {"x": 1}}, SaveService.CURRENT_VERSION + 1, NOW)
+		{"coins": 5000, "brand_new_system": {"x": 1}}, SaveService.CURRENT_VERSION + 1, NOW
+	)
 	_storage.corrupt(SaveService.MAIN, future_text)
 	var service: SaveService = _service()
 	var p: PlayerProfile = service.load_profile()

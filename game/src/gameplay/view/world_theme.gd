@@ -3,7 +3,9 @@ extends RefCounted
 ## Typed view of a world's environment identity (docs/ART_DIRECTION.md §3, §6, §7).
 ## Gameplay colours are NOT here: they are global roles in [Palette].
 
-const RIB_PROFILES: PackedStringArray = ["gate", "arch", "hex", "monolith", "lattice", "facet"]
+const RIB_PROFILES: PackedStringArray = [
+	"gate", "arch", "hex", "monolith", "lattice", "facet", "truss", "icicle", "ring", "candy"
+]
 
 var id: String = "neon_core"
 var display_name: String = "Neon Core"

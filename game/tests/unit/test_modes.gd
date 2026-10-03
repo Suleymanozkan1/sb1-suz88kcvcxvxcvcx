@@ -127,3 +127,25 @@ func test_endless_stream_is_solvable_by_its_plan() -> void:
 	assert_eq(sim.status, SimConst.Status.RUNNING, "planned path survives the stream")
 	assert_gt(sim.d, 400.0, "travelled far")
 	assert_gt(float(appended), 0.0, "course was extended while running")
+
+
+func test_stream_compaction_never_changes_the_course() -> void:
+	var a: EndlessStreamer = _stream(4242)
+	var b: EndlessStreamer = _stream(4242)
+	b.compaction = false
+	var ca: Dictionary = a.course_until(600.0)
+	var cb: Dictionary = b.course_until(600.0)
+	assert_eq(JsonIO.canonical(ca), JsonIO.canonical(cb), "same course with and without compaction")
+	assert_lt(float(a.generator_entity_count()), float(b.generator_entity_count()), "compaction forgets old entities")
+
+
+func test_stream_generator_memory_stays_bounded() -> void:
+	var s: EndlessStreamer = _stream(99)
+	s.course_until(2500.0)
+	assert_lt(float(s.generator_entity_count()), 400.0, "only the recent course is kept for planning")
+
+
+func test_stream_uses_the_mode_ramp_distance() -> void:
+	var data: Dictionary = _stream(7).begin()
+	var mods: Dictionary = data["modifiers"] as Dictionary
+	assert_near(float(mods["ramp_distance"]), 900.0, 0.01, "endless ramps over its configured distance")

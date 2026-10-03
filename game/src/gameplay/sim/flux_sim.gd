@@ -542,6 +542,10 @@ func _check_collect(i: int, ed: float) -> void:
 
 
 func _check_pickup(i: int, ed: float) -> void:
+	# Modes without shields leave shield pickups untouched (and the view does
+	# not draw them), so nothing ever pretends to protect the player.
+	if not shields_allowed and level.e_type[i] == SimConst.EntityType.SHIELD:
+		return
 	if absf(ed - d) > SimConst.SPARK_COLLECT_DEPTH:
 		return
 	var lx: float = SimConst.lane_x(level.e_lane[i], level.lane_count)

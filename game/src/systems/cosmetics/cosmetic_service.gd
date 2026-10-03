@@ -38,11 +38,7 @@ var _progress_query: Callable = Callable()
 ## Missing dependencies degrade safely: a blank profile, the shipped catalog,
 ## no purchases without an economy and no auto unlocks without a query.
 func _init(
-	profile: PlayerProfile,
-	bus: EventBus,
-	cosmetic_catalog: CosmeticCatalog,
-	economy: Object,
-	progress_query: Callable
+	profile: PlayerProfile, bus: EventBus, cosmetic_catalog: CosmeticCatalog, economy: Object, progress_query: Callable
 ) -> void:
 	_profile = profile
 	if _profile == null:
@@ -228,18 +224,21 @@ func shop_items() -> Array[Dictionary]:
 		if price <= 0:
 			continue
 		var currency_name: String = str(catalog.unlock_of(id)["type"])
-		rows.append(
-			{
-				"id": id,
-				"category": category,
-				"name_key": str(it.get("name_key", "")),
-				"rarity": str(it.get("rarity", "")),
-				"currency": currency_name,
-				"price": price,
-				"owned": owns(id),
-				"affordable": _can_afford(currency_name, price),
-				"equipped": equipped(category) == id,
-			}
+		(
+			rows
+			. append(
+				{
+					"id": id,
+					"category": category,
+					"name_key": str(it.get("name_key", "")),
+					"rarity": str(it.get("rarity", "")),
+					"currency": currency_name,
+					"price": price,
+					"owned": owns(id),
+					"affordable": _can_afford(currency_name, price),
+					"equipped": equipped(category) == id,
+				}
+			)
 		)
 	var order: PackedStringArray = catalog.categories()
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _shop_row_before(a, b, order))

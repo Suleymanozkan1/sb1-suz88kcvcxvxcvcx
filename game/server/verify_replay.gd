@@ -24,7 +24,7 @@ extends SceneTree
 ## Upper bound on a streamed replay (30 minutes) and on how far it can travel
 ## relative to the course's base speed (ramp + surge + dash headroom).
 const MAX_STREAM_TICKS: int = 60 * 60 * 30
-const STREAM_REACH_FACTOR: float = 3.0
+const STREAM_REACH_FACTOR: float = 2.0
 const EXIT_VALID: int = 0
 const EXIT_ERROR: int = 1
 const EXIT_INVALID: int = 2
@@ -88,7 +88,16 @@ func run(args: PackedStringArray) -> int:
 		if typeof(submission.get("replay", null)) == TYPE_DICTIONARY:
 			var raw_end: Variant = (submission["replay"] as Dictionary).get("end_tick", 0)
 			if typeof(raw_end) == TYPE_INT or typeof(raw_end) == TYPE_FLOAT:
-				end_tick = clampi(int(raw_end), 0, MAX_STREAM_TICKS)
+				end_tick = int(raw_end)
+		if end_tick > MAX_STREAM_TICKS or end_tick < 0:
+			# Rejected before any course is rebuilt (bounded verification cost).
+			verdict = {
+				"valid": false,
+				"score": 0,
+				"reasons": PackedStringArray([ReplayVerifier.REASON_STRUCTURE]),
+				"details": PackedStringArray(["end_tick %d outside 0..%d" % [end_tick, MAX_STREAM_TICKS]]),
+			}
+			return _report(verdict, level_id, clock)
 		var level: Dictionary = load_level(level_id, config, end_tick)
 		if level.is_empty():
 			return _fail("unknown or unloadable level '%s'" % level_id)

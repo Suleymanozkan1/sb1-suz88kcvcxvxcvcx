@@ -152,7 +152,8 @@ func test_requires_gates_templates() -> void:
 	var config: Dictionary = {
 		"daily_count": 2,
 		"weekly_count": 1,
-		"daily_templates": [
+		"daily_templates":
+		[
 			_template("basic", "runs_played", [5]),
 			_template("portals", "portals_used", [3], {"requires": {"stat": "unique_levels_cleared", "min": 240}}),
 		],
@@ -188,7 +189,8 @@ func test_daily_cap_keeps_weekly_targets_reachable() -> void:
 		"daily_count": 1,
 		"weekly_count": 2,
 		"daily_templates": [_template("d", "runs_played", [5])],
-		"weekly_templates": [
+		"weekly_templates":
+		[
 			_template("dailies", "daily_completed", [3, 5], {"daily_cap": 1}),
 			_template("w", "levels_cleared", [30]),
 		],
@@ -242,7 +244,8 @@ func test_invalid_config_is_safe_and_reported() -> void:
 	var config: Dictionary = {
 		"daily_count": "three",
 		"weekly_count": 99,
-		"daily_templates": [
+		"daily_templates":
+		[
 			{"id": ""},
 			5,
 			_template("max_stat", "max_combo", [10]),

@@ -15,6 +15,12 @@ const AHEAD_DISTANCE: float = 70.0
 ## Entities closer than this to the frontier are held back (the next slot may
 ## still place pickups around them).
 const HOLD_BACK_SPACINGS: float = 2.5
+## Released entities further than this behind the planning checkpoint are
+## dropped from the generator (bounded cost on long runs; course unchanged).
+const COMPACT_BEHIND: float = 30.0
+
+## Off only in tests that prove compaction never changes the course.
+var compaction: bool = true
 
 var spec: LevelSpec
 var failed: bool = false
@@ -103,6 +109,23 @@ func pump_headless(sim: FluxSim) -> void:
 		sim.sync_entity_capacity()
 
 
+## Drops already-released entities from the front of the generator's list and
+## shifts this streamer's bookkeeping by the same amount.
+func _compact() -> void:
+	if not compaction:
+		return
+	var dropped: int = _gen.compact(_scan_from, COMPACT_BEHIND)
+	if dropped <= 0:
+		return
+	_released_flags = _released_flags.slice(dropped)
+	_scan_from -= dropped
+
+
+## Entities currently held by the generator (bounded by compaction).
+func generator_entity_count() -> int:
+	return _gen.committed_entities().size()
+
+
 func _take_releasable() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var all: Array[Dictionary] = _gen.committed_entities()
@@ -120,6 +143,7 @@ func _take_releasable() -> Array[Dictionary]:
 		elif first_open < 0:
 			first_open = i
 	_scan_from = all.size() if first_open < 0 else first_open
+	_compact()
 	picked.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["d"]) < float(b["d"]))
 	for e: Dictionary in picked:
 		var ed: float = float(e.get("d", 0.0))
