@@ -51,6 +51,8 @@ const DEFAULT_COOLDOWN_S: float = 20.0
 const DEFAULT_BATTERY_FPS: int = 30
 const MS_PER_S: float = 1000.0
 const RENDERER_COMPATIBILITY: String = "gl_compatibility"
+const DETECT_MOBILE: String = "mobile"
+const DETECT_DESKTOP: String = "desktop"
 
 var _settings: SettingsService
 var _bus: EventBus
@@ -101,6 +103,10 @@ static func validate_document(doc: Dictionary) -> PackedStringArray:
 	var battery: Dictionary = _dict(doc.get("battery_saver", {}))
 	if not presets.has(str(battery.get("max_preset", ""))):
 		problems.append("battery_saver.max_preset unknown")
+	var detect: Dictionary = _dict(doc.get("auto_detect", {}))
+	for platform: String in [DETECT_MOBILE, DETECT_DESKTOP]:
+		if typeof(detect.get(platform, [])) != TYPE_ARRAY:
+			problems.append("auto_detect.%s must be a list of rules" % platform)
 	return problems
 
 
@@ -137,7 +143,7 @@ func params() -> Dictionary:
 	if saver:
 		for key: String in _battery_overrides:
 			p[key] = _battery_overrides[key]
-		p["fps_cap"] = mini(int(p["fps_cap"]), _battery_fps)
+	p["fps_cap"] = _effective_fps_cap()
 	p["preset"] = String(preset)
 	p["battery_saver"] = saver
 	return p
@@ -153,7 +159,8 @@ func auto_detect() -> StringName:
 func detect_for(is_mobile: bool, cores: int, rendering_method: String) -> StringName:
 	if rendering_method == RENDERER_COMPATIBILITY:
 		return _valid_or_lowest(StringName(str(_detect.get("compatibility_preset", ""))))
-	var rules: Array = _detect.get("mobile" if is_mobile else "desktop", []) as Array
+	var raw_rules: Variant = _detect.get(DETECT_MOBILE if is_mobile else DETECT_DESKTOP, [])
+	var rules: Array = raw_rules as Array if typeof(raw_rules) == TYPE_ARRAY else []
 	for raw: Variant in rules:
 		var rule: Dictionary = _dict(raw)
 		if cores >= int(_num(rule, "min_cores", 0.0)):
@@ -197,7 +204,7 @@ func feed_frame(delta: float) -> bool:
 
 ## Frame budget in ms for the effective fps cap (limited by the display refresh).
 func target_frame_ms() -> float:
-	var fps: float = float(maxi(int(params()["fps_cap"]), MIN_FPS_CAP))
+	var fps: float = float(maxi(_effective_fps_cap(), MIN_FPS_CAP))
 	if _refresh_hz > 0.0:
 		fps = minf(fps, _refresh_hz)
 	return MS_PER_S / fps
@@ -246,6 +253,17 @@ func _emit(automatic: bool) -> void:
 		_bus.quality_changed.emit(effective_preset(), automatic)
 
 
+## fps cap of the effective preset, battery-saver overrides and cap applied.
+## Allocation-free: [method feed_frame] needs it every frame.
+func _effective_fps_cap() -> int:
+	var fps: int = int((_presets.get(effective_preset(), FALLBACK_PARAMS) as Dictionary)["fps_cap"])
+	if not _battery_saver():
+		return fps
+	if _battery_overrides.has("fps_cap"):
+		fps = int(_battery_overrides["fps_cap"])
+	return mini(fps, _battery_fps)
+
+
 func _battery_saver() -> bool:
 	return _settings != null and _settings.get_bool("battery_saver")
 
@@ -266,7 +284,7 @@ func _load(doc: Dictionary) -> void:
 	for key: Variant in overrides:
 		var k: String = str(key)
 		if PARAM_TYPES.has(k) and _type_ok(overrides[key], int(PARAM_TYPES[k])):
-			_battery_overrides[k] = overrides[key]
+			_battery_overrides[k] = _clamp_param(k, overrides[key])
 	_detect = _dict(doc.get("auto_detect", {}))
 	var down: Dictionary = _dict(doc.get("auto_downgrade", {}))
 	_cooldown_s = maxf(0.0, _num(down, "cooldown_s", DEFAULT_COOLDOWN_S))
@@ -281,23 +299,28 @@ func _load(doc: Dictionary) -> void:
 static func _sanitize(raw: Dictionary) -> Dictionary:
 	var p: Dictionary = {}
 	for key: String in PARAM_TYPES:
-		var expected: int = int(PARAM_TYPES[key])
 		var v: Variant = raw.get(key, FALLBACK_PARAMS[key])
-		if not _type_ok(v, expected):
+		if not _type_ok(v, int(PARAM_TYPES[key])):
 			v = FALLBACK_PARAMS[key]
-		match expected:
-			TYPE_FLOAT:
-				p[key] = float(v)
-			TYPE_INT:
-				p[key] = int(v)
-			_:
-				p[key] = v
-	p["render_scale"] = clampf(float(p["render_scale"]), MIN_RENDER_SCALE, MAX_RENDER_SCALE)
-	p["msaa_3d"] = clampi(int(p["msaa_3d"]), 0, MAX_MSAA)
-	p["particle_scale"] = clampf(float(p["particle_scale"]), 0.0, MAX_PARTICLE_SCALE)
-	p["trail_points"] = clampi(int(p["trail_points"]), MIN_TRAIL_POINTS, MAX_TRAIL_POINTS)
-	p["fps_cap"] = clampi(int(p["fps_cap"]), MIN_FPS_CAP, MAX_FPS_CAP)
+		p[key] = _clamp_param(key, v)
 	return p
+
+
+## Converts an already type-checked value of parameter [param key] to its exact
+## type and safe range (shared by presets and battery-saver overrides).
+static func _clamp_param(key: String, v: Variant) -> Variant:
+	match key:
+		"render_scale":
+			return clampf(float(v), MIN_RENDER_SCALE, MAX_RENDER_SCALE)
+		"msaa_3d":
+			return clampi(int(v), 0, MAX_MSAA)
+		"particle_scale":
+			return clampf(float(v), 0.0, MAX_PARTICLE_SCALE)
+		"trail_points":
+			return clampi(int(v), MIN_TRAIL_POINTS, MAX_TRAIL_POINTS)
+		"fps_cap":
+			return clampi(int(v), MIN_FPS_CAP, MAX_FPS_CAP)
+	return v
 
 
 static func _type_ok(v: Variant, expected: int) -> bool:

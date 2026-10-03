@@ -137,6 +137,19 @@ func test_settings_survive_save_roundtrip() -> void:
 	assert_near(s.get_float("sfx_volume"), 0.4, 0.0001)
 
 
+func test_string_name_values_are_accepted_and_stored_as_strings() -> void:
+	assert_true(_settings.set_value("quality", &"medium"), "QualityService hands out StringName presets")
+	assert_eq(typeof(_profile.settings["quality"]), TYPE_STRING, "saved as a plain String")
+	assert_eq(_settings.get_string("quality"), "medium")
+	assert_eq(typeof(_bus_events[0][1]), TYPE_STRING, "listeners always receive a String")
+	assert_true(_settings.set_value("quality", "medium"), "same value as String")
+	assert_eq(_bus_events.size(), 1, "no duplicate change for an equal value")
+	assert_false(_settings.set_value("quality", &"potato"))
+	assert_false(_settings.set_value("sound", &"true"), "StringName only stands in for String settings")
+	assert_true(_settings.set_value("language", &"tr"))
+	assert_eq(_settings.get_string("language"), "tr")
+
+
 func test_is_valid_static_helper() -> void:
 	assert_true(SettingsService.is_valid("reduce_motion", true))
 	assert_false(SettingsService.is_valid("reduce_motion", 0))

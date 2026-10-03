@@ -196,6 +196,42 @@ func test_broken_presets_fall_back_safely() -> void:
 		assert_has(p, key)
 
 
+func test_malformed_auto_detect_rules_fall_back_to_lowest() -> void:
+	var doc: Dictionary = JsonIO.read_dict(QualityService.DEFAULT_PRESETS_PATH)
+	doc["auto_detect"] = {"mobile": {"min_cores": 8, "preset": "ultra"}, "desktop": "high"}
+	var problems: PackedStringArray = QualityService.validate_document(doc)
+	assert_has(problems, "auto_detect.mobile must be a list of rules")
+	assert_has(problems, "auto_detect.desktop must be a list of rules")
+	var q: QualityService = QualityService.new(_settings, _bus, doc)
+	assert_eq(q.current(), &"low", "construction survives and picks the safest preset")
+	assert_eq(q.detect_for(true, 8, "mobile"), &"low")
+	assert_eq(q.detect_for(false, 16, "forward_plus"), &"low")
+
+
+func test_battery_overrides_are_range_clamped() -> void:
+	var doc: Dictionary = JsonIO.read_dict(QualityService.DEFAULT_PRESETS_PATH)
+	(doc["battery_saver"] as Dictionary)["overrides"] = {"render_scale": 50.0, "trail_points": 0, "fps_cap": 5}
+	_settings.set_value("quality", "high")
+	_settings.set_value("battery_saver", true)
+	var q: QualityService = QualityService.new(_settings, _bus, doc)
+	var p: Dictionary = q.params()
+	assert_near(float(p["render_scale"]), QualityService.MAX_RENDER_SCALE, 0.0001)
+	assert_eq(int(p["trail_points"]), QualityService.MIN_TRAIL_POINTS)
+	assert_eq(int(p["fps_cap"]), QualityService.MIN_FPS_CAP)
+	assert_eq(typeof(p["fps_cap"]), TYPE_INT)
+	assert_near(q.target_frame_ms(), 1000.0 / QualityService.MIN_FPS_CAP, 0.01)
+
+
+func test_target_frame_matches_params_for_every_state() -> void:
+	var q: QualityService = QualityService.new(_settings, _bus)
+	for saver: bool in [false, true]:
+		_settings.set_value("battery_saver", saver)
+		for name: StringName in q.preset_names():
+			assert_true(q.set_preset(name))
+			var fps: int = int(q.params()["fps_cap"])
+			assert_near(q.target_frame_ms(), 1000.0 / float(fps), 0.01, "%s saver=%s" % [name, str(saver)])
+
+
 func test_frame_monitor_average_and_window() -> void:
 	var m: FrameMonitor = FrameMonitor.new()
 	for i: int in 120:

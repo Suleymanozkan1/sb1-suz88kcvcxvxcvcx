@@ -42,7 +42,7 @@ static func keys() -> PackedStringArray:
 
 
 ## Returns true when [param value] is acceptable for [param key] (after int->float
-## coercion for float settings).
+## coercion for float settings and StringName->String for string settings).
 static func is_valid(key: String, value: Variant) -> bool:
 	return _validation_error(key, value).is_empty()
 
@@ -113,22 +113,27 @@ static func _validation_error(key: String, value: Variant) -> String:
 	var expected: int = typeof(PlayerProfile.DEFAULT_SETTINGS[key])
 	var actual: int = typeof(value)
 	var numeric_ok: bool = expected == TYPE_FLOAT and actual == TYPE_INT
-	if actual != expected and not numeric_ok:
+	var string_ok: bool = expected == TYPE_STRING and actual == TYPE_STRING_NAME
+	if actual != expected and not numeric_ok and not string_ok:
 		return "expected %s, got %s" % [type_string(expected), type_string(actual)]
 	if VOLUME_KEYS.has(key):
 		var f: float = float(value)
 		if is_nan(f) or f < VOLUME_MIN or f > VOLUME_MAX:
 			return "volume outside %.1f..%.1f" % [VOLUME_MIN, VOLUME_MAX]
-	if key == "quality" and not QUALITY_VALUES.has(value as String):
+	if key == "quality" and not QUALITY_VALUES.has(str(value)):
 		return "unknown quality preset"
-	if key == "language" and not LANGUAGE_VALUES.has(value as String):
+	if key == "language" and not LANGUAGE_VALUES.has(str(value)):
 		return "unsupported language"
 	return ""
 
 
+## Stores floats as float (ints accepted) and strings as String (StringName accepted).
 static func _coerce(key: String, value: Variant) -> Variant:
-	if typeof(PlayerProfile.DEFAULT_SETTINGS[key]) == TYPE_FLOAT:
-		return float(value)
+	match typeof(PlayerProfile.DEFAULT_SETTINGS[key]):
+		TYPE_FLOAT:
+			return float(value)
+		TYPE_STRING:
+			return str(value)
 	return value
 
 

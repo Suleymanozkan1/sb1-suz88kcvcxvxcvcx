@@ -109,9 +109,12 @@ var _warned_buses: Dictionary = {}
 
 
 ## Wires the service to settings and a sound bank and builds the player pool.
-## Safe to call again (the previous pool is released first).
+## Safe to call again (the previous pool is released first and a previously
+## injected [SettingsService] stops driving the buses).
 func setup(settings: SettingsService, bank: SoundBank) -> void:
 	_teardown_players()
+	if _settings != null and _settings != settings and _settings.changed.is_connected(_on_settings_changed):
+		_settings.changed.disconnect(_on_settings_changed)
 	_settings = settings
 	_bank = bank if bank != null else SoundBank.new()
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -139,9 +142,9 @@ func is_ready() -> bool:
 
 ## Plays a sound effect. [param pitch_step] raises the pitch by the kind's
 ## per-step semitone fraction (capped); [param strength] (0..1) scales loudness.
-## Returns true when a voice was started.
+## Returns true when a voice was started (never before the service is in the tree).
 func play_sfx(kind: StringName, pitch_step: int = 0, strength: float = 1.0) -> bool:
-	if not _ready_ok or (_settings != null and not _settings.get_bool("sound")):
+	if not _can_play() or (_settings != null and not _settings.get_bool("sound")):
 		return false
 	var entry: Dictionary = _bank.sfx(kind)
 	if entry.is_empty():
@@ -153,11 +156,10 @@ func play_sfx(kind: StringName, pitch_step: int = 0, strength: float = 1.0) -> b
 	var volume: float = float(entry["volume_db"]) + _strength_db(strength)
 	var bus: StringName = entry["bus"] as StringName
 	_start_voice(kind, stream, bus, semis, volume, int(entry["max_polyphony"]))
-	var shimmer: Dictionary = _shimmer()
-	var shimmer_kinds: Array = shimmer.get("kinds", []) as Array
-	if shimmer_kinds.has(String(kind)) and pitch_step >= int(shimmer.get("min_step", 0)):
-		_start_voice(SHIMMER_KIND, stream, bus, semis + float(shimmer.get("semitones", 0.0)),
-			volume + float(shimmer.get("volume_db", 0.0)), SHIMMER_POLYPHONY)
+	var shimmer: Dictionary = _bank.shimmer()
+	if (shimmer["kinds"] as Array).has(kind) and pitch_step >= int(shimmer["min_step"]):
+		_start_voice(SHIMMER_KIND, stream, bus, semis + float(shimmer["semitones"]),
+			volume + float(shimmer["volume_db"]), SHIMMER_POLYPHONY)
 	return true
 
 
@@ -167,17 +169,30 @@ func on_feedback(kind: StringName, strength: float, pitch_step: int) -> void:
 
 
 ## Starts (or keeps) a music track: "menu" or a world id. [param boss] selects
-## the world's boss loop. Crossfades from the current track.
+## the world's boss loop. Crossfades from the current track. Returns false (with a
+## warning) before [method setup] or while the service is outside the scene tree.
 func play_music(track: String, boss: bool = false) -> bool:
-	if not _ready_ok:
+	if not _can_play():
+		GameLog.warn(LOG_CHANNEL, "play_music('%s') ignored: service not set up or not in the tree" % track)
 		return false
 	var entry: Dictionary = _bank.music(track)
 	if entry.is_empty():
 		GameLog.warn(LOG_CHANNEL, "unknown music track '%s'" % track)
 		return false
+	var fade_s: float = _bank.mixer_float("music_fade_s")
 	var current: MusicDeck = _decks[_active_deck]
 	if current.track == track and current.boss == boss and current.is_playing():
-		current.fade_to(1.0, _bank.mixer_float("music_fade_s") * FADE_IN_FRACTION)
+		current.fade_to(1.0, fade_s * FADE_IN_FRACTION)
+		return true
+	var other_index: int = (_active_deck + 1) % DECK_COUNT
+	var other: MusicDeck = _decks[other_index]
+	if other.track == track and other.boss == boss and other.is_playing():
+		# Switching straight back: fade the still-sounding deck in again instead of
+		# hard-cutting it mid fade-out (audible click) and restarting the loop.
+		current.fade_to(0.0, fade_s)
+		_active_deck = other_index
+		other.fade_to(1.0, fade_s * FADE_IN_FRACTION)
+		_reset_beat_tracking()
 		return true
 	var boss_path: String = str(entry["boss"])
 	var use_boss: bool = boss and not boss_path.is_empty() and _bank.stream_at(boss_path) != null
@@ -187,11 +202,10 @@ func play_music(track: String, boss: bool = false) -> bool:
 	var hi_stream: AudioStream = null if use_boss else _bank.stream_at(str(entry["hi"]))
 	_ensure_loop(base_stream)
 	_ensure_loop(hi_stream)
-	var fade_s: float = _bank.mixer_float("music_fade_s")
 	if current.is_playing():
 		current.fade_to(0.0, fade_s)
-	_active_deck = (_active_deck + 1) % DECK_COUNT
-	var deck: MusicDeck = _decks[_active_deck]
+	_active_deck = other_index
+	var deck: MusicDeck = other
 	deck.halt()
 	deck.track = track
 	deck.boss = boss
@@ -205,10 +219,7 @@ func play_music(track: String, boss: bool = false) -> bool:
 	deck.base.play()
 	if hi_stream != null:
 		deck.hi.play()
-	_beat_index = NO_BEAT
-	_beat_phase = 0.0
-	_loop_count = 0
-	_last_pos = 0.0
+	_reset_beat_tracking()
 	return true
 
 
@@ -244,7 +255,7 @@ func intensity() -> float:
 
 ## Plays a stinger (e.g. &"level_complete") on the music bus, ducking the loop.
 func play_stinger(stinger_name: StringName) -> bool:
-	if not _ready_ok or (_settings != null and not _settings.get_bool("music")):
+	if not _can_play() or (_settings != null and not _settings.get_bool("music")):
 		return false
 	var entry: Dictionary = _bank.stinger(stinger_name)
 	if entry.is_empty():
@@ -365,6 +376,14 @@ func _track_beat() -> void:
 		beat.emit(index)
 
 
+## The active deck changed: beat indices restart from its current position.
+func _reset_beat_tracking() -> void:
+	_beat_index = NO_BEAT
+	_beat_phase = 0.0
+	_loop_count = 0
+	_last_pos = 0.0
+
+
 func _apply_deck_volume(deck: MusicDeck) -> void:
 	var g: float = deck.gain * _duck
 	deck.base.volume_db = _gain_db(g) + _bank.mixer_float("base_volume_db")
@@ -424,9 +443,9 @@ func _strength_db(strength: float) -> float:
 	return linear_to_db(lerpf(floor_gain, 1.0, s))
 
 
-func _shimmer() -> Dictionary:
-	var v: Variant = _bank.mixer("shimmer")
-	return v as Dictionary if typeof(v) == TYPE_DICTIONARY else {}
+## Players can only start inside the scene tree (the engine errors otherwise).
+func _can_play() -> bool:
+	return _ready_ok and is_inside_tree()
 
 
 func _gain_db(gain: float) -> float:

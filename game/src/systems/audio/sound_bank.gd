@@ -31,6 +31,7 @@ const MIN_BPM: float = 40.0
 const MAX_BPM: float = 240.0
 const DEFAULT_BARS: int = 8
 const BEATS_PER_BAR: int = 4
+const SHIMMER_KEY: String = "shimmer"
 ## Mixer defaults, used for any field missing from the document.
 const DEFAULT_MIXER: Dictionary = {
 	"voices": 12,
@@ -152,6 +153,12 @@ func mixer_float(key: String) -> float:
 	return float(v) if typeof(v) == TYPE_FLOAT or typeof(v) == TYPE_INT else 0.0
 
 
+## Sanitised combo shimmer layer config: {"kinds": Array[StringName], "min_step": int,
+## "semitones": float, "volume_db": float}. Always well-typed, whatever the data said.
+func shimmer() -> Dictionary:
+	return _mixer[SHIMMER_KEY] as Dictionary
+
+
 ## Number of pooled sfx voices.
 func voices() -> int:
 	return clampi(int(mixer_float("voices")), MIN_VOICES, MAX_VOICES)
@@ -199,10 +206,40 @@ func _parse(data: Dictionary) -> void:
 			else:
 				problems.append("mixer.%s ignored (unknown or wrong type)" % k)
 	_parse_sfx(_dict(data.get("sfx", {})))
+	_mixer[SHIMMER_KEY] = _parse_shimmer(_mixer[SHIMMER_KEY])
 	_parse_music(_dict(data.get("music", {})))
 	_parse_stingers(_dict(data.get("stingers", {})))
 	for path: String in missing_files():
 		problems.append("missing file %s" % path)
+
+
+## Nested shimmer fields are only type-checked at the top level by the mixer
+## merge, so every field is validated here (a string "kinds" or a non-numeric
+## "semitones" would otherwise break every play_sfx call).
+func _parse_shimmer(raw: Variant) -> Dictionary:
+	var defaults: Dictionary = DEFAULT_MIXER[SHIMMER_KEY] as Dictionary
+	var src: Dictionary = _dict(raw)
+	var kinds: Array[StringName] = []
+	var raw_kinds: Variant = src.get("kinds", [])
+	if typeof(raw_kinds) == TYPE_ARRAY:
+		for item: Variant in raw_kinds as Array:
+			var kind: StringName = StringName(str(item))
+			if typeof(item) != TYPE_STRING or not _sfx.has(kind):
+				problems.append("mixer.shimmer.kinds: '%s' is not a sound effect kind" % str(item))
+			elif not kinds.has(kind):
+				kinds.append(kind)
+	else:
+		problems.append("mixer.shimmer.kinds must be a list")
+	for key: String in ["min_step", "semitones", "volume_db"]:
+		var v: Variant = src.get(key, defaults[key])
+		if typeof(v) != TYPE_INT and typeof(v) != TYPE_FLOAT:
+			problems.append("mixer.shimmer.%s must be a number" % key)
+	return {
+		"kinds": kinds,
+		"min_step": maxi(0, int(_num(src, "min_step", float(defaults["min_step"])))),
+		"semitones": clampf(_num(src, "semitones", float(defaults["semitones"])), -MAX_PITCH_STEP, MAX_PITCH_STEP),
+		"volume_db": clampf(_num(src, "volume_db", float(defaults["volume_db"])), MIN_VOLUME_DB, MAX_VOLUME_DB),
+	}
 
 
 func _parse_sfx(raw: Dictionary) -> void:
