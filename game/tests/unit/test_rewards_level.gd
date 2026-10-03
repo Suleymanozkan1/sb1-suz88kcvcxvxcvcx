@@ -96,6 +96,21 @@ func test_replay_coins_never_zero_even_if_table_says_zero() -> void:
 	assert_gt(replay.amount_of(RewardBundle.TYPE_COINS), 0)
 
 
+func test_completed_run_pays_coins_even_with_broken_tier_data() -> void:
+	var tables: Dictionary = RewardEngine.load_tables().duplicate(true)
+	var level: Dictionary = tables["level"] as Dictionary
+	(level["base_by_tier"] as Dictionary)["early"] = 0
+	(level["kind_bonus"] as Dictionary)["normal"] = 0
+	level["replay_coins_min"] = 0
+	level.erase("replay_coins_by_tier")
+	level["replay_coins"] = 3
+	var custom: RewardEngine = RewardEngine.new(profile, bus, economy, _grant_xp, _grant_cosmetic, tables)
+	var first: RewardBundle = custom.compute_level_reward(_run(true, 1), _ctx("early", true, 1, 0))
+	assert_eq(first.amount_of(RewardBundle.TYPE_COINS), RewardEngine.MIN_COMPLETED_COINS, "never zero")
+	var replay: RewardBundle = custom.compute_level_reward(_run(true, 1), _ctx("early", false, 1, 0))
+	assert_eq(replay.amount_of(RewardBundle.TYPE_COINS), 3, "flat replay_coins from data is the fallback")
+
+
 func test_new_stars_on_replay_add_star_bonus() -> void:
 	var bundle: RewardBundle = engine.compute_level_reward(_run(true, 3, false), _ctx("combination", false, 1, 2))
 	var expected: int = _tier_value("replay_coins_by_tier", "combination") + 2 * int(_level("coins_per_new_star"))

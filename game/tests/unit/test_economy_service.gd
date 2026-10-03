@@ -160,6 +160,35 @@ func test_balance_cap_clamps_and_reports_real_delta() -> void:
 	assert_false(capped.grant(COINS, 1, "test"), "no grants beyond the cap")
 
 
+func test_grant_on_edited_wallet_above_cap_never_reduces_it() -> void:
+	var cap: int = economy.balance_cap(COINS)
+	profile.coins = cap + 1000
+	assert_false(economy.grant(COINS, 10, "test"), "no grant beyond the cap")
+	assert_eq(economy.balance(COINS), cap + 1000, "the cap never takes coins away")
+	assert_empty(profile.ledger)
+	assert_empty(events)
+	assert_true(economy.spend(COINS, 500, "shop"), "spending still works")
+	assert_eq(economy.balance(COINS), cap + 500)
+
+
+func test_recent_ledger_normalises_values_after_save_round_trip() -> void:
+	economy.grant(COINS, 120, "level:w01_l01")
+	economy.spend(COINS, 20, "cosmetic:core_fire")
+	var json: Variant = JSON.parse_string(JSON.stringify(profile.to_dict()))
+	var reloaded: PlayerProfile = PlayerProfile.from_dict(json as Dictionary)
+	reloaded.ledger.append({"c": "tokens", "d": 5, "s": "x", "b": 5, "t": NOW})
+	reloaded.ledger.append({"c": "coins"})
+	var history: Array[Dictionary] = EconomyService.new(reloaded, bus, clock).recent_ledger()
+	assert_eq(history.size(), 3, "unknown currencies skipped, partial entries kept")
+	assert_eq(history[0], {"t": 0, "c": "coins", "d": 0, "s": EconomyService.UNKNOWN_SOURCE, "b": 0})
+	var spend: Dictionary = history[1]
+	assert_eq(typeof(spend["d"]), TYPE_INT, "JSON floats become whole numbers again")
+	assert_eq(str(spend["d"]), "-20", "shown without a decimal part")
+	assert_eq(spend["b"], 100)
+	assert_eq(spend["t"], NOW)
+	assert_eq(spend["s"], "cosmetic:core_fire")
+
+
 func test_recent_ledger_filters_and_orders_newest_first() -> void:
 	economy.grant(COINS, 10, "a")
 	economy.grant(GEMS, 1, "b")

@@ -194,6 +194,21 @@ func test_grant_spec_matches_achievement_contract() -> void:
 	assert_eq(_items(again), [{"type": "coins", "amount": 100, "id": ""}], "owned badge dropped on repeat")
 
 
+func test_grant_table_matches_daily_challenge_contract() -> void:
+	var request: Dictionary = {"table": RewardEngine.TABLE_DAILY_STREAK, "tier": 3}
+	var expected: RewardBundle = engine.compute(RewardEngine.TABLE_DAILY_STREAK, request)
+	var granted: RewardBundle = engine.grant_table(request)
+	assert_false(granted.is_empty())
+	assert_eq(_items(granted), _items(expected), "grants exactly what the table computes")
+	assert_eq(granted.source, "daily_streak:3")
+	assert_eq(economy.balance(EconomyService.COINS), expected.amount_of(RewardBundle.TYPE_COINS))
+	assert_eq(economy.balance(EconomyService.GEMS), expected.amount_of(RewardBundle.TYPE_GEMS))
+	assert_eq(signalled.size(), 1)
+	assert_true(engine.grant_table({"table": "loot_box"}).is_empty(), "unknown table grants nothing")
+	assert_true(engine.grant_table({}).is_empty())
+	assert_eq(signalled.size(), 1, "nothing announced for an empty grant")
+
+
 func test_missing_callbacks_drop_only_their_items() -> void:
 	var bare: RewardEngine = RewardEngine.new(profile, bus, economy, Callable(), Callable())
 	var bundle: RewardBundle = RewardBundle.new("x").add(RewardBundle.TYPE_COINS, 5).add(RewardBundle.TYPE_XP, 5)

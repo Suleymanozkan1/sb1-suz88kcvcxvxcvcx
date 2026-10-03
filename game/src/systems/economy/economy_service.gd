@@ -40,9 +40,14 @@ const LEDGER_LABEL_KINDS: Array[String] = [
 	"purchase",
 ]
 const LEDGER_LABEL_SUFFIXES: Array[String] = ["duplicate", "ad_double"]
+## Source kinds written by other modules that share a label (the cosmetics
+## shop spends with the reason "cosmetic:<item id>").
+const LEDGER_LABEL_ALIASES: Dictionary = {"cosmetic": "purchase"}
 const LEDGER_LABEL_OTHER: String = "other"
 ## Largest whole number a JSON float can hold exactly (2^53).
 const MAX_SAFE_FLOAT_INT: float = 9007199254740992.0
+## Longest digit run parsed from a numeric string (always fits in 64 bits).
+const MAX_INT_STRING_DIGITS: int = 18
 
 const KEY_MAX_SINGLE_GRANT: String = "max_single_grant"
 const KEY_BALANCE_CAP: String = "balance_cap"
@@ -132,7 +137,8 @@ static func is_currency(currency: StringName) -> bool:
 
 
 ## Whole-number view of a parsed JSON value (ints, integral floats, numeric
-## strings); [param fallback] for anything else.
+## strings of at most [constant MAX_INT_STRING_DIGITS] digits);
+## [param fallback] for anything else, including values too large to hold.
 static func int_or(value: Variant, fallback: int) -> int:
 	match typeof(value):
 		TYPE_INT:
@@ -143,7 +149,8 @@ static func int_or(value: Variant, fallback: int) -> int:
 				return int(f)
 		TYPE_STRING, TYPE_STRING_NAME:
 			var s: String = str(value)
-			if s.is_valid_int():
+			var digits: String = s.trim_prefix("-").trim_prefix("+")
+			if s.is_valid_int() and digits.length() <= MAX_INT_STRING_DIGITS:
 				return s.to_int()
 	return fallback
 
@@ -224,16 +231,19 @@ func spend(currency: StringName, amount: int, reason: String) -> bool:
 ## Normalises the price formats used in data files into {"coins": n} or
 ## {"gems": n}. Accepts {"coins": n}, {"gems": n}, {"currency": c, "amount": n}
 ## and the unlock form {"type": c, "value": n}. Returns {} for a free,
-## malformed or unknown-currency price. When both currencies are listed the
-## coin price wins (coins are the currency earned by playing).
+## malformed or unknown-currency price. When both currencies carry a positive
+## price the coin price wins (coins are the currency earned by playing); a
+## zero or invalid entry for one currency never makes the other price free.
 func price_of(item_price: Dictionary) -> Dictionary:
 	var currency: StringName = &""
 	var amount: int = 0
 	if item_price.has(String(COINS)) or item_price.has(String(GEMS)):
-		if item_price.has(String(COINS)) and item_price.has(String(GEMS)):
+		var coins: int = int_or(item_price.get(String(COINS)), 0)
+		var gems: int = int_or(item_price.get(String(GEMS)), 0)
+		if coins > 0 and gems > 0:
 			GameLog.warn("economy", "price lists both currencies; using the coin price")
-		currency = COINS if item_price.has(String(COINS)) else GEMS
-		amount = int_or(item_price[String(currency)], 0)
+		currency = GEMS if coins <= 0 and gems > 0 else COINS
+		amount = gems if currency == GEMS else coins
 	elif item_price.has("currency"):
 		currency = StringName(str(item_price["currency"]))
 		amount = int_or(item_price.get("amount"), 0)
@@ -260,10 +270,11 @@ func apply_starting_balance() -> bool:
 
 
 ## Translation key describing a ledger source such as "level:w01_l03",
-## "daily_streak:4" or "level:w02_l10:duplicate" for the wallet history.
+## "daily_streak:4", "cosmetic:core_fire" or "level:w02_l10:duplicate" for the
+## wallet history.
 static func ledger_label_key(source: String) -> String:
 	var parts: PackedStringArray = source.split(":")
-	var kind: String = parts[0]
+	var kind: String = str(LEDGER_LABEL_ALIASES.get(parts[0], parts[0]))
 	if parts.size() > 1 and LEDGER_LABEL_SUFFIXES.has(parts[parts.size() - 1]):
 		kind = parts[parts.size() - 1]
 	if not LEDGER_LABEL_KINDS.has(kind) and not LEDGER_LABEL_SUFFIXES.has(kind):
@@ -272,14 +283,26 @@ static func ledger_label_key(source: String) -> String:
 
 
 ## Most recent ledger entries (newest first), optionally for one currency.
-## [param limit] <= 0 returns every matching entry.
+## [param limit] <= 0 returns every matching entry. Each entry is a normalised
+## copy {t: int, c: String, d: int, s: String, b: int}, so values stay whole
+## numbers after a JSON save round trip; entries of unknown currencies are
+## skipped.
 func recent_ledger(currency: StringName = &"", limit: int = 0) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for i: int in range(_profile.ledger.size() - 1, -1, -1):
 		var entry: Dictionary = _profile.ledger[i]
-		if currency != &"" and str(entry.get(LEDGER_CURRENCY, "")) != String(currency):
+		var entry_currency: String = str(entry.get(LEDGER_CURRENCY, ""))
+		if not is_currency(StringName(entry_currency)):
 			continue
-		out.append(entry.duplicate())
+		if currency != &"" and entry_currency != String(currency):
+			continue
+		out.append({
+			LEDGER_TIME: int_or(entry.get(LEDGER_TIME), 0),
+			LEDGER_CURRENCY: entry_currency,
+			LEDGER_DELTA: int_or(entry.get(LEDGER_DELTA), 0),
+			LEDGER_SOURCE: str(entry.get(LEDGER_SOURCE, UNKNOWN_SOURCE)),
+			LEDGER_BALANCE: int_or(entry.get(LEDGER_BALANCE), 0),
+		})
 		if limit > 0 and out.size() >= limit:
 			break
 	return out

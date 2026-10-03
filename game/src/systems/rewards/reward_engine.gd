@@ -41,6 +41,10 @@ const SPEC_BADGE: String = "badge"
 const SPEC_KEYS: Array[String] = [SPEC_COINS, SPEC_GEMS, SPEC_XP, SPEC_COSMETIC, SPEC_BADGE]
 
 const MAX_STARS: int = 3
+## Floor for the coins of a completed run, whatever the data says.
+const MIN_COMPLETED_COINS: int = 1
+## Key of a [method grant_table] request naming the table to compute.
+const REQUEST_TABLE: String = "table"
 const DAILY_STREAK_TIERS: int = 7
 const FIRST_GEM_STREAK_TIER: int = 3
 const FIRST_LEVEL_UP: int = 2
@@ -184,7 +188,9 @@ func compute_level_reward(result: RunResult, ctx: Dictionary) -> RewardBundle:
 	if _flag(ctx, "first_clear"):
 		coins = _tier_amount("base_by_tier", tier, "first_clear_coins") + _kind_bonus(ctx)
 	else:
-		coins = maxi(_tier_amount("replay_coins_by_tier", tier, "replay_coins"), _level_int("replay_coins_min"))
+		coins = _tier_amount("replay_coins_by_tier", tier, "replay_coins")
+	# A completed run always pays something, even with damaged data.
+	coins = maxi(coins, maxi(_level_int("replay_coins_min"), MIN_COMPLETED_COINS))
 	coins += _level_int("coins_per_new_star") * new_stars
 	bundle.add(RewardBundle.TYPE_COINS, coins)
 	if _flag(ctx, "first_perfect") and result.perfect:
@@ -275,6 +281,13 @@ func grant(bundle: RewardBundle) -> RewardBundle:
 ## grant(bundle_from_spec(spec, source)).
 func grant_spec(spec: Dictionary, source: String) -> RewardBundle:
 	return grant(bundle_from_spec(spec, source))
+
+
+## Convenience for table rewards requested as {"table": id, ...ctx}, e.g. the
+## daily challenge's {"table": "daily_streak", "tier": n}:
+## grant(compute(request.table, request)).
+func grant_table(request: Dictionary) -> RewardBundle:
+	return grant(compute(str(request.get(REQUEST_TABLE, "")), request))
 
 
 ## The portion of [param bundle] to grant a second time after the player chose
@@ -463,9 +476,11 @@ func _kind_bonus(ctx: Dictionary) -> int:
 	return maxi(0, EconomyService.int_or(_dict(_level_table().get("kind_bonus")).get(kind), 0))
 
 
+## Per-tier amount; falls back to the table's flat [param fallback_key] value
+## (e.g. "replay_coins"), then to the built-in safe value.
 func _tier_amount(table_key: String, tier: String, fallback_key: String) -> int:
 	var value: int = EconomyService.int_or(_dict(_level_table().get(table_key)).get(tier), -1)
-	return value if value >= 0 else int(FALLBACK_LEVEL[fallback_key])
+	return value if value >= 0 else _level_int(fallback_key)
 
 
 static func _merge(into: RewardBundle, from: RewardBundle) -> void:

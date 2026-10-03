@@ -57,6 +57,10 @@ func test_price_of_normalises_formats() -> void:
 	assert_eq(economy.price_of({"currency": "gems", "amount": 15}), {"gems": 15})
 	assert_eq(economy.price_of({"type": "coins", "value": 800}), {"coins": 800}, "cosmetic unlock form")
 	assert_eq(economy.price_of({"coins": 300, "gems": 5}), {"coins": 300}, "coins win when both listed")
+	assert_eq(economy.price_of({"coins": 0, "gems": 5}), {"gems": 5}, "a zero coin entry never makes it free")
+	assert_eq(economy.price_of({"coins": "x", "gems": 5}), {"gems": 5}, "an invalid coin entry is ignored")
+	assert_eq(economy.price_of({"gems": 0, "coins": 40}), {"coins": 40})
+	assert_eq(economy.price_of({"coins": 0, "gems": 0}), {}, "both zero is free")
 	assert_eq(economy.price_of({}), {}, "free")
 	assert_eq(economy.price_of({"coins": 0}), {}, "zero is free")
 	assert_eq(economy.price_of({"coins": -5}), {}, "negative rejected")
@@ -109,6 +113,10 @@ func test_ledger_label_keys_resolve_to_strings() -> void:
 		"level:w02_l10:duplicate": "economy.ledger.source.duplicate",
 		"level:w02_l10:ad_double": "economy.ledger.source.ad_double",
 		"starting_balance": "economy.ledger.source.starting_balance",
+		"purchase:core_fire": "economy.ledger.source.purchase",
+		"cosmetic:core_fire": "economy.ledger.source.purchase",
+		"achievement:first_clear": "economy.ledger.source.achievement",
+		"mission:daily_play_3:ad_double": "economy.ledger.source.ad_double",
 		"": "economy.ledger.source.other",
 		"something_new:42": "economy.ledger.source.other",
 	}
@@ -128,3 +136,7 @@ func test_int_or_parses_json_numbers() -> void:
 	assert_eq(EconomyService.int_or(INF, -1), -1)
 	assert_eq(EconomyService.int_or(null, -1), -1)
 	assert_eq(EconomyService.int_or([], -1), -1)
+	assert_eq(EconomyService.int_or("-12", -1), -12)
+	assert_eq(EconomyService.int_or("999999999999999999", -1), 999999999999999999, "18 digits fit")
+	assert_eq(EconomyService.int_or("99999999999999999999999", -1), -1, "too large for 64 bits")
+	assert_eq(EconomyService.int_or(true, -1), -1, "booleans are not numbers")
