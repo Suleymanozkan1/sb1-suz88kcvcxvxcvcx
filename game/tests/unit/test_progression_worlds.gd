@@ -176,6 +176,17 @@ func test_world_completion_outcome_and_world_stats() -> void:
 	assert_eq(profile.stat(StatsService.WORLDS_COMPLETED), 1)
 
 
+func test_refresh_syncs_world_stats_of_a_loaded_save() -> void:
+	_clear_direct(1, 1, 52, 3)
+	_clear_direct(2, 1, 52, 1)
+	var svc: ProgressionService = _service()
+	assert_empty(stat_events, "construction stays silent")
+	assert_eq(profile.stat(StatsService.WORLDS_COMPLETED), 0)
+	assert_empty(svc.refresh_world_unlocks(), "worlds were already synced at construction")
+	assert_eq(profile.stat(StatsService.WORLDS_COMPLETED), 2, "both completed worlds counted")
+	assert_eq(profile.stat(StatsService.WORLDS_PERFECTED), 1, "only world 1 has every star")
+
+
 func test_stars_needed_for_edge_cases() -> void:
 	var svc: ProgressionService = _service()
 	assert_eq(svc.stars_needed_for("neon_core"), 0, "first world needs nothing")
@@ -193,11 +204,12 @@ func test_progress_summary_covers_ten_worlds() -> void:
 	assert_eq(worlds.size(), 10, "one entry per world")
 	for i: int in worlds.size():
 		var w: Dictionary = worlds[i]
-		for key: String in ["index", "id", "name", "stars", "max", "cleared", "unlocked", "perfect"]:
+		for key: String in ["index", "id", "name", "name_key", "stars", "max", "cleared", "unlocked", "perfect"]:
 			assert_has(w, key, "world summary has %s" % key)
 		assert_eq(int(w["index"]), i + 1)
 		assert_eq(int(w["max"]), 156)
 		assert_eq(str(w["id"]), str(catalog.world_at(i + 1)["id"]))
+		assert_eq(str(w["name_key"]), "world.%s.name" % str(w["id"]), "translatable world name")
 	assert_eq(int(worlds[0]["stars"]), 104)
 	assert_eq(int(worlds[0]["cleared"]), 52)
 	assert_true(bool(worlds[0]["unlocked"]))
@@ -212,3 +224,24 @@ func test_progress_summary_covers_ten_worlds() -> void:
 	assert_eq(int(summary["total_levels"]), 520)
 	assert_eq(int(summary["worlds_unlocked"]), 2)
 	assert_has(summary, "xp")
+
+
+func test_malformed_world_data_does_not_crash() -> void:
+	var defs: Array[Dictionary] = [
+		{"id": "alpha", "levels": 3, "boss_level": null, "unlock_stars": 0},
+		{"id": "beta", "levels": 3, "boss_level": "last", "unlock_stars": "many"},
+	]
+	var odd: WorldCatalog = WorldCatalog.new()
+	odd.worlds = defs
+	var p: PlayerProfile = PlayerProfile.new()
+	var svc: ProgressionService = ProgressionService.new(p, bus, odd)
+	# Statement calls on purpose: a script error inside the service must show
+	# up as a failed state assertion below instead of silently ending the test.
+	for id: String in ["w01_l01", "w01_l02", "w01_l03"]:
+		svc.record_level_result(_run(id, 2))
+	assert_eq(svc.world_cleared_count(1), 3, "every level recorded")
+	assert_true(svc.is_world_unlocked("beta"), "boss defaults to the last level, non-numeric stars need 0")
+	assert_true(svc.is_level_unlocked("w02_l01"))
+	assert_has(worlds_unlocked, "beta")
+	assert_eq(svc.max_stars(), 18)
+	assert_eq((svc.progress_summary()["worlds"] as Array).size(), 2)

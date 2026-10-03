@@ -40,6 +40,7 @@ func test_xp_curve_matches_formula() -> void:
 	assert_eq(svc.xp_for_next(1), 120, "120 * 1^1.25")
 	assert_eq(svc.xp_for_next(2), 285, "120 * 2^1.25 = 285.4 rounded to step 5")
 	assert_eq(svc.xp_for_next(10), 2135)
+	assert_eq(svc.xp_for_next(99), 37475, "matches the progression.json notes")
 	assert_eq(svc.xp_for_next(0), 120, "levels below 1 clamp to level 1")
 	assert_eq(svc.xp_for_next(-4), 120)
 
@@ -154,3 +155,45 @@ func test_missing_dependencies_do_not_crash() -> void:
 	var lonely: ProgressionService = ProgressionService.new(null, null, catalog, {"xp_curve": {}})
 	assert_eq(lonely.add_xp(500), 2, "works without a bus")
 	assert_true(lonely.is_level_unlocked("w01_l01"))
+
+
+func test_xp_above_a_lowered_cap_is_never_reduced() -> void:
+	var p: PlayerProfile = PlayerProfile.new()
+	p.xp = 5000
+	p.player_level = 5
+	var cfg: Dictionary = {"xp_caps": {"max_total_xp": 1000, "max_player_level": 100, "max_single_grant": 500}}
+	var capped: ProgressionService = ProgressionService.new(p, bus, catalog, cfg)
+	capped.add_xp(100)
+	assert_eq(p.xp, 5000, "lifetime xp earned under an older cap is kept")
+	assert_ge(p.player_level, 5, "level never drops")
+	assert_empty(xp_events, "nothing was granted, so no xp_gained")
+
+
+func test_player_level_above_a_lowered_cap_is_kept() -> void:
+	var p: PlayerProfile = PlayerProfile.new()
+	p.player_level = 12
+	var capped: ProgressionService = ProgressionService.new(p, bus, catalog, {"xp_caps": {"max_player_level": 10}})
+	assert_eq(capped.add_xp(50), 0)
+	assert_eq(p.player_level, 12, "a lower cap never takes levels away")
+	var bar: Dictionary = capped.xp_progress()
+	assert_true(bool(bar["at_max"]))
+	assert_eq(int(bar["level"]), 12, "the bar shows the real level")
+	assert_eq(int(capped.progress_summary()["player_level"]), 12)
+
+
+func test_xp_for_next_extreme_levels_stay_sane() -> void:
+	var top: int = svc.xp_for_next(ProgressionService.PLAYER_LEVEL_LIMIT)
+	assert_gt(top, svc.xp_for_next(svc.max_player_level), "still increasing past the table")
+	assert_le(top, ProgressionService.TOTAL_XP_LIMIT)
+	assert_eq(svc.xp_for_next(9_000_000_000_000_000_000), top, "absurd levels clamp to the hard limit")
+	var steep: Dictionary = {
+		"xp_curve": {"base": 100000, "exponent": 3.0, "step": 1000},
+		"xp_caps": {"max_player_level": 999},
+	}
+	var hard: ProgressionService = ProgressionService.new(PlayerProfile.new(), EventBus.new(), catalog, steep)
+	var prev: int = 0
+	for level: int in [1, 10, 100, 500, 998, 999, 1500]:
+		var need: int = hard.xp_for_next(level)
+		assert_ge(need, prev, "steep curve level %d never decreases" % level)
+		assert_gt(need, 0, "steep curve level %d positive" % level)
+		prev = need

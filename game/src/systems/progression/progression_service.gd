@@ -41,6 +41,13 @@ const HINT_KEY_WORLD: String = "progression.hint.world"
 const HINT_KEY_STARS: String = "progression.hint.stars"
 const HINT_KEY_PLAYER_LEVEL: String = "progression.hint.player_level"
 const HINT_KEY_COMPLETE: String = "progression.hint.complete"
+## Translation key of a world's display name (strings owned by the UI texts).
+const WORLD_NAME_KEY: String = "world.%s.name"
+## Largest magnitude accepted when reading stored numbers (keeps float -> int
+## conversions exact and platform-independent).
+const READ_LIMIT: float = 1_000_000_000_000.0
+## Shared read-only stand-in for a missing level record.
+const EMPTY_RECORD: Dictionary = {}
 
 ## The configuration actually in use (after validation).
 var config: Dictionary = {}
@@ -129,7 +136,7 @@ func record_level_result(result: RunResult, level_meta: Dictionary = {}) -> Dict
 	_profile.levels[level_id] = entry
 	if int(outcome["new_stars"]) > 0 and _bus != null:
 		_bus.stars_changed.emit(total_stars())
-	var worlds: Array[String] = refresh_world_unlocks()
+	var worlds: Array[String] = _sync_world_unlocks(true)
 	outcome["unlocked_worlds"] = worlds
 	_announce_unlocks(outcome, next_id, next_was_unlocked, worlds)
 	if not was_complete and world_complete(world_index):
@@ -140,9 +147,10 @@ func record_level_result(result: RunResult, level_meta: Dictionary = {}) -> Dict
 	return outcome
 
 
-## XP needed to go from [param level] to the next one (strictly increasing).
+## XP needed to go from [param level] to the next one (strictly increasing up
+## to [constant PLAYER_LEVEL_LIMIT]; higher levels use the limit's value).
 func xp_for_next(level: int) -> int:
-	var lvl: int = maxi(level, 1)
+	var lvl: int = clampi(level, 1, PLAYER_LEVEL_LIMIT)
 	var last: int = _xp_needed.size() - 1
 	if lvl <= last:
 		return _xp_needed[lvl]
@@ -153,7 +161,8 @@ func xp_for_next(level: int) -> int:
 ## Grants XP (lifetime total) and levels up as many times as earned.
 ## Emits xp_gained once, then player_level_up for every level gained.
 ## Returns the number of levels gained. Non-positive amounts are ignored and
-## single grants above the configured cap are clamped (logged).
+## single grants above the configured cap are clamped (logged). Neither XP nor
+## the player level is ever lowered, even when a data update lowers a cap.
 func add_xp(amount: int) -> int:
 	if amount <= 0:
 		if amount < 0:
@@ -163,31 +172,33 @@ func add_xp(amount: int) -> int:
 	if granted > max_xp_grant:
 		GameLog.warn("progression", "xp grant %d above cap %d; clamped" % [amount, max_xp_grant])
 		granted = max_xp_grant
-	var before: int = clampi(_profile.xp, 0, max_total_xp)
-	_profile.xp = mini(before + granted, max_total_xp)
-	if _profile.xp > before and _bus != null:
-		_bus.xp_gained.emit(_profile.xp - before, _profile.xp)
-	var level: int = clampi(_profile.player_level, 1, max_player_level)
+	var before: int = maxi(_profile.xp, 0)
+	var after: int = before + mini(granted, maxi(max_total_xp - before, 0))
+	_profile.xp = after
+	if after > before and _bus != null:
+		_bus.xp_gained.emit(after - before, after)
+	var level: int = maxi(_profile.player_level, 1)
 	var gained: int = 0
-	while level < max_player_level and _profile.xp >= _xp_threshold[level + 1]:
+	while level < max_player_level and after >= _xp_threshold[level + 1]:
 		level += 1
 		gained += 1
 		_profile.player_level = level
 		if _bus != null:
 			_bus.player_level_up.emit(level)
-	if _profile.player_level != level:
+	if _profile.player_level < level:
 		_profile.player_level = level
 	return gained
 
 
 ## XP bar state: {"level", "total_xp", "into_level", "needed", "at_max"}.
+## A level at or above the cap shows a full bar.
 func xp_progress() -> Dictionary:
-	var level: int = clampi(_profile.player_level, 1, max_player_level)
+	var level: int = maxi(_profile.player_level, 1)
 	var at_max: bool = level >= max_player_level
-	var needed: int = xp_for_next(level)
-	var into: int = clampi(_profile.xp - _xp_threshold[level], 0, needed)
-	if at_max:
-		into = needed
+	var needed: int = xp_for_next(mini(level, max_player_level))
+	var into: int = needed
+	if not at_max:
+		into = clampi(_profile.xp - _xp_threshold[level], 0, needed)
 	return {"level": level, "total_xp": _profile.xp, "into_level": into, "needed": needed, "at_max": at_max}
 
 
@@ -201,7 +212,7 @@ func is_level_unlocked(level_id: String) -> bool:
 	var world_index: int = _level_world[n - 1]
 	if world_index != 1 and not _profile.unlocked_worlds.has(_world_id(world_index)):
 		return false
-	return _profile.is_cleared(_ids[n - 2])
+	return _is_cleared(_ids[n - 2])
 
 
 ## True for the first world and every world recorded as unlocked.
@@ -213,9 +224,13 @@ func is_world_unlocked(world_id: String) -> bool:
 
 
 ## Unlocks every world whose rule now holds; returns the newly unlocked ids
-## (in order) and emits world_unlocked for each.
+## (in order) and emits world_unlocked for each. Also brings the
+## worlds_completed / worlds_perfected stats up to date (e.g. after a save
+## load or migration), so call it once after loading.
 func refresh_world_unlocks() -> Array[String]:
-	return _sync_world_unlocks(true)
+	var unlocked: Array[String] = _sync_world_unlocks(true)
+	_update_world_stats()
+	return unlocked
 
 
 ## Stars still missing for [param world_id]'s star requirement (0 when met,
@@ -242,7 +257,7 @@ func world_stars(world_index: int) -> int:
 func world_cleared_count(world_index: int) -> int:
 	var count: int = 0
 	for id: String in _world_level_ids(world_index):
-		if _profile.is_cleared(id):
+		if _is_cleared(id):
 			count += 1
 	return count
 
@@ -287,7 +302,7 @@ func highest_unlocked_level() -> String:
 ## First unlocked level not cleared yet, else the highest unlocked level.
 func next_level_to_play() -> String:
 	for id: String in _ids:
-		if is_level_unlocked(id) and not _profile.is_cleared(id):
+		if is_level_unlocked(id) and not _is_cleared(id):
 			return id
 	return highest_unlocked_level()
 
@@ -297,17 +312,18 @@ func next_level_to_play() -> String:
 ## Priority: a world blocked only by stars -> the next level to clear (world
 ## progress) -> improving stars once everything is cleared -> player level.
 func next_unlock_hint() -> Dictionary:
-	var blocked: int = _star_blocked_world()
+	var stars: int = total_stars()
+	var blocked: int = _star_blocked_world(stars)
 	if blocked > 0:
-		return _hint(HINT_WORLD, _world_id(blocked), total_stars(), _unlock_stars(blocked), HINT_KEY_WORLD)
+		return _hint(HINT_WORLD, _world_id(blocked), stars, _unlock_stars(blocked), HINT_KEY_WORLD)
 	var next_id: String = next_level_to_play()
-	if not next_id.is_empty() and not _profile.is_cleared(next_id):
+	if not next_id.is_empty() and not _is_cleared(next_id):
 		var world_index: int = _level_world[int(_number[next_id]) - 1]
 		var progress: int = world_cleared_count(world_index)
 		return _hint(HINT_LEVEL, next_id, progress, _catalog.levels_in(world_index), HINT_KEY_LEVEL)
 	var to_improve: String = _first_level_below_max_stars()
 	if not to_improve.is_empty():
-		return _hint(HINT_LEVEL, to_improve, total_stars(), max_stars(), HINT_KEY_STARS)
+		return _hint(HINT_LEVEL, to_improve, stars, max_stars(), HINT_KEY_STARS)
 	var xp: Dictionary = xp_progress()
 	var level: int = int(xp["level"])
 	if bool(xp["at_max"]):
@@ -315,15 +331,17 @@ func next_unlock_hint() -> Dictionary:
 	return _hint(HINT_PLAYER_LEVEL, str(level + 1), int(xp["into_level"]), int(xp["needed"]), HINT_KEY_PLAYER_LEVEL)
 
 
-## Data for the Progress screen: {"worlds": [{"index", "id", "name", "stars",
-## "max", "cleared", "levels", "unlocked", "perfect", "complete",
-## "stars_required", "stars_needed", "boss_cleared"}...], "total_stars",
-## "max_stars", "levels_cleared", "total_levels", "worlds_unlocked",
-## "player_level", "xp"}.
+## Data for the Progress screen: {"worlds": [{"index", "id", "name",
+## "name_key", "stars", "max", "cleared", "levels", "unlocked", "perfect",
+## "complete", "stars_required", "stars_needed", "boss_cleared"}...],
+## "total_stars", "max_stars", "levels_cleared", "total_levels",
+## "worlds_unlocked", "player_level", "xp"}. Show the translated "name_key"
+## ("world.<id>.name"); "name" is the untranslated data fallback.
 func progress_summary() -> Dictionary:
 	var worlds: Array[Dictionary] = []
 	var cleared_total: int = 0
 	var unlocked_count: int = 0
+	var total: int = total_stars()
 	for index: int in range(1, _catalog.world_count() + 1):
 		var id: String = _world_id(index)
 		var levels: int = _catalog.levels_in(index)
@@ -336,6 +354,7 @@ func progress_summary() -> Dictionary:
 			"index": index,
 			"id": id,
 			"name": str(_catalog.world_at(index).get("name", id)),
+			"name_key": WORLD_NAME_KEY % id,
 			"stars": stars,
 			"max": levels * MAX_LEVEL_STARS,
 			"cleared": cleared,
@@ -344,17 +363,17 @@ func progress_summary() -> Dictionary:
 			"perfect": levels > 0 and stars == levels * MAX_LEVEL_STARS,
 			"complete": levels > 0 and cleared == levels,
 			"stars_required": _unlock_stars(index),
-			"stars_needed": stars_needed_for(id),
+			"stars_needed": 0 if unlocked else maxi(_unlock_stars(index) - total, 0),
 			"boss_cleared": _boss_cleared(index),
 		})
 	return {
 		"worlds": worlds,
-		"total_stars": total_stars(),
+		"total_stars": total,
 		"max_stars": max_stars(),
 		"levels_cleared": cleared_total,
 		"total_levels": _ids.size(),
 		"worlds_unlocked": unlocked_count,
-		"player_level": clampi(_profile.player_level, 1, max_player_level),
+		"player_level": maxi(_profile.player_level, 1),
 		"xp": xp_progress(),
 	}
 
@@ -413,7 +432,9 @@ func _build_xp_table() -> void:
 
 
 func _curve_value(level: int) -> int:
-	var raw: float = xp_base * pow(float(level), xp_exponent)
+	# Clamped before the float -> int conversion, which is platform-specific
+	# (and meaningless) for values beyond the int range.
+	var raw: float = minf(xp_base * pow(float(level), xp_exponent), float(TOTAL_XP_LIMIT))
 	return maxi(roundi(raw / float(xp_step)) * xp_step, xp_step)
 
 
@@ -446,8 +467,9 @@ func _apply_completion(entry: Dictionary, result: RunResult, outcome: Dictionary
 	var first_perfect: bool = result.perfect and not bool(entry["perfect"])
 	entry["perfect"] = bool(entry["perfect"]) or result.perfect
 	var best_time: float = float(entry["best_time"])
-	if result.time_seconds > 0.0 and (best_time <= 0.0 or result.time_seconds < best_time):
-		entry["best_time"] = result.time_seconds
+	var run_time: float = result.time_seconds
+	if is_finite(run_time) and run_time > 0.0 and (best_time <= 0.0 or run_time < best_time):
+		entry["best_time"] = run_time
 	outcome["first_clear"] = first_clear
 	outcome["new_stars"] = int(entry["stars"]) - prev_stars
 	outcome["stars"] = int(entry["stars"])
@@ -501,12 +523,14 @@ func _update_world_stats() -> void:
 	_stats.set_max(StatsService.WORLDS_PERFECTED, perfected)
 
 
-## Lowest locked world whose previous boss is beaten (only stars are missing).
-func _star_blocked_world() -> int:
+## Lowest locked world whose previous boss is beaten and that still lacks
+## stars ([param stars] = current total), else 0.
+func _star_blocked_world(stars: int) -> int:
 	for index: int in range(2, _catalog.world_count() + 1):
 		if is_world_unlocked(_world_id(index)):
 			continue
-		if is_world_unlocked(_world_id(index - 1)) and _boss_cleared(index - 1):
+		var boss_beaten: bool = is_world_unlocked(_world_id(index - 1)) and _boss_cleared(index - 1)
+		if boss_beaten and stars < _unlock_stars(index):
 			return index
 		return 0
 	return 0
@@ -523,17 +547,14 @@ func _boss_cleared(world_index: int) -> bool:
 	var count: int = _catalog.levels_in(world_index)
 	if count <= 0:
 		return false
-	var boss: int = int(_catalog.world_at(world_index).get("boss_level", count))
+	var boss: int = _int_of(_catalog.world_at(world_index), "boss_level", count)
 	if boss < 1 or boss > count:
 		boss = count
-	return _profile.is_cleared(WorldCatalog.level_id(world_index, boss))
+	return _is_cleared(WorldCatalog.level_id(world_index, boss))
 
 
 func _unlock_stars(world_index: int) -> int:
-	var raw: Variant = _catalog.world_at(world_index).get("unlock_stars", 0)
-	if typeof(raw) != TYPE_INT and typeof(raw) != TYPE_FLOAT:
-		return 0
-	return maxi(int(raw), 0)
+	return maxi(_int_of(_catalog.world_at(world_index), "unlock_stars"), 0)
 
 
 func _world_id(world_index: int) -> String:
@@ -562,18 +583,32 @@ func _next_id(level_id: String) -> String:
 	return _ids[n]
 
 
+## The stored record of [param level_id], or a shared read-only empty record
+## (never mutate the result). Wrongly typed records read as empty.
+func _raw_record(level_id: String) -> Dictionary:
+	var raw: Variant = _profile.levels.get(level_id)
+	if typeof(raw) == TYPE_DICTIONARY:
+		return raw as Dictionary
+	return EMPTY_RECORD
+
+
+## Type-safe reads of the profile slice: wrongly typed values count as 0 instead
+## of raising script errors.
+func _is_cleared(level_id: String) -> bool:
+	return _int_of(_raw_record(level_id), "clears") > 0
+
+
 func _stars_of(level_id: String) -> int:
-	return clampi(_profile.stars_for(level_id), 0, MAX_LEVEL_STARS)
+	return clampi(_int_of(_raw_record(level_id), "stars"), 0, MAX_LEVEL_STARS)
 
 
 ## A complete, well-typed record for [param level_id] (missing keys defaulted).
 func _entry(level_id: String) -> Dictionary:
-	var raw: Variant = _profile.levels.get(level_id, {})
-	var r: Dictionary = raw as Dictionary if typeof(raw) == TYPE_DICTIONARY else {}
+	var r: Dictionary = _raw_record(level_id)
 	return {
 		"stars": clampi(_int_of(r, "stars"), 0, MAX_LEVEL_STARS),
 		"best_score": maxi(_int_of(r, "best_score"), 0),
-		"perfect": bool(r.get("perfect", false)),
+		"perfect": _bool_of(r, "perfect"),
 		"clears": maxi(_int_of(r, "clears"), 0),
 		"attempts": maxi(_int_of(r, "attempts"), 0),
 		"best_combo": maxi(_int_of(r, "best_combo"), 0),
@@ -625,15 +660,29 @@ static func _num(section: Dictionary, key: String, fallback: float, min_value: f
 	return v
 
 
-static func _int_of(d: Dictionary, key: String) -> int:
-	var v: Variant = d.get(key, 0)
-	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
-		return int(v)
-	return 0
+## Numeric read; non-numbers and non-finite floats give [param fallback].
+static func _int_of(d: Dictionary, key: String, fallback: int = 0) -> int:
+	var v: Variant = d.get(key, fallback)
+	if typeof(v) == TYPE_INT:
+		return v as int
+	if typeof(v) == TYPE_FLOAT and is_finite(v as float):
+		return int(clampf(v as float, -READ_LIMIT, READ_LIMIT))
+	return fallback
 
 
 static func _float_of(d: Dictionary, key: String) -> float:
 	var v: Variant = d.get(key, 0.0)
 	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
-		return float(v)
+		var f: float = float(v)
+		return clampf(f, -READ_LIMIT, READ_LIMIT) if is_finite(f) else 0.0
 	return 0.0
+
+
+## Only real booleans (or non-zero numbers) are true; anything else is false.
+static func _bool_of(d: Dictionary, key: String) -> bool:
+	var v: Variant = d.get(key, false)
+	if typeof(v) == TYPE_BOOL:
+		return v as bool
+	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
+		return float(v) != 0.0
+	return false
