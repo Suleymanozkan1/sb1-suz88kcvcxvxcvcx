@@ -1,0 +1,191 @@
+{
+	"schema_version": 1,
+	"limits": {
+		"max_params": 16,
+		"max_string_length": 80,
+		"memory_sink_max_events": 1000,
+		"http_batch_size": 25,
+		"http_max_queue": 400
+	},
+	"events": {
+		"session_started": {
+			"params": {
+				"locale": "string",
+				"quality": "string",
+				"first_session": "bool"
+			}
+		},
+		"level_started": {
+			"params": {
+				"level_id": "string",
+				"world_id": "string",
+				"mode": "string",
+				"attempt": "int"
+			}
+		},
+		"level_completed": {
+			"params": {
+				"level_id": "string",
+				"world_id": "string",
+				"mode": "string",
+				"score": "int",
+				"stars": "int",
+				"grade": "string",
+				"time_seconds": "float",
+				"max_combo": "int",
+				"taps": "int",
+				"revived": "bool",
+				"attempt": "int"
+			}
+		},
+		"level_failed": {
+			"params": {
+				"level_id": "string",
+				"world_id": "string",
+				"mode": "string",
+				"score": "int",
+				"distance": "float",
+				"time_seconds": "float",
+				"cause": "string",
+				"attempt": "int"
+			}
+		},
+		"perfect_completed": {
+			"params": {
+				"level_id": "string",
+				"mode": "string",
+				"score": "int"
+			}
+		},
+		"combo_reached": {
+			"params": {
+				"level_id": "string",
+				"combo": "int"
+			}
+		},
+		"reward_claimed": {
+			"params": {
+				"source": "string",
+				"coins": "int",
+				"gems": "int",
+				"xp": "int",
+				"doubled": "bool"
+			}
+		},
+		"shop_opened": {
+			"params": {
+				"source": "string",
+				"tab": "string"
+			}
+		},
+		"purchase_started": {
+			"params": {
+				"product_id": "string"
+			}
+		},
+		"purchase_completed": {
+			"params": {
+				"product_id": "string",
+				"restored": "bool"
+			}
+		},
+		"purchase_failed": {
+			"params": {
+				"product_id": "string",
+				"error": "string"
+			}
+		},
+		"ad_started": {
+			"params": {
+				"kind": "string",
+				"placement": "string"
+			}
+		},
+		"ad_completed": {
+			"params": {
+				"kind": "string",
+				"placement": "string",
+				"completed": "bool"
+			}
+		},
+		"daily_started": {
+			"params": {
+				"date_key": "string",
+				"streak": "int"
+			}
+		},
+		"daily_completed": {
+			"params": {
+				"date_key": "string",
+				"score": "int",
+				"streak": "int",
+				"first_clear": "bool"
+			}
+		},
+		"achievement_unlocked": {
+			"params": {
+				"achievement_id": "string"
+			}
+		},
+		"mission_claimed": {
+			"params": {
+				"mission_id": "string",
+				"period": "string"
+			}
+		},
+		"quality_auto_reduced": {
+			"params": {
+				"from": "string",
+				"to": "string",
+				"avg_fps": "float"
+			}
+		},
+		"save_recovered": {
+			"params": {
+				"source": "string"
+			}
+		},
+		"error_reported": {
+			"params": {
+				"kind": "string",
+				"where": "string",
+				"error_type": "int",
+				"count": "int",
+				"level_id": "string",
+				"state": "string",
+				"screen": "string"
+			}
+		},
+		"tutorial_step": {
+			"params": {
+				"step": "int",
+				"step_id": "string",
+				"skipped": "bool"
+			}
+		},
+		"settings_changed": {
+			"params": {
+				"key": "string",
+				"value": "string"
+			}
+		},
+		"world_unlocked": {
+			"params": {
+				"world_id": "string",
+				"total_stars": "int"
+			}
+		}
+	},
+	"forbidden_param_patterns": [
+		"email",
+		"name",
+		"phone",
+		"device_id",
+		"imei",
+		"advertising_id",
+		"ip",
+		"lat",
+		"lon",
+		"address"
+	]
+}
