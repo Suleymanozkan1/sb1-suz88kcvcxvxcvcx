@@ -79,6 +79,7 @@ enum FailReason {
 	WRONG_PHASE = 2,
 	OBJECTIVE = 3,
 	TIME_UP = 4,
+	MISSED_SPARK = 5,
 }
 
 ## Events written into the sim's event buffer for presentation layers.

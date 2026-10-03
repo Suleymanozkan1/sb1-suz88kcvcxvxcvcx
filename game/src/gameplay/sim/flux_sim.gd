@@ -17,6 +17,8 @@ var record_events: bool = true
 var zen: bool = false
 var speed_scale: float = 1.0
 var shields_allowed: bool = true
+## Perfect Run mode: a missed spark ends the run.
+var strict: bool = false
 
 var tick: int = 0
 var status: int = SimConst.Status.RUNNING
@@ -133,6 +135,7 @@ func clone() -> FluxSim:
 	c.record_events = record_events
 	c.zen = zen
 	c.speed_scale = speed_scale
+	c.strict = strict
 	c.shields_allowed = shields_allowed
 	c.tick = tick
 	c.status = status
@@ -411,6 +414,8 @@ func _process_entities(t: float) -> void:
 	while cursor < n and level.e_d[cursor] + SimConst.ENTITY_REACH < core_back:
 		_on_left_behind(cursor)
 		cursor += 1
+		if status != SimConst.Status.RUNNING:
+			return
 	var core_front: float = d + SimConst.CORE_RADIUS
 	var i: int = cursor
 	while i < n:
@@ -505,6 +510,8 @@ func _check_collect(i: int, ed: float) -> void:
 			if combo > 0:
 				_combo_break()
 			_emit(SimConst.EventType.SPARK_MISSED, i, 0)
+			if strict:
+				_fail(SimConst.FailReason.MISSED_SPARK, i)
 		return
 	if absf(ed - d) > depth:
 		return
@@ -664,3 +671,5 @@ func _on_left_behind(i: int) -> void:
 		if combo > 0:
 			_combo_break()
 		_emit(SimConst.EventType.SPARK_MISSED, i, 0)
+		if strict:
+			_fail(SimConst.FailReason.MISSED_SPARK, i)

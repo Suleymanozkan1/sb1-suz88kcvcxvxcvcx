@@ -1,17 +1,17 @@
-// FLUX DROP shaft floor: scrolling energy grid with glowing lane rails.
+// FLUX DROP shaft floor: matte panels, recessed lane grooves, seams for speed.
+// Matter never glows (ART_DIRECTION §1): all detail is albedo/roughness only.
 shader_type spatial;
-render_mode unshaded, cull_disabled, depth_draw_opaque;
+render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-uniform vec4 floor_color : source_color = vec4(0.03, 0.05, 0.14, 1.0);
-uniform vec4 grid_color : source_color = vec4(0.16, 0.36, 1.0, 1.0);
-uniform vec4 rail_color : source_color = vec4(0.24, 0.96, 1.0, 1.0);
-uniform vec4 fog_color : source_color = vec4(0.04, 0.07, 0.21, 1.0);
+uniform vec4 floor_color : source_color = vec4(0.07, 0.09, 0.14, 1.0);
+uniform vec4 lane_color : source_color = vec4(0.10, 0.125, 0.18, 1.0);
+uniform vec4 fog_color : source_color = vec4(0.08, 0.11, 0.16, 1.0);
 uniform float scroll = 0.0;
 uniform float lane_width = 1.6;
 uniform int lane_count = 2;
-uniform float grid_spacing = 2.0;
-uniform float fade_distance = 70.0;
-uniform float pulse = 0.0;
+uniform float seam_spacing = 4.0;
+uniform float caustics = 0.0;
+uniform vec4 caustic_color : source_color = vec4(0.6, 0.95, 0.9, 1.0);
 
 varying vec3 local_pos;
 
@@ -19,28 +19,45 @@ void vertex() {
 	local_pos = VERTEX;
 }
 
-float line(float coord, float width) {
-	float d = abs(fract(coord) - 0.5);
-	return 1.0 - smoothstep(0.5 - width, 0.5, d);
+// Smooth 1-pixel-ish line using screen-space derivatives (no aliasing, no glow).
+float aa_line(float coord, float half_width) {
+	float d = abs(coord);
+	float w = fwidth(coord);
+	return 1.0 - smoothstep(half_width - w, half_width + w, d);
 }
 
 void fragment() {
-	// local_pos.z runs towards the camera (+) and away (-); world distance = scroll - z.
 	float dist = scroll - local_pos.z;
-	float across = local_pos.x;
-	float g = line(dist / grid_spacing, 0.04) * 0.55 + line(across / (lane_width * 0.5), 0.02) * 0.25;
-	float rails = 0.0;
+	float x = local_pos.x;
 	float half_span = float(lane_count) * lane_width * 0.5;
+	// Lane surfaces are slightly lighter than the outer floor.
+	float on_track = 1.0 - smoothstep(half_span - 0.02, half_span + 0.02, abs(x));
+	vec3 col = mix(floor_color.rgb, lane_color.rgb, on_track);
+	// Recessed grooves at every lane boundary (darker), with a thin lit lip.
+	float groove = 0.0;
+	float lip = 0.0;
 	for (int i = 0; i <= 3; i++) {
 		if (i > lane_count) {
 			break;
 		}
-		float x = -half_span + float(i) * lane_width;
-		rails += exp(-abs(across - x) * 22.0);
+		float bx = -half_span + float(i) * lane_width;
+		groove = max(groove, aa_line(x - bx, 0.035));
+		lip = max(lip, aa_line(x - bx - 0.06, 0.012));
 	}
-	float edge_glow = exp(-abs(abs(across) - half_span) * 4.0) * 0.4;
-	float depth = clamp(-local_pos.z / fade_distance, 0.0, 1.0);
-	vec3 col = floor_color.rgb + grid_color.rgb * g * (1.0 + pulse) + rail_color.rgb * rails * 1.6 + rail_color.rgb * edge_glow;
-	col = mix(col, fog_color.rgb, smoothstep(0.35, 1.0, depth));
+	col *= 1.0 - groove * 0.38;
+	col += lip * 0.035;
+	// Panel seams across the track every seam_spacing units (speed cue).
+	float seam = aa_line(fract(dist / seam_spacing) - 0.5, 0.004 * seam_spacing) * on_track;
+	col *= 1.0 - seam * 0.16;
 	ALBEDO = col;
+	ROUGHNESS = 0.82 - groove * 0.2;
+	METALLIC = 0.18;
+	SPECULAR = 0.4;
+	if (caustics > 0.0) {
+		vec2 p = vec2(x * 1.3, dist * 0.9);
+		float c1 = sin(p.x * 2.1 + TIME * 1.1 + sin(p.y * 1.7 + TIME * 0.7));
+		float c2 = sin(p.y * 2.3 - TIME * 0.9 + sin(p.x * 1.9 - TIME * 0.6));
+		float caustic = pow(max(0.0, c1 * c2), 3.0);
+		EMISSION = caustic_color.rgb * caustic * caustics;
+	}
 }

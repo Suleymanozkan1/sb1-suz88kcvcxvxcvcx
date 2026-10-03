@@ -14,7 +14,7 @@ void fragment() {
 	float along = UV.x;
 	float across = abs(UV.y - 0.5) * 2.0;
 	float core = 1.0 - smoothstep(0.0, 1.0, across);
-	float fade = 1.0 - along;
+	float fade = pow(1.0 - along, 2.2);
 	float m = 1.0;
 	vec3 col = mix(head_color.rgb, tail_color.rgb, along);
 	if (style == 1) { // pulses

@@ -1,5 +1,32 @@
 {
-  "ambient_particles": "snow",
+  "art": {
+    "ambient": {
+      "color": "#34506b",
+      "energy": 0.6
+    },
+    "atmosphere": {
+      "count": 18,
+      "type": "snow"
+    },
+    "floor": "#1a2633",
+    "fog": "#22334a",
+    "key_light": {
+      "color": "#eaf4ff",
+      "energy": 1.15,
+      "pitch": -55,
+      "yaw": -28
+    },
+    "lane": "#213040",
+    "rib_material": "ice",
+    "rib_profile": "arch",
+    "silhouette": "glacier",
+    "sink": "#bfe8ff",
+    "sky_bottom": "#2d4258",
+    "sky_top": "#1a2533",
+    "story": "An ice cavern that rings with the beat; frost softens every edge.",
+    "story_accent": "#5e86ad",
+    "structure": "#8fa9c2"
+  },
   "boss": {
     "duration": 80,
     "forms": {
@@ -84,19 +111,10 @@
       "start": 40
     }
   ],
-  "hazard_material": "ice",
   "id": "frozen_pulse",
   "index": 7,
   "lanes": 2,
   "levels": 52,
-  "lighting": {
-    "ambient": "#3a6a9a",
-    "ambient_energy": 0.8,
-    "fog_density": 0.022,
-    "glow": 1.1,
-    "sun_color": "#e0f4ff",
-    "sun_energy": 1.0
-  },
   "music": {
     "boss_track": "frozen_pulse_boss",
     "bpm": 136,
@@ -105,17 +123,6 @@
     "track": "frozen_pulse"
   },
   "name": "Frozen Pulse",
-  "palette": {
-    "accent": "#ffffff",
-    "floor": "#0a1a2e",
-    "fog": "#12304d",
-    "grid": "#9fdcff",
-    "hazard": "#7a5cff",
-    "primary": "#cff6ff",
-    "secondary": "#6fa8ff",
-    "sky_bottom": "#1d4466",
-    "sky_top": "#06111f"
-  },
   "schema_version": 1,
   "unlock_stars": 640
 }

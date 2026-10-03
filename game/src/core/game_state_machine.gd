@@ -25,6 +25,7 @@ enum State {
 	DAILY,
 	ENDLESS,
 	PROGRESS,
+	MODES,
 }
 
 const MENU_STATES: Array[State] = [
@@ -36,6 +37,7 @@ const MENU_STATES: Array[State] = [
 	State.SETTINGS,
 	State.DAILY,
 	State.PROGRESS,
+	State.MODES,
 ]
 
 ## Allowed transitions: from -> [to...]. Menu screens can reach each other.

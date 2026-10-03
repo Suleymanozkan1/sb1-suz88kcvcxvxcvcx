@@ -8,6 +8,9 @@ extends RefCounted
 ## taps). It does not use the stored solution, so it cross-checks that a level
 ## is solvable at human decision granularity.
 
+## Diversity bands per metre of travelled distance (see [method _prune]).
+const DISTANCE_BANDS_PER_M: float = 2.0
+
 var decision_ticks: int = 3
 var beam_width: int = 96
 var max_ticks: int = 60 * 60 * 3
@@ -92,14 +95,28 @@ func _prune(nodes: Array) -> Array[SearchNode]:
 	if typed.size() <= beam_width:
 		return typed
 	typed.sort_custom(func(a: SearchNode, b: SearchNode) -> bool: return _rank(a.sim, a.taps) > _rank(b.sim, b.taps))
-	# Keep lateral diversity: the best state per (lane, phase, heavy) first.
-	var kept: Array[SearchNode] = []
+	# Keep diversity first: the best state per (lane, phase, heavy, speed band,
+	# distance band). Distance matters for timing-driven forms (surge): states
+	# that differ only in how far they have travelled meet moving hazards at
+	# different moments, so they must not crowd each other out.
+	var reps: Array[SearchNode] = []
 	var seen: Dictionary = {}
 	for n: SearchNode in typed:
-		var k: int = (n.sim.lane * 4 + n.sim.phase * 2 + (1 if n.sim.heavy else 0)) * 1000 + int(n.sim.speed * 2.0)
+		var k: int = ((n.sim.lane * 4 + n.sim.phase * 2 + (1 if n.sim.heavy else 0)) * 1000 + int(n.sim.speed * 2.0)) * 100000 + int(n.sim.d * DISTANCE_BANDS_PER_M)
 		if not seen.has(k):
 			seen[k] = true
-			kept.append(n)
+			reps.append(n)
+	var kept: Array[SearchNode] = []
+	if reps.size() <= beam_width:
+		kept = reps
+	else:
+		# Too many classes: sample them evenly along the travelled distance so
+		# early, middle and late arrivals all stay alive.
+		reps.sort_custom(func(a: SearchNode, b: SearchNode) -> bool: return a.sim.d < b.sim.d)
+		var step: float = float(reps.size()) / float(beam_width)
+		for i: int in beam_width:
+			kept.append(reps[int(float(i) * step)])
+		return kept
 	for n: SearchNode in typed:
 		if kept.size() >= beam_width:
 			break

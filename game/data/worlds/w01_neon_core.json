@@ -1,5 +1,32 @@
 {
-  "ambient_particles": "dust",
+  "art": {
+    "ambient": {
+      "color": "#2a3446",
+      "energy": 0.5
+    },
+    "atmosphere": {
+      "count": 16,
+      "type": "dust"
+    },
+    "floor": "#121823",
+    "fog": "#151c2a",
+    "key_light": {
+      "color": "#c9d6ea",
+      "energy": 1.1,
+      "pitch": -52,
+      "yaw": 18
+    },
+    "lane": "#19202d",
+    "rib_material": "anodised",
+    "rib_profile": "gate",
+    "silhouette": "turbine",
+    "sink": "#46e6f0",
+    "sky_bottom": "#1b2436",
+    "sky_top": "#0e1320",
+    "story": "Calibration shaft: the first precision test bore, cool and clinical.",
+    "story_accent": "#3a5a7a",
+    "structure": "#2b3444"
+  },
   "boss": {
     "duration": 60,
     "hazards": {
@@ -76,19 +103,10 @@
       "start": 40
     }
   ],
-  "hazard_material": "glass",
   "id": "neon_core",
   "index": 1,
   "lanes": 2,
   "levels": 52,
-  "lighting": {
-    "ambient": "#1a2a66",
-    "ambient_energy": 0.6,
-    "fog_density": 0.018,
-    "glow": 0.9,
-    "sun_color": "#9fc4ff",
-    "sun_energy": 0.6
-  },
   "music": {
     "boss_track": "neon_core_boss",
     "bpm": 118,
@@ -97,17 +115,6 @@
     "track": "neon_core"
   },
   "name": "Neon Core",
-  "palette": {
-    "accent": "#ffe45c",
-    "floor": "#0b1538",
-    "fog": "#0a1236",
-    "grid": "#2a5cff",
-    "hazard": "#ff4d6d",
-    "primary": "#3df5ff",
-    "secondary": "#ff3dcb",
-    "sky_bottom": "#0d1a4a",
-    "sky_top": "#05081a"
-  },
   "schema_version": 1,
   "unlock_stars": 0
 }

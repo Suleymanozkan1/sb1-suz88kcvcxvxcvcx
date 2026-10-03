@@ -12,6 +12,7 @@ uniform float pulse = 0.0;
 uniform float anim_speed = 1.0;
 uniform int style = 0;
 uniform float overdrive = 0.0;
+uniform float rim_strength = 1.6;
 
 varying vec3 obj_pos;
 
@@ -65,7 +66,7 @@ void fragment() {
 		m = smoothstep(0.2, 0.85, m);
 		col = mix(color_a.rgb, color_b.rgb, m * 0.65);
 	}
-	col += rim_color.rgb * fres * 1.6;
+	col += rim_color.rgb * fres * rim_strength;
 	col = mix(col, vec3(1.0, 0.95, 0.7), overdrive * 0.35 * (0.5 + 0.5 * sin(t * 20.0)));
 	ALBEDO = col * (intensity + pulse);
 }

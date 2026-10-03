@@ -1,34 +1,36 @@
-// FLUX DROP sky: gradient, flux sink glow, nebula and stars. Screen-space so the
-// composition stays fixed while the camera follows the core. The radiance
-// (cubemap) pass gets a static gradient only, keeping it cheap on mobile.
+// FLUX DROP sky: calm low-saturation gradient with one light shape — the flux
+// sink the core drops towards (ART_DIRECTION §6). Sparse stars only when a world
+// asks for them. The radiance pass gets the gradient only (cheap on mobile).
 shader_type sky;
 
-#include "res://assets/shaders/noise.gdshaderinc"
+uniform vec4 sky_top : source_color = vec4(0.055, 0.075, 0.125, 1.0);
+uniform vec4 sky_bottom : source_color = vec4(0.105, 0.14, 0.21, 1.0);
+uniform vec4 sink_color : source_color = vec4(0.27, 0.9, 0.94, 1.0);
+uniform float sink_height = 0.6;
+uniform float sink_strength = 1.0;
+uniform float star_density = 0.0;
 
-uniform vec4 sky_top : source_color = vec4(0.02, 0.03, 0.1, 1.0);
-uniform vec4 sky_bottom : source_color = vec4(0.05, 0.1, 0.29, 1.0);
-uniform vec4 sink_color : source_color = vec4(0.24, 0.96, 1.0, 1.0);
-uniform vec4 accent_color : source_color = vec4(1.0, 0.24, 0.8, 1.0);
-uniform float sink_height = 0.62;
-uniform float star_density = 0.5;
-uniform float drift = 0.0;
-uniform float pulse = 0.0;
+float hash12(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
 
 void sky() {
 	if (AT_CUBEMAP_PASS) {
 		COLOR = mix(sky_bottom.rgb, sky_top.rgb, clamp(EYEDIR.y * 0.5 + 0.5, 0.0, 1.0));
 	} else {
 		vec2 uv = SCREEN_UV;
-		vec3 col = mix(sky_bottom.rgb, sky_top.rgb, smoothstep(0.0, 1.0, 1.0 - uv.y));
+		vec3 col = mix(sky_bottom.rgb, sky_top.rgb, smoothstep(0.15, 0.95, 1.0 - uv.y));
 		vec2 c = vec2(0.5, 1.0 - sink_height);
-		float r = length((uv - c) * vec2(1.0, 1.6));
-		col += sink_color.rgb * (exp(-r * 6.0) * (0.9 + pulse) + exp(-r * 18.0) * 0.8);
-		float neb = fd_fbm(vec3(uv * 3.0, drift * 0.05 + TIME * 0.02));
-		col += accent_color.rgb * smoothstep(0.55, 0.85, neb) * 0.18;
-		vec2 sp = uv * vec2(90.0, 160.0) + vec2(0.0, drift * 0.4);
-		float star = step(1.0 - 0.012 * star_density, fd_hash13(vec3(floor(sp), 3.0)));
-		float tw = 0.6 + 0.4 * sin(TIME * 3.0 + fd_hash13(vec3(floor(sp), 9.0)) * 40.0);
-		col += vec3(star * tw) * (1.0 - smoothstep(0.0, 0.25, exp(-r * 4.0)));
+		float r = length((uv - c) * vec2(1.0, 1.9));
+		// Broad soft falloff plus a small bright core (only the core exceeds 1.0).
+		col += sink_color.rgb * (exp(-r * 5.5) * 0.35 + exp(-r * 40.0) * 1.2) * sink_strength;
+		if (star_density > 0.0) {
+			vec2 cell = floor(uv * vec2(110.0, 190.0));
+			float star = step(1.0 - 0.006 * star_density, hash12(cell));
+			col += vec3(star) * 0.35 * (1.0 - smoothstep(0.0, 0.3, exp(-r * 3.0)));
+		}
 		COLOR = col;
 	}
 }

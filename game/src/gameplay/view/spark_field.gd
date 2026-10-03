@@ -16,9 +16,20 @@ var _hidden: Dictionary = {}
 var _base_pos: Dictionary = {}
 
 
+var _built: bool = false
+
+
 func _ready() -> void:
-	_spark_mm = _make_mm(0.13, 0.32, 2.4)
-	_prism_mm = _make_mm(0.22, 0.5, 3.0)
+	_ensure_built()
+
+
+func _ensure_built() -> void:
+	if _built:
+		return
+	_built = true
+	# One collectible silhouette family: the prism is the larger shard.
+	_spark_mm = _make_mm(0.11, 0.3, Palette.ENERGY_SPARK)
+	_prism_mm = _make_mm(0.18, 0.46, Palette.ENERGY_SPARK * 1.15)
 
 
 func _make_mm(radius: float, height: float, intensity: float) -> MultiMeshInstance3D:
@@ -26,12 +37,7 @@ func _make_mm(radius: float, height: float, intensity: float) -> MultiMeshInstan
 	var mm: MultiMesh = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
-	var d: SphereMesh = SphereMesh.new()
-	d.radius = radius
-	d.height = height
-	d.radial_segments = 4
-	d.rings = 2
-	mm.mesh = d
+	mm.mesh = MeshFactory.shard(radius, height)
 	mmi.multimesh = mm
 	var mat: ShaderMaterial = ShaderMaterial.new()
 	mat.shader = SPARK_SHADER
@@ -42,31 +48,35 @@ func _make_mm(radius: float, height: float, intensity: float) -> MultiMeshInstan
 	return mmi
 
 
-func build(lvl: SimLevel, theme: WorldTheme) -> void:
+func build(lvl: SimLevel, _theme: WorldTheme = null, from_index: int = 0) -> void:
+	_ensure_built()
 	_spark_slot.clear()
 	_prism_slot.clear()
 	_hidden.clear()
 	_base_pos.clear()
 	var sparks: Array[int] = []
 	var prisms: Array[int] = []
-	for i: int in lvl.entity_count():
+	for i: int in range(maxi(0, from_index), lvl.entity_count()):
 		if lvl.e_type[i] == SimConst.EntityType.SPARK:
 			sparks.append(i)
 		elif lvl.e_type[i] == SimConst.EntityType.PRISM:
 			prisms.append(i)
-	_fill(_spark_mm.multimesh, sparks, lvl, theme, _spark_slot, false)
-	_fill(_prism_mm.multimesh, prisms, lvl, theme, _prism_slot, true)
+	_fill(_spark_mm.multimesh, sparks, lvl, _spark_slot)
+	_fill(_prism_mm.multimesh, prisms, lvl, _prism_slot)
 
 
-## Extends the field for endless streaming (rebuilds with the full list).
-func rebuild_append(lvl: SimLevel, theme: WorldTheme) -> void:
+## Extends the field for endless streaming. Only entities from
+## [param from_index] (the simulation cursor) on are kept, so the cost stays
+## bounded however long the run lasts.
+func rebuild_append(lvl: SimLevel, from_index: int = 0) -> void:
 	var hidden_before: Dictionary = _hidden.duplicate()
-	build(lvl, theme)
+	build(lvl, null, from_index)
 	for idx: Variant in hidden_before:
-		hide_entity(int(idx))
+		if int(idx) >= from_index:
+			hide_entity(int(idx))
 
 
-func _fill(mm: MultiMesh, list: Array[int], lvl: SimLevel, theme: WorldTheme, slots: Dictionary, prism: bool) -> void:
+func _fill(mm: MultiMesh, list: Array[int], lvl: SimLevel, slots: Dictionary) -> void:
 	mm.instance_count = list.size()
 	for n: int in list.size():
 		var i: int = list[n]
@@ -74,11 +84,7 @@ func _fill(mm: MultiMesh, list: Array[int], lvl: SimLevel, theme: WorldTheme, sl
 		var pos: Vector3 = Vector3(SimConst.lane_x(lvl.e_lane[i], lvl.lane_count), SPARK_Y, -lvl.e_d[i])
 		_base_pos[i] = pos
 		mm.set_instance_transform(n, Transform3D(Basis.IDENTITY, pos))
-		var color: Color = theme.accent if prism else theme.primary
-		var c: int = lvl.e_color[i]
-		if c >= 0:
-			color = EntityView.PHASE_COLORS[c]
-		mm.set_instance_color(n, color)
+		mm.set_instance_color(n, color_of(i, lvl))
 
 
 func hide_entity(index: int) -> void:
@@ -93,11 +99,13 @@ func position_of(index: int) -> Vector3:
 	return _base_pos.get(index, Vector3.ZERO) as Vector3
 
 
-func color_of(index: int, theme: WorldTheme, lvl: SimLevel) -> Color:
+## Colour roles: sparks are PRIMARY energy (or their phase colour); prisms are
+## rewards (ACCENT).
+func color_of(index: int, lvl: SimLevel) -> Color:
 	var c: int = lvl.e_color[index]
 	if c >= 0:
-		return EntityView.PHASE_COLORS[c]
-	return theme.accent if lvl.e_type[index] == SimConst.EntityType.PRISM else theme.primary
+		return Palette.PHASE[clampi(c, 0, 1)]
+	return Palette.ACCENT if lvl.e_type[index] == SimConst.EntityType.PRISM else Palette.PRIMARY
 
 
 ## Pulls nearby sparks towards the core while a magnet/overdrive is active.

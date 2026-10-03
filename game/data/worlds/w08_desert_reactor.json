@@ -1,5 +1,32 @@
 {
-  "ambient_particles": "sand",
+  "art": {
+    "ambient": {
+      "color": "#4a3326",
+      "energy": 0.5
+    },
+    "atmosphere": {
+      "count": 12,
+      "type": "sand"
+    },
+    "floor": "#2a1d16",
+    "fog": "#3f2a1e",
+    "key_light": {
+      "color": "#ffd9ae",
+      "energy": 1.25,
+      "pitch": -28,
+      "yaw": 38
+    },
+    "lane": "#33241b",
+    "rib_material": "sandstone",
+    "rib_profile": "monolith",
+    "silhouette": "dome",
+    "sink": "#ffb870",
+    "sky_bottom": "#5a3a26",
+    "sky_top": "#2a1c15",
+    "story": "Sandstone monoliths around a sleeping reactor at golden hour.",
+    "story_accent": "#9a5a33",
+    "structure": "#8a6a50"
+  },
   "boss": {
     "duration": 85,
     "hazards": {
@@ -82,19 +109,10 @@
       "start": 40
     }
   ],
-  "hazard_material": "sandstone",
   "id": "desert_reactor",
   "index": 8,
   "lanes": 3,
   "levels": 52,
-  "lighting": {
-    "ambient": "#6a3a14",
-    "ambient_energy": 0.7,
-    "fog_density": 0.024,
-    "glow": 0.9,
-    "sun_color": "#ffd9a0",
-    "sun_energy": 1.1
-  },
   "music": {
     "boss_track": "desert_reactor_boss",
     "bpm": 130,
@@ -103,17 +121,6 @@
     "track": "desert_reactor"
   },
   "name": "Desert Reactor",
-  "palette": {
-    "accent": "#7af0ff",
-    "floor": "#1e0f05",
-    "fog": "#3a1c08",
-    "grid": "#ffb03d",
-    "hazard": "#ff3d3d",
-    "primary": "#ffd27a",
-    "secondary": "#ff7a3d",
-    "sky_bottom": "#5a2e0e",
-    "sky_top": "#140904"
-  },
   "schema_version": 1,
   "unlock_stars": 770
 }

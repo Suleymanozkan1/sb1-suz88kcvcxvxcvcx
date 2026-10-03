@@ -1,5 +1,32 @@
 {
-  "ambient_particles": "glitter",
+  "art": {
+    "ambient": {
+      "color": "#2e2846",
+      "energy": 0.5
+    },
+    "atmosphere": {
+      "count": 10,
+      "type": "glitter"
+    },
+    "floor": "#16131f",
+    "fog": "#211d38",
+    "key_light": {
+      "color": "#d9ccf5",
+      "energy": 1.05,
+      "pitch": -48,
+      "yaw": -22
+    },
+    "lane": "#1d1929",
+    "rib_material": "crystal",
+    "rib_profile": "facet",
+    "silhouette": "ridge",
+    "sink": "#b9a6ff",
+    "sky_bottom": "#2b2547",
+    "sky_top": "#17142a",
+    "story": "A bore cut through violet crystal rock; facets catch the key light.",
+    "story_accent": "#6e5ba8",
+    "structure": "#5a4f80"
+  },
   "boss": {
     "duration": 65,
     "forms": {
@@ -83,19 +110,10 @@
       "start": 40
     }
   ],
-  "hazard_material": "crystal",
   "id": "crystal_valley",
   "index": 2,
   "lanes": 2,
   "levels": 52,
-  "lighting": {
-    "ambient": "#3a1f7a",
-    "ambient_energy": 0.7,
-    "fog_density": 0.016,
-    "glow": 1.0,
-    "sun_color": "#e0c8ff",
-    "sun_energy": 0.7
-  },
   "music": {
     "boss_track": "crystal_valley_boss",
     "bpm": 124,
@@ -104,17 +122,6 @@
     "track": "crystal_valley"
   },
   "name": "Crystal Valley",
-  "palette": {
-    "accent": "#ffffff",
-    "floor": "#160a36",
-    "fog": "#1c0d44",
-    "grid": "#8a5cff",
-    "hazard": "#b48cff",
-    "primary": "#9af7ff",
-    "secondary": "#ff7af2",
-    "sky_bottom": "#2b1460",
-    "sky_top": "#0e0624"
-  },
   "schema_version": 1,
   "unlock_stars": 90
 }

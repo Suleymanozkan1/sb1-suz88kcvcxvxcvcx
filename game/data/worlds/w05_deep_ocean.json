@@ -1,5 +1,33 @@
 {
-  "ambient_particles": "bubbles",
+  "art": {
+    "ambient": {
+      "color": "#123a40",
+      "energy": 0.6
+    },
+    "atmosphere": {
+      "count": 14,
+      "type": "bubbles"
+    },
+    "caustics": true,
+    "floor": "#0b1a1f",
+    "fog": "#0c252c",
+    "key_light": {
+      "color": "#9fe6e0",
+      "energy": 0.8,
+      "pitch": -62,
+      "yaw": 10
+    },
+    "lane": "#10232a",
+    "rib_material": "coated",
+    "rib_profile": "hex",
+    "silhouette": "pylons",
+    "sink": "#4de0c8",
+    "sky_bottom": "#0f2e36",
+    "sky_top": "#0a1a20",
+    "story": "A research shaft under the sea; caustics ripple across the floor.",
+    "story_accent": "#1f6b6b",
+    "structure": "#234046"
+  },
   "boss": {
     "duration": 90,
     "forms": {
@@ -81,19 +109,10 @@
       "start": 40
     }
   ],
-  "hazard_material": "coral",
   "id": "deep_ocean",
   "index": 5,
   "lanes": 2,
   "levels": 52,
-  "lighting": {
-    "ambient": "#0a4a5a",
-    "ambient_energy": 0.8,
-    "fog_density": 0.03,
-    "glow": 1.0,
-    "sun_color": "#7af0ff",
-    "sun_energy": 0.5
-  },
   "music": {
     "boss_track": "deep_ocean_boss",
     "bpm": 100,
@@ -102,17 +121,6 @@
     "track": "deep_ocean"
   },
   "name": "Deep Ocean",
-  "palette": {
-    "accent": "#e4ff6b",
-    "floor": "#021820",
-    "fog": "#022430",
-    "grid": "#1fd1b0",
-    "hazard": "#ff6b8a",
-    "primary": "#4dffd2",
-    "secondary": "#2e9bff",
-    "sky_bottom": "#04313f",
-    "sky_top": "#010a10"
-  },
   "schema_version": 1,
   "unlock_stars": 410
 }

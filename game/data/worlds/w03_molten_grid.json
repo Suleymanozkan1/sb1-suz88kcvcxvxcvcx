@@ -1,5 +1,32 @@
 {
-  "ambient_particles": "embers",
+  "art": {
+    "ambient": {
+      "color": "#3a2620",
+      "energy": 0.45
+    },
+    "atmosphere": {
+      "count": 14,
+      "type": "embers"
+    },
+    "floor": "#15100e",
+    "fog": "#24140f",
+    "key_light": {
+      "color": "#ffc9a3",
+      "energy": 0.9,
+      "pitch": -34,
+      "yaw": 30
+    },
+    "lane": "#1c1512",
+    "rib_material": "steel",
+    "rib_profile": "gate",
+    "silhouette": "chimneys",
+    "sink": "#ff8a4d",
+    "sky_bottom": "#2e1a14",
+    "sky_top": "#1a1210",
+    "story": "An abandoned foundry; the heat below lights the shaft from the far end.",
+    "story_accent": "#8a3a1f",
+    "structure": "#3a3330"
+  },
   "boss": {
     "current": 0.15,
     "duration": 70,
@@ -77,19 +104,10 @@
       "start": 40
     }
   ],
-  "hazard_material": "magma",
   "id": "molten_grid",
   "index": 3,
   "lanes": 3,
   "levels": 52,
-  "lighting": {
-    "ambient": "#5a1a08",
-    "ambient_energy": 0.6,
-    "fog_density": 0.02,
-    "glow": 1.1,
-    "sun_color": "#ffb27a",
-    "sun_energy": 0.9
-  },
   "music": {
     "boss_track": "molten_grid_boss",
     "bpm": 128,
@@ -98,17 +116,6 @@
     "track": "molten_grid"
   },
   "name": "Molten Grid",
-  "palette": {
-    "accent": "#ffe7a0",
-    "floor": "#1a0602",
-    "fog": "#2a0a04",
-    "grid": "#ff6a1a",
-    "hazard": "#ff2e2e",
-    "primary": "#ffb347",
-    "secondary": "#ff5e3a",
-    "sky_bottom": "#3a0e05",
-    "sky_top": "#0f0402"
-  },
   "schema_version": 1,
   "unlock_stars": 190
 }

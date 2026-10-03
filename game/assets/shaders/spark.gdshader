@@ -1,21 +1,23 @@
-// FLUX DROP spark collectible (MultiMesh): spinning, twinkling energy diamonds.
+// FLUX DROP spark shard (MultiMesh). Energy: bright, small, steady — a slow spin
+// shows it is a 3D object; no twinkle noise.
 shader_type spatial;
-render_mode unshaded, cull_disabled;
+render_mode unshaded, cull_back;
 
-uniform float intensity = 2.2;
-uniform float spin_speed = 2.5;
+uniform float intensity = 1.6;
+uniform float spin_speed = 0.9;
 
 varying vec4 inst_color;
 
 void vertex() {
-	float a = TIME * spin_speed + float(INSTANCE_ID) * 0.7;
+	float a = TIME * spin_speed + float(INSTANCE_ID) * 0.9;
 	mat2 rot = mat2(vec2(cos(a), sin(a)), vec2(-sin(a), cos(a)));
 	VERTEX.xz = rot * VERTEX.xz;
-	VERTEX.y += sin(TIME * 3.0 + float(INSTANCE_ID)) * 0.06;
+	VERTEX.y += sin(TIME * 2.2 + float(INSTANCE_ID) * 1.3) * 0.04;
 	inst_color = COLOR;
 }
 
 void fragment() {
-	float fres = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 1.5);
-	ALBEDO = inst_color.rgb * (intensity + fres * 1.5);
+	float facing = clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0);
+	// Facets read through a value step, not a glow halo.
+	ALBEDO = inst_color.rgb * mix(intensity * 0.55, intensity, facing);
 }

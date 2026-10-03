@@ -17,6 +17,7 @@ const MIN_FIRST_HAZARD_D: float = 10.0
 const REACTION_TIME: float = 0.3
 const WINDOW_SCAN_TICKS: int = 90
 const MAX_SPEED: float = 40.0
+const PRISM_TAPS_CONSIDERED: int = 3
 
 var mechanics_catalog: Dictionary = {}
 var tiers: Dictionary = {}
@@ -509,41 +510,47 @@ func _check_prisms(data: Dictionary, r: Report) -> void:
 
 
 func _prism_reachable(data: Dictionary, lvl: SimLevel, index: int, taps: PackedInt32Array) -> bool:
-	# 1) Maybe the stored solution already collects it.
+	# 1) Maybe the stored solution already collects it; remember the state just
+	#    before every solution tap so delays can resume from there cheaply.
 	var base: FluxSim = _new_sim(data)
-	var tick_near: int = -1
+	var before_tap: Dictionary = {}
 	var ti: int = 0
 	while base.is_running() and base.d < lvl.e_d[index] + 2.0:
-		if tick_near < 0 and base.d >= lvl.e_d[index] - 10.0:
-			tick_near = base.tick
 		var tap: bool = ti < taps.size() and taps[ti] == base.tick
 		if tap:
+			before_tap[ti] = base.clone()
 			ti += 1
 		base.step(tap)
 		if (base.ent_flags[index] & FluxSim.FLAG_CONSUMED) != 0 and base.prisms > 0:
 			return true
 	var tick_at: int = base.tick
-	# 2) Delay one nearby solution tap (others unchanged) and keep playing the plan.
-	for k: int in taps.size():
-		if taps[k] < tick_near or taps[k] > tick_at:
-			continue
-		for delay: int in range(1, 240):
-			var shifted: PackedInt32Array = taps.duplicate()
-			shifted[k] = taps[k] + delay
-			if shifted[k] > tick_at:
+	# 2) Delay one of the last solution taps before the prism (others unchanged).
+	var first_k: int = maxi(0, ti - PRISM_TAPS_CONSIDERED)
+	for k: int in range(first_k, ti):
+		var walker: FluxSim = (before_tap[k] as FluxSim).clone()
+		var delay: int = 0
+		while walker.is_running() and walker.tick <= tick_at:
+			if k + 1 < taps.size() and walker.tick >= taps[k + 1] - RunReplay.MIN_TAP_GAP_TICKS:
 				break
-			if k + 1 < taps.size() and shifted[k] >= taps[k + 1] - RunReplay.MIN_TAP_GAP_TICKS:
-				break
-			var trial: FluxSim = _new_sim(data)
-			var tj: int = 0
-			while trial.is_running() and trial.d < lvl.e_d[index] + 10.0:
-				var t2: bool = tj < shifted.size() and shifted[tj] == trial.tick
-				if t2:
-					tj += 1
-				trial.step(t2)
-			if trial.status != SimConst.Status.FAILED and (trial.ent_flags[index] & FluxSim.FLAG_CONSUMED) != 0:
+			if delay > 0 and _prism_trial(walker, lvl, index, taps, k + 1):
 				return true
+			walker.step(false)
+			delay += 1
 	return false
+
+
+## Taps at [param from] (current tick), then plays the remaining solution taps
+## from [param next_tap_index]; true if the prism is collected and the run survives.
+func _prism_trial(from: FluxSim, lvl: SimLevel, index: int, taps: PackedInt32Array, next_tap_index: int) -> bool:
+	var trial: FluxSim = from.clone()
+	trial.step(true)
+	var tj: int = next_tap_index
+	while trial.is_running() and trial.d < lvl.e_d[index] + 10.0:
+		var t2: bool = tj < taps.size() and taps[tj] == trial.tick
+		if t2:
+			tj += 1
+		trial.step(t2)
+	return trial.status != SimConst.Status.FAILED and (trial.ent_flags[index] & FluxSim.FLAG_CONSUMED) != 0
 
 
 func _check_duration(data: Dictionary, r: Report) -> void:

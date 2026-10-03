@@ -1,159 +1,190 @@
 class_name EntityView
 extends Node3D
-## Pooled visual for one level entity (hazards, gates, markers, pickups).
+## Pooled visual for one level entity, composed of up to [constant MAX_PARTS]
+## mesh parts (body, shadow, track, posts, lamps, membrane …).
 ##
-## A single class configured per entity type keeps the pool simple; materials
-## are shared per (type, world) and per-object state uses instance uniforms.
+## Motion follows ART_DIRECTION §8: obstacles are heavy and mechanical (linear
+## or ease-in-out, no overshoot); pickups bob lightly; membranes ripple on use.
 
-const HAZARD_HEIGHT: float = 0.9
-const BREAKABLE_COLOR: Color = Color("#ffb03d")
-const PHASE_COLORS: Array[Color] = [Color("#3df5ff"), Color("#ff3dcb")]
+const MAX_PARTS: int = 7
+const SHUTTER_RAMP: float = 0.12
+const LAMP_WARN_TIME: float = 0.35
+const PICKUP_BOB: float = 0.05
 
 var entity_index: int = -1
 var entity_type: int = -1
-var mesh_instance: MeshInstance3D
-var extra: MeshInstance3D
 var appear: float = 1.0
-var _flash: float = 0.0
+var _parts: Array[MeshInstance3D] = []
+var _body: MeshInstance3D
+var _shadow: MeshInstance3D
+var _membrane: MeshInstance3D
+var _lamps: Array[MeshInstance3D] = []
+var _kit: ViewKit
+var _ripple: float = 0.0
+var _bob_phase: float = 0.0
 
 
 func _init() -> void:
-	mesh_instance = MeshInstance3D.new()
-	add_child(mesh_instance)
-	extra = MeshInstance3D.new()
-	extra.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(extra)
+	for _i: int in MAX_PARTS:
+		var mi: MeshInstance3D = MeshInstance3D.new()
+		mi.visible = false
+		add_child(mi)
+		_parts.append(mi)
 
 
 ## Called by [NodePool] on release.
 func pool_reset() -> void:
 	entity_index = -1
 	entity_type = -1
-	_flash = 0.0
-	mesh_instance.mesh = null
-	extra.mesh = null
-	extra.visible = false
+	_ripple = 0.0
+	_body = null
+	_shadow = null
+	_membrane = null
+	_lamps.clear()
+	for mi: MeshInstance3D in _parts:
+		mi.visible = false
+		mi.mesh = null
+		mi.material_override = null
+		mi.position = Vector3.ZERO
+		mi.rotation = Vector3.ZERO
+		mi.scale = Vector3.ONE
 	scale = Vector3.ONE
-	rotation = Vector3.ZERO
+
+
+func _part(i: int, mesh: Mesh, material: Material, pos: Vector3, shadows: bool) -> MeshInstance3D:
+	var mi: MeshInstance3D = _parts[i]
+	mi.mesh = mesh
+	mi.material_override = material
+	mi.position = pos
+	mi.rotation = Vector3.ZERO
+	mi.scale = Vector3.ONE
+	mi.visible = true
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
 
 
 func configure(index: int, type: int, lvl: SimLevel, kit: ViewKit) -> void:
+	pool_reset()
 	entity_index = index
 	entity_type = type
+	_kit = kit
 	appear = 0.0
+	_bob_phase = float(index) * 0.7
 	var lanes: int = lvl.lane_count
 	var lane_x: float = SimConst.lane_x(lvl.e_lane[index], lanes)
-	position = Vector3(lane_x, 0.0, -lvl.e_d[index])
-	mesh_instance.position = Vector3.ZERO
-	mesh_instance.rotation = Vector3.ZERO
-	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	extra.visible = false
-	extra.position = Vector3.ZERO
-	extra.rotation = Vector3.ZERO
+	position = Vector3(0.0, 0.0, -lvl.e_d[index])
+	var h: float = ViewKit.BLOCK_HEIGHT
 	match type:
 		SimConst.EntityType.BARRIER:
-			_setup_mask_blocks(lvl, index, kit.block_mesh, kit.hazard_material)
-		SimConst.EntityType.PULSE_GATE:
-			_setup_mask_blocks(lvl, index, kit.pulse_mesh, kit.pulse_material)
-		SimConst.EntityType.BREAKABLE:
-			mesh_instance.mesh = kit.breakable_mesh
-			mesh_instance.material_override = kit.breakable_material
-			mesh_instance.position = Vector3(0.0, HAZARD_HEIGHT * 0.45, 0.0)
+			var n: int = 0
+			for l: int in lanes:
+				if (lvl.e_mask[index] & (1 << l)) != 0:
+					var x: float = SimConst.lane_x(l, lanes)
+					var body: MeshInstance3D = _part(n * 2, kit.block_mesh, kit.hazard_material, Vector3(x, h * 0.5, 0.0), true)
+					if n == 0:
+						_body = body
+					_part(n * 2 + 1, kit.blob_mesh, kit.blob_material, Vector3(x, 0.006, 0.0), false)
+					n += 1
 		SimConst.EntityType.SLIDER:
-			position.x = lvl.slider_x(index, 0.0)
-			mesh_instance.mesh = kit.slider_mesh
-			mesh_instance.material_override = kit.slider_material
-			mesh_instance.position = Vector3(0.0, HAZARD_HEIGHT * 0.4, 0.0)
+			var from_lane: int = int(lvl.e_p0[index])
+			var to_lane: int = int(lvl.e_p1[index])
+			_part(0, kit.track_mesh(lanes, from_lane, to_lane), kit.track_material, Vector3.ZERO, false)
+			_body = _part(1, kit.slider_mesh, kit.hazard_material, Vector3(lvl.slider_x(index, 0.0), h * 0.41, 0.0), true)
+			_shadow = _part(2, kit.blob_mesh, kit.blob_material, Vector3(lvl.slider_x(index, 0.0), 0.006, 0.0), false)
+		SimConst.EntityType.PULSE_GATE:
+			var k: int = 0
+			for l2: int in lanes:
+				if (lvl.e_mask[index] & (1 << l2)) == 0 or k > 0:
+					continue
+				var x2: float = SimConst.lane_x(l2, lanes)
+				var half: float = SimConst.BLOCK_HALF_WIDTH + ViewKit.POST_WIDTH * 0.6
+				_body = _part(0, kit.shutter_mesh, kit.hazard_material, Vector3(x2, h * 0.5, 0.0), true)
+				_part(1, kit.post_mesh, kit.structure_material, Vector3(x2 - half, h * 0.62, 0.0), true)
+				_part(2, kit.post_mesh, kit.structure_material, Vector3(x2 + half, h * 0.62, 0.0), true)
+				_lamps.append(_part(3, kit.lamp_mesh, kit.lamp_off_material, Vector3(x2 - half, h * 1.29, 0.0), false))
+				_lamps.append(_part(4, kit.lamp_mesh, kit.lamp_off_material, Vector3(x2 + half, h * 1.29, 0.0), false))
+				_part(5, kit.track_mesh(lanes, l2, l2), kit.track_material, Vector3.ZERO, false)
+				k += 1
+		SimConst.EntityType.BREAKABLE:
+			_body = _part(0, kit.glass_mesh, kit.glass_material, Vector3(lane_x, h * 0.48, 0.0), true)
+			_part(1, kit.blob_mesh, kit.blob_material, Vector3(lane_x, 0.006, 0.0), false)
 		SimConst.EntityType.PHASE_GATE:
-			position.x = 0.0
-			mesh_instance.mesh = kit.phase_gate_mesh(lanes)
-			mesh_instance.material_override = kit.phase_material(lvl.e_color[index])
-			mesh_instance.position = Vector3(0.0, 0.6, 0.0)
-			mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		SimConst.EntityType.PORTAL:
-			mesh_instance.mesh = kit.portal_mesh
-			mesh_instance.material_override = kit.portal_material
-			mesh_instance.position = Vector3(0.0, 0.55, 0.0)
-			mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			extra.mesh = kit.portal_exit_mesh
-			extra.material_override = kit.portal_material
-			extra.visible = true
-			extra.position = Vector3(SimConst.lane_x(int(lvl.e_p0[index]), lanes) - lane_x, 0.05, -0.2)
-			extra.rotation_degrees = Vector3(-90, 0, 0)
-		SimConst.EntityType.CURRENT:
-			position.x = 0.0
-			mesh_instance.mesh = kit.current_mesh(lvl, index)
-			mesh_instance.material_override = kit.current_material
-			mesh_instance.position = Vector3(0.0, 0.03, 0.0)
-			mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			_part(0, kit.arch_mesh(lanes), kit.structure_material, Vector3.ZERO, true)
+			_membrane = _part(1, kit.membrane_mesh(lanes), kit.phase_material(lvl.e_color[index]), Vector3(0.0, ViewKit.ARCH_HEIGHT * 0.48, 0.0), false)
 		SimConst.EntityType.FORM_GATE:
-			position.x = 0.0
-			mesh_instance.mesh = kit.form_gate_mesh(lanes)
-			mesh_instance.material_override = kit.form_gate_material(int(lvl.e_p0[index]))
-			mesh_instance.position = Vector3(0.0, 0.8, 0.0)
-			mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			extra.mesh = kit.form_icon_mesh(int(lvl.e_p0[index]))
-			extra.material_override = kit.form_icon_material(int(lvl.e_p0[index]))
-			extra.visible = true
-			extra.position = Vector3(0.0, 1.7, 0.0)
+			var form: int = int(lvl.e_p0[index])
+			_part(0, kit.arch_mesh(lanes), kit.structure_material, Vector3.ZERO, true)
+			_membrane = _part(1, kit.membrane_mesh(lanes), kit.form_material(form), Vector3(0.0, ViewKit.ARCH_HEIGHT * 0.48, 0.0), false)
+			_body = _part(2, kit.form_icon_mesh(form), kit.form_icon_material(form), Vector3(0.0, ViewKit.ARCH_HEIGHT + 0.42, 0.0), false)
+		SimConst.EntityType.PORTAL:
+			_part(0, kit.portal_ring_mesh, kit.structure_material, Vector3(lane_x, 0.62, 0.0), true).rotation_degrees = Vector3(90, 0, 0)
+			_membrane = _part(1, kit.disc_mesh, kit.portal_material, Vector3(lane_x, 0.62, 0.0), false)
+			_membrane.scale = Vector3.ONE * 1.05
+			_part(2, kit.floor_disc_mesh, kit.exit_material, Vector3(SimConst.lane_x(int(lvl.e_p0[index]), lanes), 0.02, -0.4), false)
+		SimConst.EntityType.CURRENT:
+			var from_l: int = 0
+			for l3: int in lanes:
+				if (lvl.e_mask[index] & (1 << l3)) != 0:
+					from_l = l3
+			var to_l: int = int(lvl.e_p0[index])
+			var mi: MeshInstance3D = _part(0, kit.chevron_mesh(lanes, from_l, to_l), kit.chevron_material, Vector3.ZERO, false)
+			mi.set_instance_shader_parameter("ripple", 0.0)
+			mi.scale = Vector3(1.0 if to_l > from_l else -1.0, 1.0, 1.0)
 		SimConst.EntityType.SHIELD:
-			mesh_instance.mesh = kit.pickup_mesh
-			mesh_instance.material_override = kit.shield_material
-			mesh_instance.position = Vector3(0.0, 0.4, 0.0)
+			_body = _part(0, kit.shield_mesh, kit.shield_material, Vector3(lane_x, 0.42, 0.0), false)
+			_body.rotation_degrees = Vector3(90, 0, 0)
 		SimConst.EntityType.MAGNET:
-			mesh_instance.mesh = kit.magnet_mesh
-			mesh_instance.material_override = kit.magnet_material
-			mesh_instance.position = Vector3(0.0, 0.4, 0.0)
-
-
-func _setup_mask_blocks(lvl: SimLevel, index: int, mesh: Mesh, material: Material) -> void:
-	# Multi-lane blocks: one mesh for the first lane, the extra mesh for a second.
-	var lanes: Array[int] = []
-	for l: int in lvl.lane_count:
-		if (lvl.e_mask[index] & (1 << l)) != 0:
-			lanes.append(l)
-	position.x = 0.0
-	mesh_instance.mesh = mesh
-	mesh_instance.material_override = material
-	mesh_instance.position = Vector3(SimConst.lane_x(lanes[0], lvl.lane_count), HAZARD_HEIGHT * 0.5, 0.0)
-	if lanes.size() > 1:
-		extra.mesh = mesh
-		extra.material_override = material
-		extra.visible = true
-		extra.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		extra.position = Vector3(SimConst.lane_x(lanes[1], lvl.lane_count), HAZARD_HEIGHT * 0.5, 0.0)
+			_body = _part(0, kit.magnet_mesh, kit.magnet_material, Vector3(lane_x, 0.42, 0.0), false)
+			_body.rotation_degrees = Vector3(0, 0, 90)
 
 
 func flash(amount: float) -> void:
-	_flash = maxf(_flash, amount)
+	_ripple = maxf(_ripple, amount)
 
 
-## Per-frame animation for time-based hazards and appear-in.
-func animate(delta: float, lvl: SimLevel, sim_time: float) -> void:
-	appear = minf(1.0, appear + delta * 4.0)
-	var s: float = ease(appear, -2.0)
-	_flash = move_toward(_flash, 0.0, delta * 5.0)
+## Per-frame animation for time-based hazards, membranes and pickups.
+func animate(delta: float, lvl: SimLevel, sim_time: float, core_d: float = 0.0) -> void:
+	appear = minf(1.0, appear + delta * 5.0)
+	_ripple = move_toward(_ripple, 0.0, delta * 4.0)
 	match entity_type:
 		SimConst.EntityType.SLIDER:
-			position.x = lvl.slider_x(entity_index, sim_time)
-			mesh_instance.set_instance_shader_parameter("flash", _flash)
+			var x: float = lvl.slider_x(entity_index, sim_time)
+			_body.position.x = x
+			_shadow.position.x = x
 		SimConst.EntityType.PULSE_GATE:
-			var cycle: float = lvl.pulse_cycle(entity_index, sim_time)
-			var open_frac: float = lvl.e_p1[entity_index]
-			var closed: bool = cycle >= open_frac
-			# Open: mostly dissolved; warn glow just before closing.
-			var fade: float = 0.0 if closed else 0.82
-			var to_close: float = (open_frac - cycle) / maxf(open_frac, 0.01)
-			var warn: float = 1.0 if (not closed and to_close < 0.25) else 0.0
-			mesh_instance.set_instance_shader_parameter("fade", fade)
-			mesh_instance.set_instance_shader_parameter("warn", warn)
-			if extra.visible:
-				extra.set_instance_shader_parameter("fade", fade)
-				extra.set_instance_shader_parameter("warn", warn)
-		SimConst.EntityType.PORTAL, SimConst.EntityType.FORM_GATE:
-			extra.rotation.y += delta * 2.0
+			_animate_shutter(lvl, sim_time)
+		SimConst.EntityType.PHASE_GATE, SimConst.EntityType.FORM_GATE, SimConst.EntityType.PORTAL:
+			if _membrane != null:
+				_membrane.set_instance_shader_parameter("ripple", _ripple)
+				# Once the core is through, the membrane dissolves (it has done its job).
+				var behind: float = clampf((core_d - lvl.e_d[entity_index]) / 1.5, 0.0, 1.0)
+				_membrane.set_instance_shader_parameter("visibility", 1.0 - behind)
+			if entity_type == SimConst.EntityType.FORM_GATE and _body != null:
+				_body.rotation.y += delta * 1.2
 		SimConst.EntityType.SHIELD, SimConst.EntityType.MAGNET:
-			mesh_instance.rotation.y += delta * 3.0
-		_:
-			mesh_instance.set_instance_shader_parameter("flash", _flash)
-	scale = Vector3(1.0, s, 1.0)
+			_bob_phase += delta * 2.4
+			_body.position.y = 0.42 + sin(_bob_phase) * PICKUP_BOB
+			_body.rotation.y += delta * 1.4
+	# Appear: matter rises out of the floor (mechanical ease-out, no overshoot).
+	var a: float = ease(appear, 0.4)
+	position.y = (a - 1.0) * 0.6
+
+
+## Shutter panel physically drops into its floor slot while the gate is open.
+## The visual is conservative: it is fully raised whenever the sim blocks.
+func _animate_shutter(lvl: SimLevel, sim_time: float) -> void:
+	var period: float = lvl.e_p0[entity_index]
+	var open_frac: float = lvl.e_p1[entity_index]
+	var t: float = lvl.pulse_cycle(entity_index, sim_time) * period
+	var open_end: float = open_frac * period
+	var lowered: float = 0.0
+	if t < open_end:
+		var opening: float = clampf(t / SHUTTER_RAMP, 0.0, 1.0)
+		var closing: float = clampf((open_end - t) / SHUTTER_RAMP, 0.0, 1.0)
+		lowered = smoothstep(0.0, 1.0, minf(opening, closing))
+	var h: float = ViewKit.BLOCK_HEIGHT
+	_body.position.y = h * 0.5 - lowered * (h - 0.04)
+	var until_close: float = open_end - t
+	var warn: bool = t >= open_end or (until_close < LAMP_WARN_TIME and fmod(until_close, 0.12) < 0.06)
+	for lamp: MeshInstance3D in _lamps:
+		lamp.material_override = _kit.lamp_on_material if warn else _kit.lamp_off_material

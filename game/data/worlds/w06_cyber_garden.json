@@ -1,5 +1,32 @@
 {
-  "ambient_particles": "spores",
+  "art": {
+    "ambient": {
+      "color": "#24382a",
+      "energy": 0.5
+    },
+    "atmosphere": {
+      "count": 10,
+      "type": "spores"
+    },
+    "floor": "#111a14",
+    "fog": "#15241b",
+    "key_light": {
+      "color": "#ddf5c8",
+      "energy": 1.0,
+      "pitch": -50,
+      "yaw": -16
+    },
+    "lane": "#17231b",
+    "rib_material": "anodised",
+    "rib_profile": "lattice",
+    "silhouette": "canopy",
+    "sink": "#9be3a8",
+    "sky_bottom": "#1c2c22",
+    "sky_top": "#0f1a14",
+    "story": "A greenhouse lattice where engineered growth climbs the ribs.",
+    "story_accent": "#4e7a52",
+    "structure": "#2f4236"
+  },
   "boss": {
     "duration": 75,
     "form_segment": 3,
@@ -89,19 +116,10 @@
       "start": 40
     }
   ],
-  "hazard_material": "circuit",
   "id": "cyber_garden",
   "index": 6,
   "lanes": 3,
   "levels": 52,
-  "lighting": {
-    "ambient": "#1a4a2a",
-    "ambient_energy": 0.7,
-    "fog_density": 0.02,
-    "glow": 1.0,
-    "sun_color": "#c8ffb0",
-    "sun_energy": 0.7
-  },
   "music": {
     "boss_track": "cyber_garden_boss",
     "bpm": 122,
@@ -110,17 +128,6 @@
     "track": "cyber_garden"
   },
   "name": "Cyber Garden",
-  "palette": {
-    "accent": "#fffa6b",
-    "floor": "#04170c",
-    "fog": "#06200f",
-    "grid": "#3dff7a",
-    "hazard": "#ff8a3d",
-    "primary": "#7cff4d",
-    "secondary": "#ff4de1",
-    "sky_bottom": "#0a3020",
-    "sky_top": "#020d07"
-  },
   "schema_version": 1,
   "unlock_stars": 520
 }

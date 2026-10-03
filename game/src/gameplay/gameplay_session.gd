@@ -41,7 +41,7 @@ var _frame_events: PackedInt32Array = PackedInt32Array()
 
 
 ## Loads level data; [param modifiers] may contain zen, speed_scale,
-## shields_allowed (mode tweaks). Returns false on invalid data.
+## shields_allowed, strict, time_limit, mode (see [ModeCatalog]). Returns false on invalid data.
 func load_level(data: Dictionary, modifiers: Dictionary = {}) -> bool:
 	if data.is_empty():
 		GameLog.error("session", "empty level data")
@@ -54,6 +54,7 @@ func load_level(data: Dictionary, modifiers: Dictionary = {}) -> bool:
 	sim.zen = bool(modifiers.get("zen", false))
 	sim.speed_scale = float(modifiers.get("speed_scale", 1.0))
 	sim.shields_allowed = bool(modifiers.get("shields_allowed", true))
+	sim.strict = bool(modifiers.get("strict", false))
 	if modifiers.has("time_limit"):
 		sim_level.time_limit = float(modifiers["time_limit"])
 	sim.setup(sim_level)

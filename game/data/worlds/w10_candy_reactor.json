@@ -1,5 +1,32 @@
 {
-  "ambient_particles": "sprinkles",
+  "art": {
+    "ambient": {
+      "color": "#4a2c42",
+      "energy": 0.6
+    },
+    "atmosphere": {
+      "count": 10,
+      "type": "sprinkles"
+    },
+    "floor": "#24171f",
+    "fog": "#3a2234",
+    "key_light": {
+      "color": "#ffe6f2",
+      "energy": 1.1,
+      "pitch": -50,
+      "yaw": 20
+    },
+    "lane": "#2c1c26",
+    "rib_material": "lacquer",
+    "rib_profile": "arch",
+    "silhouette": "reactor",
+    "sink": "#ffd27a",
+    "sky_bottom": "#4a2c42",
+    "sky_top": "#2a1a26",
+    "story": "The finale: a lacquered pastel reactor, playful but precise.",
+    "story_accent": "#b05a86",
+    "structure": "#e9c9da"
+  },
   "boss": {
     "duration": 110,
     "forms": {
@@ -104,19 +131,10 @@
       "start": 40
     }
   ],
-  "hazard_material": "candy",
   "id": "candy_reactor",
   "index": 10,
   "lanes": 3,
   "levels": 52,
-  "lighting": {
-    "ambient": "#6a2a6a",
-    "ambient_energy": 0.8,
-    "fog_density": 0.018,
-    "glow": 1.1,
-    "sun_color": "#ffd0f0",
-    "sun_energy": 0.9
-  },
   "music": {
     "boss_track": "candy_reactor_boss",
     "bpm": 146,
@@ -125,17 +143,6 @@
     "track": "candy_reactor"
   },
   "name": "Candy Reactor",
-  "palette": {
-    "accent": "#fff27a",
-    "floor": "#2a0a2e",
-    "fog": "#4a1240",
-    "grid": "#ff6ad5",
-    "hazard": "#ff4d4d",
-    "primary": "#ff8ad8",
-    "secondary": "#8af5ff",
-    "sky_bottom": "#7a1f5c",
-    "sky_top": "#24082a"
-  },
   "schema_version": 1,
   "unlock_stars": 1030
 }

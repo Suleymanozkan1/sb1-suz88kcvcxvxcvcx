@@ -1,131 +1,267 @@
 class_name ViewKit
 extends RefCounted
-## Shared meshes and materials for one world theme (built once per world, so
-## every entity of a kind shares the same resources — draw-call friendly).
+## Shared meshes and materials for one world (built once, shared by every
+## entity of a kind). Implements the material language of ART_DIRECTION §5:
+## matter is lit PBR and never emissive; only energy (membranes, pickups,
+## functional lamps) uses emission.
 
-const HAZARD_SHADER: Shader = preload("res://assets/shaders/hazard.gdshader")
-const PORTAL_SHADER: Shader = preload("res://assets/shaders/portal.gdshader")
-const GLOW_SHADER: Shader = preload("res://assets/shaders/glow_sprite.gdshader")
+const GLASS_SHADER: Shader = preload("res://assets/shaders/glass.gdshader")
+const MEMBRANE_SHADER: Shader = preload("res://assets/shaders/membrane.gdshader")
+const CHEVRON_SHADER: Shader = preload("res://assets/shaders/chevron.gdshader")
 const CORE_SHADER: Shader = preload("res://assets/shaders/core.gdshader")
-const FORM_COLORS: Array[Color] = [Color("#3df5ff"), Color("#ff3dcb"), Color("#ffb03d"), Color("#b8a6ff")]
+const BLOCK_HEIGHT: float = 0.9
+const SHUTTER_THICKNESS: float = 0.12
+const POST_WIDTH: float = 0.12
+const ARCH_HEIGHT: float = 1.7
+const ARCH_POST: float = 0.18
+
+## Physically motivated presets per structure material: albedo scale,
+## roughness, metallic, specular, clearcoat.
+const STRUCTURE_PRESETS: Dictionary = {
+	"anodised": [1.0, 0.42, 0.85, 0.5, 0.0],
+	"steel": [1.0, 0.5, 0.9, 0.5, 0.0],
+	"stone": [1.0, 0.88, 0.0, 0.3, 0.0],
+	"ceramic": [1.0, 0.3, 0.0, 0.6, 0.0],
+	"coated": [1.0, 0.55, 0.6, 0.5, 0.0],
+	"ice": [1.0, 0.18, 0.0, 0.6, 0.0],
+	"sandstone": [1.0, 0.9, 0.0, 0.3, 0.0],
+	"obsidian": [1.0, 0.25, 0.2, 0.6, 0.0],
+	"lacquer": [1.0, 0.22, 0.0, 0.55, 1.0],
+	"crystal": [1.0, 0.16, 0.0, 0.7, 0.6],
+}
+## Hazards use a bolder chamfer (same family) so blocks read as machined parts.
+const HAZARD_CHAMFER: float = 0.16
 
 var theme: WorldTheme
-var block_mesh: BoxMesh
-var pulse_mesh: BoxMesh
-var breakable_mesh: BoxMesh
-var slider_mesh: BoxMesh
-var portal_mesh: QuadMesh
-var portal_exit_mesh: QuadMesh
-var pickup_mesh: QuadMesh
-var magnet_mesh: TorusMesh
-var hazard_material: ShaderMaterial
-var pulse_material: ShaderMaterial
-var breakable_material: ShaderMaterial
-var slider_material: ShaderMaterial
+var block_mesh: ArrayMesh
+var slider_mesh: ArrayMesh
+var glass_mesh: ArrayMesh
+var shutter_mesh: ArrayMesh
+var post_mesh: ArrayMesh
+var lamp_mesh: ArrayMesh
+var portal_ring_mesh: TorusMesh
+var disc_mesh: QuadMesh
+var floor_disc_mesh: QuadMesh
+var shield_mesh: TorusMesh
+var magnet_mesh: CapsuleMesh
+var blob_mesh: QuadMesh
+
+var hazard_material: StandardMaterial3D
+var structure_material: StandardMaterial3D
+var track_material: StandardMaterial3D
+var lamp_off_material: StandardMaterial3D
+var lamp_on_material: StandardMaterial3D
+var glass_material: ShaderMaterial
+var blob_material: StandardMaterial3D
 var portal_material: ShaderMaterial
-var current_material: ShaderMaterial
-var shield_material: ShaderMaterial
+var exit_material: ShaderMaterial
+var chevron_material: ShaderMaterial
+var shield_material: StandardMaterial3D
 var magnet_material: ShaderMaterial
+
 var _phase_materials: Array[ShaderMaterial] = []
-var _phase_meshes: Dictionary = {}
-var _form_gate_meshes: Dictionary = {}
-var _form_gate_materials: Dictionary = {}
+var _arch_meshes: Dictionary = {}
+var _membrane_meshes: Dictionary = {}
+var _track_meshes: Dictionary = {}
+var _chevron_meshes: Dictionary = {}
+var _form_materials: Dictionary = {}
 var _form_icon_meshes: Dictionary = {}
 var _form_icon_materials: Dictionary = {}
-var _current_meshes: Dictionary = {}
 
 
 func _init(world_theme: WorldTheme) -> void:
 	theme = world_theme
-	var half: Vector3 = Vector3(SimConst.BLOCK_HALF_WIDTH, EntityView.HAZARD_HEIGHT * 0.5, SimConst.HAZARD_HALF_DEPTH)
-	block_mesh = BoxMesh.new()
-	block_mesh.size = half * 2.0
-	pulse_mesh = BoxMesh.new()
-	pulse_mesh.size = Vector3(half.x * 2.0, EntityView.HAZARD_HEIGHT, 0.14)
-	breakable_mesh = BoxMesh.new()
-	breakable_mesh.size = Vector3(half.x * 1.9, EntityView.HAZARD_HEIGHT * 0.9, half.z * 1.8)
-	slider_mesh = BoxMesh.new()
-	slider_mesh.size = Vector3(half.x * 2.0, EntityView.HAZARD_HEIGHT * 0.8, half.z * 2.0)
-	var body: Color = theme.floor_color.darkened(0.35) if not theme.bright else Color("#2a2f55")
-	hazard_material = _hazard(body, theme.hazard, half, theme.hazard_style)
-	pulse_material = _hazard(body.darkened(0.2), theme.accent, Vector3(half.x, EntityView.HAZARD_HEIGHT * 0.5, 0.07), 5)
-	breakable_material = _hazard(Color("#3a2410"), EntityView.BREAKABLE_COLOR, half * Vector3(0.95, 0.9, 0.9), 1)
-	slider_material = _hazard(body, theme.secondary, half * Vector3(1.0, 0.8, 1.0), 9 if theme.hazard_style == 9 else theme.hazard_style)
-	portal_mesh = QuadMesh.new()
-	portal_mesh.size = Vector2(1.3, 1.3)
-	portal_exit_mesh = QuadMesh.new()
-	portal_exit_mesh.size = Vector2(1.2, 1.2)
-	portal_material = ShaderMaterial.new()
-	portal_material.shader = PORTAL_SHADER
-	portal_material.set_shader_parameter("color_a", theme.primary)
-	portal_material.set_shader_parameter("color_b", theme.secondary)
-	current_material = ShaderMaterial.new()
-	current_material.shader = PORTAL_SHADER
-	current_material.set_shader_parameter("color_a", theme.accent)
-	current_material.set_shader_parameter("color_b", theme.primary)
-	current_material.set_shader_parameter("swirl", 3.0)
-	pickup_mesh = QuadMesh.new()
-	pickup_mesh.size = Vector2(0.9, 0.9)
-	shield_material = ShaderMaterial.new()
-	shield_material.shader = GLOW_SHADER
-	shield_material.set_shader_parameter("glow_color", Color("#9fffe0"))
-	shield_material.set_shader_parameter("ring", 0.7)
-	shield_material.set_shader_parameter("intensity", 1.6)
-	magnet_mesh = TorusMesh.new()
-	magnet_mesh.inner_radius = 0.16
-	magnet_mesh.outer_radius = 0.26
+	var bw: float = SimConst.BLOCK_HALF_WIDTH * 2.0
+	block_mesh = MeshFactory.chamfered_box(Vector3(bw, BLOCK_HEIGHT, SimConst.HAZARD_HALF_DEPTH * 2.0), HAZARD_CHAMFER)
+	slider_mesh = MeshFactory.chamfered_box(Vector3(bw, BLOCK_HEIGHT * 0.82, SimConst.HAZARD_HALF_DEPTH * 2.3), HAZARD_CHAMFER)
+	glass_mesh = MeshFactory.chamfered_box(Vector3(bw * 0.97, BLOCK_HEIGHT * 0.95, SimConst.HAZARD_HALF_DEPTH * 1.9), HAZARD_CHAMFER)
+	shutter_mesh = MeshFactory.chamfered_box(Vector3(bw, BLOCK_HEIGHT, SHUTTER_THICKNESS), HAZARD_CHAMFER)
+	post_mesh = MeshFactory.chamfered_box(Vector3(POST_WIDTH, BLOCK_HEIGHT * 1.25, 0.2))
+	lamp_mesh = MeshFactory.chamfered_box(Vector3(0.1, 0.08, 0.1), 0.2)
+	portal_ring_mesh = TorusMesh.new()
+	portal_ring_mesh.inner_radius = 0.5
+	portal_ring_mesh.outer_radius = 0.6
+	portal_ring_mesh.rings = 32
+	portal_ring_mesh.ring_segments = 8
+	disc_mesh = QuadMesh.new()
+	disc_mesh.size = Vector2(1.0, 1.0)
+	floor_disc_mesh = QuadMesh.new()
+	floor_disc_mesh.size = Vector2(1.1, 1.1)
+	floor_disc_mesh.orientation = PlaneMesh.FACE_Y
+	shield_mesh = TorusMesh.new()
+	shield_mesh.inner_radius = 0.2
+	shield_mesh.outer_radius = 0.27
+	shield_mesh.rings = 6
+	shield_mesh.ring_segments = 4
+	magnet_mesh = CapsuleMesh.new()
+	magnet_mesh.radius = 0.1
+	magnet_mesh.height = 0.5
+	blob_mesh = QuadMesh.new()
+	blob_mesh.size = Vector2(bw * 1.25, SimConst.HAZARD_HALF_DEPTH * 4.0)
+	blob_mesh.orientation = PlaneMesh.FACE_Y
+	_build_materials()
+
+
+func _build_materials() -> void:
+	hazard_material = StandardMaterial3D.new()
+	# High-key light lifts and desaturates the warm albedo after tonemapping;
+	# a deeper base keeps the same perceived WARNING hue in bright worlds.
+	hazard_material.albedo_color = Palette.WARNING.darkened(0.28) if theme.bright else Palette.WARNING
+	hazard_material.roughness = 0.55
+	hazard_material.metallic = 0.0
+	hazard_material.metallic_specular = 0.5
+	hazard_material.rim_enabled = true
+	hazard_material.rim = 0.22
+	hazard_material.rim_tint = 0.4
+	# Small matte blocks gain nothing from self-shadowing; avoids shadow acne.
+	hazard_material.disable_receive_shadows = true
+	structure_material = _structure(theme.structure, theme.rib_material)
+	track_material = StandardMaterial3D.new()
+	track_material.albedo_color = theme.lane_color.darkened(0.45)
+	track_material.roughness = 0.7
+	track_material.metallic = 0.3
+	lamp_off_material = StandardMaterial3D.new()
+	lamp_off_material.albedo_color = Color("#3a2a20")
+	lamp_off_material.roughness = 0.4
+	lamp_on_material = StandardMaterial3D.new()
+	lamp_on_material.albedo_color = Palette.ACCENT
+	lamp_on_material.emission_enabled = true
+	lamp_on_material.emission = Palette.ACCENT
+	lamp_on_material.emission_energy_multiplier = 2.2
+	glass_material = ShaderMaterial.new()
+	glass_material.shader = GLASS_SHADER
+	glass_material.set_shader_parameter("tint", Palette.GLASS_TINT)
+	blob_material = StandardMaterial3D.new()
+	blob_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	blob_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	blob_material.albedo_texture = _blob_texture()
+	blob_material.albedo_color = Color(0, 0, 0, 0.38)
+	blob_material.render_priority = -1
+	for c: int in 2:
+		_phase_materials.append(_membrane(Palette.PHASE[c], false, 0.24))
+	portal_material = _membrane(Palette.PRIMARY, true, 0.18)
+	exit_material = _membrane(Palette.PRIMARY, true, 0.1)
+	chevron_material = ShaderMaterial.new()
+	chevron_material.shader = CHEVRON_SHADER
+	chevron_material.set_shader_parameter("energy", Palette.PRIMARY)
+	shield_material = StandardMaterial3D.new()
+	shield_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	shield_material.albedo_color = Palette.SUCCESS * Palette.ENERGY_SPARK
 	magnet_material = ShaderMaterial.new()
 	magnet_material.shader = CORE_SHADER
-	magnet_material.set_shader_parameter("color_a", Color("#ff5c8a"))
-	magnet_material.set_shader_parameter("color_b", Color("#5cc8ff"))
+	magnet_material.set_shader_parameter("color_a", Palette.PRIMARY)
+	magnet_material.set_shader_parameter("color_b", Palette.SECONDARY)
 	magnet_material.set_shader_parameter("style", 8)
-	for c: int in 2:
-		var m: ShaderMaterial = _hazard(EntityView.PHASE_COLORS[c].darkened(0.75), EntityView.PHASE_COLORS[c], Vector3(1.0, 0.6, 0.05), 5)
-		_phase_materials.append(m)
+	magnet_material.set_shader_parameter("intensity", 1.3)
 
 
-func _hazard(body: Color, edge: Color, half: Vector3, style: int) -> ShaderMaterial:
-	var m: ShaderMaterial = ShaderMaterial.new()
-	m.shader = HAZARD_SHADER
-	m.set_shader_parameter("base_color", body)
-	m.set_shader_parameter("edge_color", edge)
-	m.set_shader_parameter("half_extents", half)
-	m.set_shader_parameter("style", style)
+func _structure(albedo: Color, kind: String) -> StandardMaterial3D:
+	var p: Array = STRUCTURE_PRESETS.get(kind, STRUCTURE_PRESETS["anodised"]) as Array
+	var m: StandardMaterial3D = StandardMaterial3D.new()
+	m.albedo_color = albedo * float(p[0])
+	m.roughness = float(p[1])
+	m.metallic = float(p[2])
+	m.metallic_specular = float(p[3])
+	if float(p[4]) > 0.0:
+		m.clearcoat_enabled = true
+		m.clearcoat = float(p[4])
+		m.clearcoat_roughness = 0.15
 	return m
+
+
+func _membrane(color: Color, radial: bool, density: float) -> ShaderMaterial:
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = MEMBRANE_SHADER
+	m.set_shader_parameter("energy", color)
+	m.set_shader_parameter("radial", radial)
+	m.set_shader_parameter("density", density)
+	m.set_shader_parameter("intensity", Palette.ENERGY_MEMBRANE)
+	return m
+
+
+static var _soft_dot: GradientTexture2D
+
+
+## Shared soft round mask for motes and particles.
+static func soft_dot_texture() -> GradientTexture2D:
+	if _soft_dot == null:
+		_soft_dot = _blob_texture()
+	return _soft_dot
+
+
+static func _blob_texture() -> GradientTexture2D:
+	var tex: GradientTexture2D = GradientTexture2D.new()
+	var g: Gradient = Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.set_color(1, Color(1, 1, 1, 0))
+	tex.gradient = g
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 0.0)
+	tex.width = 64
+	tex.height = 64
+	return tex
 
 
 func phase_material(color: int) -> ShaderMaterial:
 	return _phase_materials[clampi(color, 0, 1)]
 
 
-func phase_gate_mesh(lanes: int) -> BoxMesh:
-	if not _phase_meshes.has(lanes):
-		var b: BoxMesh = BoxMesh.new()
-		b.size = Vector3(float(lanes) * SimConst.LANE_WIDTH + 0.3, 1.2, 0.1)
-		_phase_meshes[lanes] = b
-		var half: Vector3 = b.size * 0.5
-		for m: ShaderMaterial in _phase_materials:
-			m.set_shader_parameter("half_extents", half)
-	return _phase_meshes[lanes] as BoxMesh
+## Chamfered arch spanning every lane (gates): posts + lintel in the
+## structure material.
+func arch_mesh(lanes: int) -> ArrayMesh:
+	if _arch_meshes.has(lanes):
+		return _arch_meshes[lanes] as ArrayMesh
+	var half: float = float(lanes) * SimConst.LANE_WIDTH * 0.5 + 0.3
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for side: float in [-1.0, 1.0]:
+		st.append_from(MeshFactory.chamfered_box(Vector3(ARCH_POST, ARCH_HEIGHT, ARCH_POST)), 0, Transform3D(Basis.IDENTITY, Vector3(side * half, ARCH_HEIGHT * 0.5, 0)))
+	st.append_from(MeshFactory.chamfered_box(Vector3(half * 2.0 + ARCH_POST, ARCH_POST, ARCH_POST)), 0, Transform3D(Basis.IDENTITY, Vector3(0, ARCH_HEIGHT, 0)))
+	var mesh: ArrayMesh = st.commit()
+	_arch_meshes[lanes] = mesh
+	return mesh
 
 
-func form_gate_mesh(lanes: int) -> QuadMesh:
-	if not _form_gate_meshes.has(lanes):
+func membrane_mesh(lanes: int) -> QuadMesh:
+	if not _membrane_meshes.has(lanes):
 		var q: QuadMesh = QuadMesh.new()
-		q.size = Vector2(float(lanes) * SimConst.LANE_WIDTH + 1.2, 1.8)
-		_form_gate_meshes[lanes] = q
-	return _form_gate_meshes[lanes] as QuadMesh
+		q.size = Vector2(float(lanes) * SimConst.LANE_WIDTH + 0.6 - ARCH_POST, ARCH_HEIGHT - ARCH_POST * 0.5)
+		_membrane_meshes[lanes] = q
+	return _membrane_meshes[lanes] as QuadMesh
 
 
-func form_gate_material(form: int) -> ShaderMaterial:
-	if not _form_gate_materials.has(form):
-		var m: ShaderMaterial = ShaderMaterial.new()
-		m.shader = PORTAL_SHADER
-		m.set_shader_parameter("color_a", FORM_COLORS[clampi(form, 0, 3)])
-		m.set_shader_parameter("color_b", Color.WHITE)
-		m.set_shader_parameter("opacity", 0.8)
-		_form_gate_materials[form] = m
-	return _form_gate_materials[form] as ShaderMaterial
+## Recessed floor track showing a slider's full travel (readability: range).
+func track_mesh(lanes: int, from_lane: int, to_lane: int) -> QuadMesh:
+	var key: String = "%d:%d:%d" % [lanes, from_lane, to_lane]
+	if not _track_meshes.has(key):
+		var x0: float = SimConst.lane_x(from_lane, lanes)
+		var x1: float = SimConst.lane_x(to_lane, lanes)
+		var q: QuadMesh = QuadMesh.new()
+		q.size = Vector2(absf(x1 - x0) + SimConst.BLOCK_HALF_WIDTH * 2.0, 0.16)
+		q.orientation = PlaneMesh.FACE_Y
+		q.center_offset = Vector3((x0 + x1) * 0.5, 0.012, 0.0)
+		_track_meshes[key] = q
+	return _track_meshes[key] as QuadMesh
+
+
+func chevron_mesh(lanes: int, from_lane: int, to_lane: int) -> QuadMesh:
+	var key: String = "%d:%d:%d" % [lanes, from_lane, to_lane]
+	if not _chevron_meshes.has(key):
+		var x0: float = SimConst.lane_x(from_lane, lanes)
+		var x1: float = SimConst.lane_x(to_lane, lanes)
+		var q: QuadMesh = QuadMesh.new()
+		q.size = Vector2(absf(x1 - x0) + 1.0, 1.2)
+		q.orientation = PlaneMesh.FACE_Y
+		q.center_offset = Vector3((x0 + x1) * 0.5, 0.015, 0.0)
+		_chevron_meshes[key] = q
+	return _chevron_meshes[key] as QuadMesh
+
+
+func form_material(form: int) -> ShaderMaterial:
+	if not _form_materials.has(form):
+		_form_materials[form] = _membrane(Palette.form_color(form, 0, false), false, 0.16)
+	return _form_materials[form] as ShaderMaterial
 
 
 func form_icon_mesh(form: int) -> Mesh:
@@ -134,26 +270,21 @@ func form_icon_mesh(form: int) -> Mesh:
 	var mesh: Mesh
 	match form:
 		SimConst.Form.PHASE:
-			var d: SphereMesh = SphereMesh.new()
-			d.radius = 0.28
-			d.height = 0.64
-			d.radial_segments = 4
-			d.rings = 2
-			mesh = d
+			mesh = MeshFactory.shard(0.2, 0.46)
 		SimConst.Form.DASH:
 			var c: CapsuleMesh = CapsuleMesh.new()
-			c.radius = 0.18
-			c.height = 0.8
+			c.radius = 0.12
+			c.height = 0.5
 			mesh = c
 		SimConst.Form.SURGE:
 			var t: TorusMesh = TorusMesh.new()
-			t.inner_radius = 0.2
-			t.outer_radius = 0.3
+			t.inner_radius = 0.14
+			t.outer_radius = 0.2
 			mesh = t
 		_:
 			var s: SphereMesh = SphereMesh.new()
-			s.radius = 0.26
-			s.height = 0.52
+			s.radius = 0.17
+			s.height = 0.34
 			mesh = s
 	_form_icon_meshes[form] = mesh
 	return mesh
@@ -163,27 +294,9 @@ func form_icon_material(form: int) -> ShaderMaterial:
 	if not _form_icon_materials.has(form):
 		var m: ShaderMaterial = ShaderMaterial.new()
 		m.shader = CORE_SHADER
-		m.set_shader_parameter("color_a", FORM_COLORS[clampi(form, 0, 3)])
-		m.set_shader_parameter("color_b", Color.WHITE)
+		var c: Color = Palette.form_color(form, 0, false)
+		m.set_shader_parameter("color_a", c)
+		m.set_shader_parameter("color_b", c.darkened(0.3))
+		m.set_shader_parameter("intensity", 1.4)
 		_form_icon_materials[form] = m
 	return _form_icon_materials[form] as ShaderMaterial
-
-
-## Chevron strip on the floor pointing from the current's lane to its target.
-func current_mesh(lvl: SimLevel, index: int) -> Mesh:
-	var lanes: int = lvl.lane_count
-	var key: String = "%d:%d:%d" % [lanes, lvl.e_mask[index], int(lvl.e_p0[index])]
-	if _current_meshes.has(key):
-		return _current_meshes[key] as Mesh
-	var from_lane: int = 0
-	for l: int in lanes:
-		if (lvl.e_mask[index] & (1 << l)) != 0:
-			from_lane = l
-	var x0: float = SimConst.lane_x(from_lane, lanes)
-	var x1: float = SimConst.lane_x(int(lvl.e_p0[index]), lanes)
-	var q: QuadMesh = QuadMesh.new()
-	q.size = Vector2(absf(x1 - x0) + 1.2, 1.4)
-	q.orientation = PlaneMesh.FACE_Y
-	q.center_offset = Vector3((x0 + x1) * 0.5, 0.0, 0.0)
-	_current_meshes[key] = q
-	return q

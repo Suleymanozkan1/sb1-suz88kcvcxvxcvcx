@@ -1,0 +1,97 @@
+{
+	"schema_version": 1,
+	"modes": [
+		{
+			"id": "classic",
+			"name_key": "mode.classic.name",
+			"desc_key": "mode.classic.desc",
+			"source": "campaign",
+			"modifiers": {},
+			"unlock": {"type": "none", "value": 0},
+			"board": "alltime",
+			"rewards": "campaign",
+			"best_metric": "score"
+		},
+		{
+			"id": "endless",
+			"name_key": "mode.endless.name",
+			"desc_key": "mode.endless.desc",
+			"source": "endless",
+			"modifiers": {"shields_allowed": true},
+			"stream": {"lanes": 3, "speed": 8.6, "speed_ramp": 0.2, "ramp_distance": 900.0, "spacing_scale": 1.0, "difficulty_number": 120},
+			"unlock": {"type": "levels_cleared", "value": 10},
+			"board": "weekly",
+			"rewards": "score_based",
+			"best_metric": "distance"
+		},
+		{
+			"id": "time_attack",
+			"name_key": "mode.time_attack.name",
+			"desc_key": "mode.time_attack.desc",
+			"source": "endless",
+			"modifiers": {"time_limit": 60.0, "shields_allowed": false},
+			"stream": {"lanes": 3, "speed": 9.4, "speed_ramp": 0.35, "ramp_distance": 520.0, "spacing_scale": 0.92, "difficulty_number": 160},
+			"unlock": {"type": "levels_cleared", "value": 20},
+			"board": "weekly",
+			"rewards": "score_based",
+			"best_metric": "score"
+		},
+		{
+			"id": "daily",
+			"name_key": "mode.daily.name",
+			"desc_key": "mode.daily.desc",
+			"source": "daily",
+			"modifiers": {},
+			"unlock": {"type": "levels_cleared", "value": 3},
+			"board": "daily",
+			"rewards": "daily",
+			"best_metric": "score"
+		},
+		{
+			"id": "perfect_run",
+			"name_key": "mode.perfect_run.name",
+			"desc_key": "mode.perfect_run.desc",
+			"source": "campaign_pick",
+			"modifiers": {"strict": true, "shields_allowed": false},
+			"unlock": {"type": "perfects", "value": 5},
+			"board": "alltime",
+			"rewards": "score_based",
+			"best_metric": "score"
+		},
+		{
+			"id": "zen",
+			"name_key": "mode.zen.name",
+			"desc_key": "mode.zen.desc",
+			"source": "endless",
+			"modifiers": {"zen": true, "speed_scale": 0.85},
+			"stream": {"lanes": 3, "speed": 7.4, "speed_ramp": 0.0, "ramp_distance": 900.0, "spacing_scale": 1.15, "difficulty_number": 60},
+			"unlock": {"type": "none", "value": 0},
+			"board": "none",
+			"rewards": "none",
+			"best_metric": "distance"
+		},
+		{
+			"id": "hard",
+			"name_key": "mode.hard.name",
+			"desc_key": "mode.hard.desc",
+			"source": "campaign_pick",
+			"modifiers": {"speed_scale": 1.12, "shields_allowed": false},
+			"unlock": {"type": "world_cleared", "value": 2},
+			"board": "alltime",
+			"rewards": "score_based",
+			"best_metric": "score"
+		},
+		{
+			"id": "boss_rush",
+			"name_key": "mode.boss_rush.name",
+			"desc_key": "mode.boss_rush.desc",
+			"source": "boss_rush",
+			"modifiers": {"shields_allowed": false},
+			"unlock": {"type": "bosses_cleared", "value": 2},
+			"board": "alltime",
+			"rewards": "score_based",
+			"best_metric": "score"
+		}
+	],
+	"score_rewards": {"coins_per_1000_score": 6, "max_coins": 120, "xp_per_1000_score": 12, "max_xp": 200}
+}

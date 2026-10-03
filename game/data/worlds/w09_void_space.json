@@ -1,5 +1,32 @@
 {
-  "ambient_particles": "stars",
+  "art": {
+    "ambient": {
+      "color": "#181a28",
+      "energy": 0.4
+    },
+    "atmosphere": {
+      "count": 20,
+      "type": "stars"
+    },
+    "floor": "#0a0b12",
+    "fog": "#0a0b14",
+    "key_light": {
+      "color": "#b8b9d9",
+      "energy": 0.7,
+      "pitch": -60,
+      "yaw": 0
+    },
+    "lane": "#10111b",
+    "rib_material": "obsidian",
+    "rib_profile": "monolith",
+    "silhouette": "ring",
+    "sink": "#a68cff",
+    "sky_bottom": "#0e1020",
+    "sky_top": "#06070c",
+    "story": "Floating obsidian slabs at the edge of a silent horizon ring.",
+    "story_accent": "#3b3466",
+    "structure": "#262a3a"
+  },
   "boss": {
     "current": 0.15,
     "duration": 95,
@@ -89,19 +116,10 @@
       "start": 40
     }
   ],
-  "hazard_material": "void",
   "id": "void_space",
   "index": 9,
   "lanes": 3,
   "levels": 52,
-  "lighting": {
-    "ambient": "#2a1450",
-    "ambient_energy": 0.6,
-    "fog_density": 0.014,
-    "glow": 1.2,
-    "sun_color": "#c8b0ff",
-    "sun_energy": 0.5
-  },
   "music": {
     "boss_track": "void_space_boss",
     "bpm": 140,
@@ -110,17 +128,6 @@
     "track": "void_space"
   },
   "name": "Void Space",
-  "palette": {
-    "accent": "#ff4d9e",
-    "floor": "#06030f",
-    "fog": "#0a0518",
-    "grid": "#6a3dff",
-    "hazard": "#ff3d7f",
-    "primary": "#b98cff",
-    "secondary": "#4de8ff",
-    "sky_bottom": "#140a2a",
-    "sky_top": "#010005"
-  },
   "schema_version": 1,
   "unlock_stars": 900
 }

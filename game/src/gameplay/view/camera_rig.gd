@@ -8,9 +8,11 @@ const LOOK_AHEAD: float = 8.0
 const LOOK_HEIGHT: float = 0.1
 const BASE_FOV: float = 64.0
 const TRAUMA_DECAY: float = 2.4
-const MAX_SHAKE: float = 0.22
+const MAX_SHAKE: float = 0.16
 const IMPULSE_DAMPING: float = 9.0
 const IMPULSE_STIFFNESS: float = 140.0
+const SPRING_STEP: float = 1.0 / 120.0
+const MAX_SPRING_DELTA: float = 0.1
 
 var camera: Camera3D
 var shake_scale: float = 1.0
@@ -51,9 +53,13 @@ func start_reveal(strength: float = 1.0) -> void:
 
 func follow(core_pos: Vector3, delta: float) -> void:
 	_noise_t += delta
-	# Spring back impulses (critically damped-ish).
-	_impulse_vel += (-_impulse * IMPULSE_STIFFNESS - _impulse_vel * IMPULSE_DAMPING * 2.0) * delta
-	_impulse += _impulse_vel * delta
+	# Spring back impulses in fixed sub-steps (stable on slow frames).
+	var remaining: float = minf(delta, MAX_SPRING_DELTA)
+	while remaining > 0.0:
+		var h: float = minf(remaining, SPRING_STEP)
+		_impulse_vel += (-_impulse * IMPULSE_STIFFNESS - _impulse_vel * IMPULSE_DAMPING * 2.0) * h
+		_impulse += _impulse_vel * h
+		remaining -= h
 	trauma = maxf(0.0, trauma - TRAUMA_DECAY * delta)
 	_fov_punch = move_toward(_fov_punch, 0.0, delta * 30.0)
 	reveal = move_toward(reveal, 0.0, delta * 1.3)
@@ -69,7 +75,7 @@ func follow(core_pos: Vector3, delta: float) -> void:
 	) * shake
 	global_position = target + offset + _impulse * shake_scale + shake_v
 	camera.look_at(Vector3(_lateral * 0.6, LOOK_HEIGHT, core_pos.z - LOOK_AHEAD) + shake_v * 0.5, Vector3.UP)
-	camera.rotate_object_local(Vector3.FORWARD, deg_to_rad(-_impulse.x * 6.0 * shake_scale))
+	camera.rotate_object_local(Vector3.FORWARD, deg_to_rad(-_impulse.x * 3.0 * shake_scale))
 	camera.fov = BASE_FOV + _fov_punch + 8.0 * r
 
 

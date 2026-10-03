@@ -1,7 +1,7 @@
 # FLUX DROP — Requirements Checklist
 
 Created **before development started** (2026-10-03) from the one-shot master brief.
-Every requirement in the brief has a stable ID. The status of each ID is reported, with code
+Every requirement in the brief has a stable ID. The status of each ID (REQ-001 … REQ-333) is reported, with code
 evidence, in [`FINAL_IMPLEMENTATION_REPORT.md`](FINAL_IMPLEMENTATION_REPORT.md).
 `tools/report/completion.py` cross-checks that every ID below appears exactly once in the
 final report matrix and computes the completion percentage from it.
@@ -438,3 +438,44 @@ Format: `| ID | Area | Requirement |`
 | REQ-299 | Audit | Final steps executed: git status, build, tests, level validator, dependency check, license check, dead-code check, placeholder check, CodeRabbit, critical fixes, final CodeRabbit, final report, completion %. |
 | REQ-300 | Audit | All required documentation files verified to exist. |
 | REQ-301 | Audit | Final answer in the mandated format, generated from the real repository state. |
+
+## AA. Art direction — "anti AI-slop" human-made quality (added mid-development, 2026-10-03)
+
+Added from the user's follow-up instruction, before the UI and art polish work. The project may not be
+reported **COMPLETED** unless this section is satisfied. The governing rules live in
+[`ART_DIRECTION.md`](ART_DIRECTION.md).
+
+| ID | Area | Requirement |
+|---|---|---|
+| REQ-302 | Art direction | The game must not look AI-generated, "AI slop", a generic asset pack or auto-generated; it must look like a professional studio team polished it for months. |
+| REQ-303 | Art direction | Avoid every listed AI-slop trait: generic AI look, meaningless gradients, random neon combinations, excessive glow, bloom on everything, emissive everywhere, plastic materials, meaningless contrast, random detail, lens flare, constant particle rain, heavy volumetric fog, chromatic aberration everywhere, heavy motion blur, artificial reflections, repeating textures, generic sci-fi textures, stock-asset feel, mixed/disconnected styles, wrong proportions, inconsistent perspective, physically meaningless materials, stretching, bad normals, excessive noise, repeating decals/objects, generic icon sets, AI faces, meaningless ornament, asset-pack collisions. |
+| REQ-304 | Art direction | One art direction governs everything: shared proportion, shape, material and lighting language, colour theory, visual hierarchy and animation language (documented). |
+| REQ-305 | Art direction | Every asset is checked against the art language before inclusion ("does this fit?"). |
+| REQ-306 | Shape language | Deliberate geometric language: fixed proportions for gameplay objects, a consistent collectible silhouette, consistent obstacle corners, rule-based environment variation. |
+| REQ-307 | Readability | Silhouettes are distinguishable at a glance; gameplay objects separate clearly from the background. |
+| REQ-308 | Colour | A colour role system (PRIMARY, SECONDARY, ACCENT, WARNING, SUCCESS, FAILURE); gameplay colours stand out with low clutter; background colours never compete. |
+| REQ-309 | Colour | Worlds differ but clearly belong to one brand / visual universe. |
+| REQ-310 | Materials | Materials are authored deliberately (roughness, metallic, specular, normal, emission); no "make everything shiny"; stylised but physically consistent (metal, glass, stone, ceramic read as such). |
+| REQ-311 | Textures | No stretching, obvious tiling, low-res look, repetition, random noise, meaningless detail or inconsistent scale; textures only with purpose; prefer procedural/authored materials, trim-like systems, atlases, masks. |
+| REQ-312 | Reuse | Asset reuse is controlled through variant, scale, material, animation and composition — never copy-paste repetition. |
+| REQ-313 | Environment | Layered foreground / midground / background with controlled parallax and depth; never empty, never overpowering gameplay. |
+| REQ-314 | Environment | Each world tells its own visual story minimally, without decoration for its own sake. |
+| REQ-315 | UI | Grid-based, proportional, consistent spacing, intentional typography, strong hierarchy, responsive, readable; no generic rounded-rect/gradient buttons, random glow, oversized icons or generic glassmorphism; buttons are not clones; all screens share one design system. |
+| REQ-316 | Typography | A typography system (H1, H2, H3, Body, Caption, Score, Button, Reward) with few font families and deliberate weights and spacing. |
+| REQ-317 | Icons | One icon design system (never mixing 3D, flat, outline, emoji or AI-rendered icons). |
+| REQ-318 | Animation | Every animation has a purpose (anticipation, follow-through, squash/stretch, overshoot, settle, acceleration/deceleration) with distinct characters per class (player, collectible, obstacle, button, reward, transition), not one recipe applied everywhere. |
+| REQ-319 | VFX | VFX serve gameplay information, impact, reward, progression or atmosphere; no huge explosion for every event. |
+| REQ-320 | Camera | Camera movement is controlled and intentional, tied to gameplay/impact/reward/transition; no shake on every event. |
+| REQ-321 | Lighting | Conceptual lighting: a defined key light, fill/rim/ambient/reflection only as needed; not neon-lit everything; no eye-tiring constant brightness. |
+| REQ-322 | Hierarchy | Visual priority: 1 Player, 2 Immediate hazard, 3 Objective, 4 Interaction, 5 Score/combo, 6 Environment, 7 Decoration; the background never competes with gameplay. |
+| REQ-323 | Variation | Variation comes from geometry, silhouette, scale, spacing, movement, material response, animation and placement — not small recolours of the same object. |
+| REQ-324 | Consistency | "Made by the same professional team?" check applied to environment, objects, UI, icons, VFX, particles, animations, materials, typography and sounds. |
+| REQ-325 | Detail | Every detail answers "what is this communicating?"; otherwise it is removed. |
+| REQ-326 | Readability | Visual quality never harms readability (no invisible obstacles, low contrast, input confusion, player confusion or unclear objectives). |
+| REQ-327 | Originality | Nothing reads as a one-to-one copy of another game's mechanic, visual, UI, animation, level pattern, character or environment; the game has its own identity. |
+| REQ-328 | Asset gate | Per-asset gate: consistent style, scale, perspective, material, lighting, topology, texture resolution, no repetition, no AI artefacts, no weird geometry, no ambiguity, acceptable mobile performance — fix on any failure. |
+| REQ-329 | Asset gate | No raw AI output is placed in the game. |
+| REQ-330 | Procedural | Procedural generation obeys art-direction rules (palette, proportions, spacing, shape family, material rules) — random ≠ quality. |
+| REQ-331 | Review | Final visual review of MAIN MENU, LEVEL SELECT, GAMEPLAY, PAUSE, FAIL, COMPLETE, REWARD, SHOP, COLLECTION, DAILY, SETTINGS and WORLD SELECT against the slop questions, fixing anything that feels like AI slop. |
+| REQ-332 | Report | FINAL_IMPLEMENTATION_REPORT contains an "ANTI-AI-SLOP VISUAL AUDIT" grading visual consistency, texture quality, material quality, lighting consistency, UI consistency, iconography, typography, animation consistency, VFX consistency, environment quality, asset reuse quality, procedural generation quality, originality, AI-artifact inspection and overall human-made appearance as PASS / PARTIAL / FAIL; FAILs are fixed before release. |
+| REQ-333 | Quality bar | Minimal but flawless: only commercial-release quality is accepted; the project is not reported COMPLETED unless this section is satisfied. |

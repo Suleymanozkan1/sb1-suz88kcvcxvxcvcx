@@ -1,5 +1,32 @@
 {
-  "ambient_particles": "puffs",
+  "art": {
+    "ambient": {
+      "color": "#aebbd0",
+      "energy": 0.7
+    },
+    "atmosphere": {
+      "count": 6,
+      "type": "puffs"
+    },
+    "floor": "#7d8aa1",
+    "fog": "#cdd6e2",
+    "key_light": {
+      "color": "#fff6ea",
+      "energy": 1.0,
+      "pitch": -58,
+      "yaw": 24
+    },
+    "lane": "#8f9cb2",
+    "rib_material": "ceramic",
+    "rib_profile": "arch",
+    "silhouette": "towers",
+    "sink": "#46e6f0",
+    "sky_bottom": "#e3e9f1",
+    "sky_top": "#b9c6d9",
+    "story": "A sunlit porcelain plant above the clouds; the only high-key world.",
+    "story_accent": "#9fb2cc",
+    "structure": "#e4e9f0"
+  },
   "boss": {
     "cluster": 0.6,
     "duration": 70,
@@ -83,19 +110,10 @@
       "start": 40
     }
   ],
-  "hazard_material": "porcelain",
   "id": "cloud_factory",
   "index": 4,
   "lanes": 2,
   "levels": 52,
-  "lighting": {
-    "ambient": "#c8d8ff",
-    "ambient_energy": 0.9,
-    "fog_density": 0.012,
-    "glow": 0.6,
-    "sun_color": "#fff4e0",
-    "sun_energy": 1.2
-  },
   "music": {
     "boss_track": "cloud_factory_boss",
     "bpm": 112,
@@ -104,17 +122,6 @@
     "track": "cloud_factory"
   },
   "name": "Cloud Factory",
-  "palette": {
-    "accent": "#ffd36e",
-    "floor": "#8fa8e8",
-    "fog": "#a9c2f0",
-    "grid": "#ffffff",
-    "hazard": "#4d5bff",
-    "primary": "#ffffff",
-    "secondary": "#ff9ec7",
-    "sky_bottom": "#c7dcff",
-    "sky_top": "#6e8bd8"
-  },
   "schema_version": 1,
   "unlock_stars": 300
 }

@@ -20,8 +20,15 @@ const HAZARD_SPARK_GAP: float = 1.1
 const MIN_DASH_GAP_FACTOR: float = 1.3
 const GENERATOR_VERSION: int = 1
 
+## Codes from [LevelValidator] that make the generator retry with the next
+## deterministic attempt (fairness is proven, not assumed).
+const RETRY_CODES: PackedStringArray = ["impossible_level", "unfair_window", "dead_end", "unreachable_state", "spawn_collision"]
+
 var spec: LevelSpec
 var errors: PackedStringArray = PackedStringArray()
+## Run the independent validator on each candidate (off for endless chunks).
+var verify_with_validator: bool = true
+var _validator: LevelValidator
 
 var _rng: DetRng
 var _base: Dictionary = {}
@@ -56,9 +63,22 @@ func generate(level_spec: LevelSpec) -> Dictionary:
 			slots = maxi(4, int(float(slots) * spec.duration_bounds.y * 0.95 / duration))
 			continue
 		level["generator"]["attempt"] = attempt
+		if verify_with_validator and attempt < MAX_ATTEMPTS - 1 and not _passes_validator(level):
+			continue
 		return level
 	errors.append("generation failed for %s" % spec.id)
 	return {}
+
+
+func _passes_validator(level: Dictionary) -> bool:
+	if _validator == null:
+		_validator = LevelValidator.new()
+		_validator.check_assets = false
+	var report: LevelValidator.Report = _validator.validate(level)
+	for code: String in report.codes():
+		if RETRY_CODES.has(code):
+			return false
+	return true
 
 
 ## Begins a generation pass (also used directly by endless streaming).
@@ -111,6 +131,21 @@ func committed_entities() -> Array[Dictionary]:
 
 func planned_taps() -> PackedInt32Array:
 	return _taps
+
+
+## Distance up to which slots have been planned (endless streaming frontier).
+func frontier() -> float:
+	return _cursor_d
+
+
+## Level header for an endless stream: the base level fields with no length
+## limit and no entities (they are appended chunk by chunk).
+func stream_header() -> Dictionary:
+	var data: Dictionary = _base.duplicate(true)
+	data["endless"] = true
+	data["kind"] = "endless"
+	data["entities"] = []
+	return data
 
 
 func finish() -> Dictionary:
