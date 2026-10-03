@@ -37,6 +37,7 @@ const DAYS_PER_WEEK: int = 7
 ## 1970-01-01 (day 0) was a Thursday; with Monday = 0 that is weekday 3.
 const EPOCH_WEEKDAY: int = 3
 const DATE_KEY_LENGTH: int = 10
+const DIGITS: String = "0123456789"
 const MONTHS_PER_YEAR: int = 12
 const MONTH_DAYS: PackedInt32Array = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 const DEFAULT_MIN_TIER: int = 1
@@ -127,8 +128,10 @@ func seed_for(p_date_key: String) -> int:
 
 
 ## Level id of the daily level of [param p_date_key] ("daily_YYYY-MM-DD").
+## Always [constant ID_PREFIX]: [method date_key_from_level_id], the
+## leaderboards and the server verifier recognise daily levels by it.
 func level_id_for(p_date_key: String) -> String:
-	return str(_daily_cfg.get("id_prefix", ID_PREFIX)) + p_date_key
+	return ID_PREFIX + p_date_key
 
 
 ## Extracts the date key from a daily level id ("" when it is not one).
@@ -141,16 +144,18 @@ static func date_key_from_level_id(level_id: String) -> String:
 
 ## Days since the Unix epoch for a strict "YYYY-MM-DD" key, or -1 if invalid
 ## (pure integer arithmetic: identical on every platform, never logs errors).
+## Only the canonical spelling is accepted (ASCII digits, zero-padded): a
+## key such as "2026-11-+5" would otherwise name the same day but seed a
+## different level and open a second board for it.
 static func day_for_date_key(key: String) -> int:
 	if key.length() != DATE_KEY_LENGTH or key[4] != "-" or key[7] != "-":
 		return -1
+	for i: int in DATE_KEY_LENGTH:
+		if i != 4 and i != 7 and not DIGITS.contains(key[i]):
+			return -1
 	var ys: String = key.substr(0, 4)
 	var ms: String = key.substr(5, 2)
 	var ds: String = key.substr(8, 2)
-	if not (ys.is_valid_int() and ms.is_valid_int() and ds.is_valid_int()):
-		return -1
-	if ys.begins_with("-") or ys.begins_with("+") or ms.begins_with("-") or ds.begins_with("-"):
-		return -1
 	var y: int = ys.to_int()
 	var m: int = ms.to_int()
 	var d: int = ds.to_int()
@@ -213,7 +218,8 @@ func spec_for(p_date_key: String) -> LevelSpec:
 ## objectives); otherwise the next, gentler fallback attempt is used. The
 ## client and the server must therefore share data/daily/daily.json.
 ## Cost: roughly 0.2-3 s on desktop, so call it once per day off the hot
-## path (it is cached in memory per date; returns a copy).
+## path (it is cached in memory per date, failures included, so a broken
+## date is not regenerated on every call; returns a copy).
 func level_for(p_date_key: String) -> Dictionary:
 	if _cache.has(p_date_key):
 		return (_cache[p_date_key] as Dictionary).duplicate(true)
@@ -249,6 +255,7 @@ func level_for(p_date_key: String) -> Dictionary:
 		_remember(p_date_key, data)
 		return data.duplicate(true)
 	GameLog.error("daily", "could not generate the daily level for %s" % p_date_key)
+	_remember(p_date_key, {})
 	return {}
 
 
@@ -406,7 +413,8 @@ func _remember(p_date_key: String, data: Dictionary) -> void:
 ## date), "first_completion": bool, "streak": int, "tier": int, "reward":
 ## RewardBundle (empty unless this was the first completion of the date)}.
 ## Runs for dates other than today (or yesterday within the grace window, for
-## runs that crossed midnight) are ignored.
+## runs that crossed midnight) are ignored, as are dates older than the last
+## completion minus the grace window (device clock turned back).
 func record_result(result: RunResult) -> Dictionary:
 	var out: Dictionary = {
 		"best": false,
@@ -428,12 +436,18 @@ func record_result(result: RunResult) -> Dictionary:
 	if day > today or day < today - grace:
 		GameLog.warn("daily", "daily %s is outside the playable window (today %s)" % [key, clock.date_key()])
 		return _finish_out(out)
+	# A date well before the latest completion is only reachable by turning
+	# the device clock back; it must not pay out old dailies again and again.
+	var last_day: int = _state_int("last_day", -1)
+	if last_day >= 0 and day < last_day - grace:
+		GameLog.warn("daily", "daily %s predates the last completion; device clock moved back?" % key)
+		return _finish_out(out)
 	var entry: Dictionary = _result_entry(key)
-	entry["attempts"] = int(entry.get("attempts", 0)) + 1
+	entry["attempts"] = DailyChallengeService._as_int(entry.get("attempts", 0), 0) + 1
 	if result.completed:
-		entry["completions"] = int(entry.get("completions", 0)) + 1
-		var had_completion: bool = bool(entry.get("completed", false))
-		if not had_completion or result.score > int(entry.get("best", 0)):
+		entry["completions"] = DailyChallengeService._as_int(entry.get("completions", 0), 0) + 1
+		var had_completion: bool = DailyChallengeService._is_true(entry.get("completed", false))
+		if not had_completion or result.score > DailyChallengeService._as_int(entry.get("best", 0), 0):
 			entry["best"] = maxi(0, result.score)
 			out["best"] = true
 		if not had_completion:
@@ -477,7 +491,12 @@ func _result_entry(key: String) -> Dictionary:
 
 
 func _state_int(key: String, fallback: int) -> int:
-	var v: Variant = profile.daily.get(key, fallback)
+	return DailyChallengeService._as_int(profile.daily.get(key, fallback), fallback)
+
+
+## int() of a persisted value; [param fallback] for anything non-numeric
+## (int(null) would abort the caller with a script error).
+static func _as_int(v: Variant, fallback: int) -> int:
 	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
 		return int(v)
 	return fallback
@@ -534,21 +553,36 @@ func _current_tier(today: int) -> int:
 	return maxi(min_tier, tier - decay * missed)
 
 
+## Highest reward tier (same clamp as [method tier_after]).
+func _max_tier() -> int:
+	var min_tier: int = int(_streak_cfg.get("min_tier", DEFAULT_MIN_TIER))
+	return maxi(min_tier, int(_streak_cfg.get("max_tier", DEFAULT_MAX_TIER)))
+
+
+## Keeps the newest history_limit dates; malformed keys/entries go first
+## (they would otherwise sort after real dates and never be pruned).
 func _prune_history() -> void:
 	var results: Dictionary = _results()
 	var limit: int = maxi(1, int(_daily_cfg.get("history_limit", DEFAULT_HISTORY_LIMIT)))
 	if results.size() <= limit:
 		return
-	var keys: Array = results.keys()
+	var keys: Array = []
+	for k: Variant in results.keys():
+		var valid: bool = typeof(k) == TYPE_STRING and DailyChallengeService.day_for_date_key(str(k)) >= 0
+		if valid and typeof(results[k]) == TYPE_DICTIONARY:
+			keys.append(k)
+		else:
+			results.erase(k)
 	keys.sort()
 	for i: int in keys.size() - limit:
 		results.erase(keys[i])
 
 
 ## Snapshot for the Daily screen: {"date_key", "level_id", "played",
-## "completed", "best_score", "streak", "tier", "next_tier",
+## "completed", "best_score", "streak", "tier", "next_tier", "max_tier",
 ## "seconds_to_reset", "difficulty_key", "streak_best"}. "tier" is the tier
-## held now (after gentle decay); "next_tier" is what the next completion pays.
+## held now (after gentle decay); "next_tier" is what the next completion
+## pays; "max_tier" is the cap (fills {max} in online.daily.tier).
 func status() -> Dictionary:
 	var today: int = clock.day_number()
 	var key: String = clock.date_key()
@@ -556,7 +590,7 @@ func status() -> Dictionary:
 	var raw: Variant = _results().get(key, {})
 	if typeof(raw) == TYPE_DICTIONARY:
 		entry = raw as Dictionary
-	var completed: bool = bool(entry.get("completed", false))
+	var completed: bool = DailyChallengeService._is_true(entry.get("completed", false))
 	var last_day: int = _state_int("last_day", -1)
 	var held: int = _state_int("tier", 0)
 	var next_tier: int
@@ -567,13 +601,14 @@ func status() -> Dictionary:
 	return {
 		"date_key": key,
 		"level_id": level_id_for(key),
-		"played": int(entry.get("attempts", 0)) > 0,
+		"played": DailyChallengeService._as_int(entry.get("attempts", 0), 0) > 0,
 		"completed": completed,
-		"best_score": int(entry.get("best", 0)),
+		"best_score": DailyChallengeService._as_int(entry.get("best", 0), 0),
 		"streak": _display_streak(today),
 		"streak_best": _state_int("streak_best", 0),
 		"tier": _current_tier(today),
 		"next_tier": next_tier,
+		"max_tier": _max_tier(),
 		"seconds_to_reset": SECONDS_PER_DAY - posmod(clock.now_unix(), SECONDS_PER_DAY),
 		"difficulty_key": str(_weekday_row(DailyChallengeService.weekday_for_day(today)).get("label_key", "")),
 	}
@@ -582,7 +617,7 @@ func status() -> Dictionary:
 ## Honest personal rank of [param score] among the player's own best scores
 ## of previous dailies (no invented players; works offline). Returns
 ## {"rank", "total", "is_best", "key", "params", "source": "local"} where key
-## is an i18n key (online.rank.*) and params fill its placeholders.
+## is an i18n key (online.rank.*) and params fill its {name} slots.
 func rank_text_local(score: int) -> Dictionary:
 	var today_key: String = clock.date_key()
 	var others: Array[int] = []
@@ -591,8 +626,8 @@ func rank_text_local(score: int) -> Dictionary:
 		if str(k) == today_key or typeof(results[k]) != TYPE_DICTIONARY:
 			continue
 		var e: Dictionary = results[k] as Dictionary
-		if bool(e.get("completed", false)):
-			others.append(int(e.get("best", 0)))
+		if DailyChallengeService._is_true(e.get("completed", false)):
+			others.append(DailyChallengeService._as_int(e.get("best", 0), 0))
 	var rank: int = 1
 	var top: int = -1
 	for s: int in others:
@@ -619,3 +654,9 @@ func rank_text_local(score: int) -> Dictionary:
 static func _section(data: Dictionary, key: String) -> Dictionary:
 	var v: Variant = data.get(key, {})
 	return v as Dictionary if typeof(v) == TYPE_DICTIONARY else {}
+
+
+## True only for a real boolean true (untrusted data: comparing a string or
+## number with == true is a script error in Godot 4).
+static func _is_true(v: Variant) -> bool:
+	return typeof(v) == TYPE_BOOL and bool(v)

@@ -26,6 +26,19 @@ const HTTP_OK: int = 200
 const HTTP_OK_LAST: int = 299
 const HTTP_TOO_MANY_REQUESTS: int = 429
 const REJECT_STATUSES: PackedInt32Array = [400, 403, 404, 409, 410, 422]
+## Control characters: C0 below CONTROL_C0_END, DEL and C1 from CONTROL_DEL
+## up to (excluding) CONTROL_C1_END.
+const CONTROL_C0_END: int = 0x20
+const CONTROL_DEL: int = 0x7F
+const CONTROL_C1_END: int = 0xA0
+const SPACE: int = 0x20
+## Raw names longer than max_length times this are cut before sanitising.
+const RAW_NAME_FACTOR: int = 4
+## Invisible direction / zero-width marks that could disguise a name.
+const INVISIBLE_MARKS: PackedInt32Array = [
+	0x200B, 0x200C, 0x200D, 0x200E, 0x200F, 0x202A, 0x202B, 0x202C, 0x202D, 0x202E,
+	0x2066, 0x2067, 0x2068, 0x2069, 0xFEFF,
+]
 const ERROR_DISABLED: String = "disabled"
 const ERROR_OFFLINE: String = "offline"
 const ERROR_REJECTED: String = "rejected"
@@ -40,8 +53,15 @@ var name_max_length: int = DEFAULT_NAME_MAX_LENGTH
 
 
 ## [param p_base_url] "" disables the backend; [param p_transport] follows the
-## HTTP contract above; [param p_app_version] defaults to AppInfo.version().
-func _init(p_base_url: String, p_transport: Callable, p_install_id: String, p_app_version: String = "") -> void:
+## HTTP contract above; [param p_app_version] defaults to AppInfo.version();
+## [param config] is the "leaderboard" section of data/daily/daily.json.
+func _init(
+	p_base_url: String,
+	p_transport: Callable,
+	p_install_id: String,
+	p_app_version: String = "",
+	config: Dictionary = {}
+) -> void:
 	var url: String = p_base_url.strip_edges()
 	while url.ends_with("/"):
 		url = url.substr(0, url.length() - 1)
@@ -49,6 +69,8 @@ func _init(p_base_url: String, p_transport: Callable, p_install_id: String, p_ap
 	transport = p_transport
 	install_id = p_install_id
 	app_version = p_app_version if not p_app_version.is_empty() else AppInfo.version()
+	var max_len: Variant = config.get("name_max_length", DEFAULT_NAME_MAX_LENGTH)
+	name_max_length = maxi(1, int(max_len)) if _is_number(max_len) else DEFAULT_NAME_MAX_LENGTH
 
 
 ## True: this backend talks to a server.
@@ -65,15 +87,17 @@ func is_enabled() -> bool:
 func build_submission(board_id: String, entry: Dictionary) -> Dictionary:
 	var replay: Variant = entry.get("replay", {})
 	var replay_dict: Dictionary = replay as Dictionary if typeof(replay) == TYPE_DICTIONARY else {}
+	var score: Variant = entry.get("score", 0)
+	var sim_version: Variant = entry.get("sim_version", replay_dict.get("sim_version", RunReplay.SIM_VERSION))
 	return {
 		"board": board_id,
-		"score": int(entry.get("score", 0)),
+		"score": int(score) if _is_number(score) else 0,
 		"replay": replay_dict,
 		"level_id": str(entry.get("level_id", "")),
 		"mode": str(entry.get("mode", "")),
 		"app_version": app_version,
 		"install_id": install_id,
-		"sim_version": int(entry.get("sim_version", replay_dict.get("sim_version", RunReplay.SIM_VERSION))),
+		"sim_version": int(sim_version) if _is_number(sim_version) else RunReplay.SIM_VERSION,
 	}
 
 
@@ -90,7 +114,8 @@ func submit(board_id: String, entry: Dictionary) -> Dictionary:
 	if status == 0:
 		result = LeaderboardBackend.submit_result(false, false, true, str(r["error"]))
 	elif status >= HTTP_OK and status <= HTTP_OK_LAST:
-		var accepted: bool = bool(payload.get("accepted", true))
+		# Untrusted body: only a JSON true counts (bool(null) would abort).
+		var accepted: bool = HttpLeaderboardBackend._is_true(payload.get("accepted", true))
 		var rank: int = maxi(0, int(payload.get("rank", 0))) if _is_number(payload.get("rank", 0)) else 0
 		result = LeaderboardBackend.submit_result(true, accepted, false, "" if accepted else ERROR_REJECTED, rank)
 		if _is_number(payload.get("score", null)):
@@ -145,7 +170,7 @@ static func normalize_response(response: Variant) -> Dictionary:
 	if typeof(response) != TYPE_DICTIONARY:
 		return {"ok": false, "status": 0, "body": {}, "error": ERROR_BAD_RESPONSE}
 	var r: Dictionary = response as Dictionary
-	var ok: bool = bool(r.get("ok", false))
+	var ok: bool = HttpLeaderboardBackend._is_true(r.get("ok", false))
 	var raw_status: Variant = r.get("status", 0)
 	var status: int = int(raw_status) if _is_number(raw_status) else 0
 	if ok and status == 0:
@@ -171,15 +196,40 @@ func _clean_entry(raw: Dictionary, fallback_rank: int) -> Dictionary:
 		return {}
 	var rank_v: Variant = raw.get("rank", fallback_rank)
 	var rank: int = int(rank_v) if _is_number(rank_v) else fallback_rank
-	var name: String = str(raw.get("name", "")).strip_edges().replace("\n", " ").replace("\t", " ")
-	if name.length() > name_max_length:
-		name = name.substr(0, name_max_length)
+	var name_v: Variant = raw.get("name", "")
+	var name: String = sanitize_name(name_v as String if typeof(name_v) == TYPE_STRING else "", name_max_length)
 	return {
 		"rank": maxi(rank, 0),
 		"name": name,
 		"score": maxi(0, int(score_v)),
-		"is_player": bool(raw.get("is_player", false)),
+		"is_player": HttpLeaderboardBackend._is_true(raw.get("is_player", false)),
 	}
+
+
+## Display-safe version of an untrusted player name: control characters
+## become spaces, invisible direction / zero-width marks are removed, runs of
+## spaces collapse, and the result is trimmed to [param max_length].
+static func sanitize_name(raw: String, max_length: int) -> String:
+	var text: String = raw.substr(0, maxi(1, max_length) * RAW_NAME_FACTOR)
+	var out: String = ""
+	var last_space: bool = true
+	for i: int in text.length():
+		var code: int = text.unicode_at(i)
+		if INVISIBLE_MARKS.has(code):
+			continue
+		var is_control: bool = code < CONTROL_C0_END or (code >= CONTROL_DEL and code < CONTROL_C1_END)
+		var is_space: bool = is_control or code == SPACE
+		if is_space:
+			if not last_space:
+				out += " "
+			last_space = true
+			continue
+		out += text[i]
+		last_space = false
+	out = out.strip_edges()
+	if out.length() > max_length:
+		out = out.substr(0, max_length).strip_edges()
+	return out
 
 
 static func _is_number(v: Variant) -> bool:
@@ -198,3 +248,9 @@ static func _string_list(v: Variant) -> PackedStringArray:
 
 static func _rank_asc(a: Variant, b: Variant) -> bool:
 	return int((a as Dictionary)["rank"]) < int((b as Dictionary)["rank"])
+
+
+## True only for a real boolean true (untrusted data: comparing a string or
+## number with == true is a script error in Godot 4).
+static func _is_true(v: Variant) -> bool:
+	return typeof(v) == TYPE_BOOL and bool(v)

@@ -116,6 +116,37 @@ func test_cli_regenerates_daily_level() -> void:
 	assert_has((stale["verdict"] as Dictionary).get("reasons", []), ReplayVerifier.REASON_STALE_DAILY)
 
 
+func test_cli_malformed_replay_is_never_valid() -> void:
+	var level: Dictionary = LevelRepository.new().load_level("w03_l10")
+	var now: String = "--now=%d" % (DailyChallengeService.day_for_date_key(DATE) * SECONDS_PER_DAY + NOON)
+	var null_seed: Dictionary = _submission(level, &"classic", "level:w03_l10")
+	(null_seed["replay"] as Dictionary)["seed"] = null
+	var seed_run: Dictionary = _run_cli(PackedStringArray(["--submission=" + _write("null_seed.json", null_seed), now]))
+	assert_eq(int(seed_run["code"]), 2, "null seed is rejected, never exit 0: %s" % str(seed_run["verdict"]))
+	assert_has((seed_run["verdict"] as Dictionary).get("reasons", []), ReplayVerifier.REASON_STRUCTURE)
+	var null_tap: Dictionary = _submission(level, &"classic", "level:w03_l10")
+	(null_tap["replay"] as Dictionary)["taps"] = [null]
+	var tap_run: Dictionary = _run_cli(PackedStringArray(["--submission=" + _write("null_tap.json", null_tap), now]))
+	assert_eq(int(tap_run["code"]), 2, "null tap is rejected: %s" % str(tap_run["verdict"]))
+	assert_false(bool((tap_run["verdict"] as Dictionary).get("valid", true)))
+
+
+func test_cli_refuses_out_of_window_daily_before_generating() -> void:
+	var far: String = "daily_2099-01-01"
+	var replay: Dictionary = {
+		"level_id": far, "seed": 1, "mode": "daily", "sim_version": RunReplay.SIM_VERSION, "taps": [], "end_tick": 10,
+	}
+	var submission: Dictionary = {
+		"board": "daily:2099-01-01", "score": 1, "level_id": far, "mode": "daily", "sim_version": RunReplay.SIM_VERSION,
+		"replay": replay,
+	}
+	var now: String = "--now=%d" % (DailyChallengeService.day_for_date_key(DATE) * SECONDS_PER_DAY + NOON)
+	var result: Dictionary = _run_cli(PackedStringArray(["--submission=" + _write("far.json", submission), now]))
+	assert_eq(int(result["code"]), 2)
+	assert_has((result["verdict"] as Dictionary).get("reasons", []), ReplayVerifier.REASON_FUTURE_DAILY)
+	assert_eq(str((result["verdict"] as Dictionary).get("server_date", "")), DATE)
+
+
 func test_cli_errors_exit_one() -> void:
 	var missing: Dictionary = _run_cli(PackedStringArray(["--submission=/nonexistent/dir/none.json"]))
 	assert_eq(int(missing["code"]), 1, "unreadable submission")

@@ -50,6 +50,12 @@ func test_rejects_claims_for_unverified_completions() -> void:
 	var replay_claim: Dictionary = level_claim.duplicate(true)
 	replay_claim["first_clear"] = false
 	assert_true(bool(_verifier.verify_reward_claim(replay_claim, _history(["w02_l07"], {}, ["w02_l07"]))["valid"]))
+	for odd: Variant in [null, "yes", 1]:
+		var odd_claim: Dictionary = level_claim.duplicate(true)
+		odd_claim["first_clear"] = odd
+		var verdict: Dictionary = _verifier.verify_reward_claim(odd_claim, _history(["w02_l07"], {}, ["w02_l07"]))
+		assert_true(verdict.has("valid"), "non-boolean first_clear %s handled" % str(odd))
+		assert_true(bool(verdict["valid"]), "only a JSON true is a first-clear claim")
 
 
 func test_rejects_impossible_currency_deltas() -> void:

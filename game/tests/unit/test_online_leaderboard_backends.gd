@@ -72,6 +72,27 @@ func test_local_board_limit_drops_least_recent_board() -> void:
 	assert_eq(local.board_ids(), PackedStringArray(["daily:2026-10-02", "daily:2026-10-03"]))
 
 
+func test_local_board_limit_keeps_played_and_alltime_boards() -> void:
+	var local: LocalLeaderboardBackend = LocalLeaderboardBackend.new(
+		{}, {"local_board_limit": 3, "local_entries_per_board": 2}
+	)
+	await local.submit("alltime:daily", _entry(900, 100))
+	await local.submit("level:w01_l01", _entry(800, 200))
+	await local.submit("level:w01_l01", _entry(700, 210))
+	# A full board is still "played" when a run misses its personal top list.
+	var missed: Dictionary = await local.submit("level:w01_l01", _entry(5, 5000))
+	assert_false(bool(missed["stored"]))
+	await local.submit("daily:2026-10-01", _entry(10, 3000))
+	await local.submit("daily:2026-10-02", _entry(10, 4000))
+	await local.submit("daily:2026-10-03", _entry(10, 6000))
+	var ids: PackedStringArray = local.board_ids()
+	assert_true(ids.has("alltime:daily"), "all-time records are never evicted")
+	assert_true(ids.has("level:w01_l01"), "recently played full board kept")
+	assert_true(ids.has("daily:2026-10-03"))
+	assert_eq(ids.size(), 3)
+	assert_eq(local.best_score("alltime:daily"), 900)
+
+
 func test_local_store_sanitizes_corruption() -> void:
 	var store: Dictionary = {
 		"alltime:classic": {"entries": [{"score": 50}, "junk", {"score": "x"}, {"score": 300}], "updated": "never"},
@@ -84,6 +105,12 @@ func test_local_store_sanitizes_corruption() -> void:
 	assert_eq(int((entries[0] as Dictionary)["score"]), 300, "re-sorted")
 	var res: Dictionary = await local.submit("level:w01_l01", _entry(42))
 	assert_true(bool(res["stored"]), "broken board replaced")
+	var odd: Dictionary = {"alltime:endless": {"entries": [{"score": 7, "at": null}], "updated": null}}
+	var tolerant: LocalLeaderboardBackend = LocalLeaderboardBackend.new(odd, {"local_board_limit": 1})
+	var fetched: Dictionary = await tolerant.fetch("alltime:endless", 5)
+	assert_eq(int(((fetched["entries"] as Array)[0] as Dictionary)["at"]), 0, "null timestamp read as 0")
+	var stored: Dictionary = await tolerant.submit("level:w01_l02", {"score": 3, "at": null})
+	assert_true(bool(stored["stored"]), "null timestamp tolerated on submit")
 
 
 func test_profile_store_lives_in_daily_slice() -> void:
@@ -193,6 +220,42 @@ func test_http_fetch_url_and_sanitizing() -> void:
 	var offline: Dictionary = await http.fetch("daily:2026-10-03", 5)
 	assert_false(bool(offline["ok"]))
 	assert_eq(str(offline["error"]), "offline")
+
+
+func test_http_untrusted_names_and_flags_are_sanitized() -> void:
+	var http: HttpLeaderboardBackend = HttpLeaderboardBackend.new(
+		BASE_URL, _transport.request, "abc", "1.0.0", {"name_max_length": 8}
+	)
+	_transport.next = {
+		"ok": true,
+		"status": 200,
+		"body": {
+			"entries": [
+				{"rank": 1, "name": "\u202eevil\u200b\u0001one", "score": 10, "is_player": null},
+				{"rank": 2, "name": 12345, "score": 9},
+				{"rank": 3, "name": "  Nova   Star  ".repeat(500), "score": 8},
+			],
+			"player": {"rank": 4, "name": "Me", "score": 7, "is_player": "yes"},
+		},
+		"error": "",
+	}
+	var board: Dictionary = await http.fetch("alltime:classic", 10)
+	assert_true(bool(board["ok"]), "null flags do not break the fetch")
+	var entries: Array = board["entries"] as Array
+	assert_eq(str((entries[0] as Dictionary)["name"]), "evil one", "invisible marks and controls removed")
+	assert_false(bool((entries[0] as Dictionary)["is_player"]))
+	assert_eq(str((entries[1] as Dictionary)["name"]), "", "non-text names dropped")
+	assert_eq(str((entries[2] as Dictionary)["name"]), "Nova Sta", "spaces collapsed, capped at 8")
+	assert_false(bool((board["player"] as Dictionary)["is_player"]), "only a JSON true counts")
+	assert_eq(HttpLeaderboardBackend.sanitize_name("\tA\r\nB\u0085C", 24), "A B C")
+	_transport.next = {"ok": true, "status": 200, "body": {"accepted": null, "rank": null}, "error": ""}
+	var res: Dictionary = await http.submit("alltime:classic", {"score": null, "sim_version": "x"})
+	assert_true(bool(res["ok"]))
+	assert_false(bool(res["accepted"]), "null 'accepted' is not an acceptance")
+	assert_false(bool(res["retry"]))
+	var body: Dictionary = _transport.calls[_transport.calls.size() - 1]["body"] as Dictionary
+	assert_eq(int(body["score"]), 0, "malformed score sent as 0")
+	assert_eq(int(body["sim_version"]), RunReplay.SIM_VERSION)
 
 
 func test_normalize_response_variants() -> void:

@@ -2,7 +2,6 @@
 	"schema_version": 1,
 	"daily": {
 		"seed_salt": "fluxdrop-daily-v1",
-		"id_prefix": "daily_",
 		"duration_bounds": [30, 45],
 		"weekday_difficulty": [
 			{"day": "monday", "label_key": "online.daily.difficulty.relaxed", "pacing": [70, 110], "mechanics_local": [14, 25], "duration": 30},
@@ -36,13 +35,13 @@
 		"name_max_length": 24
 	},
 	"modes": {
-		"classic": {"ranked": true, "requires_completion": true, "level_board": true, "shields": true, "zen": false, "speed_scale": 1.0, "time_limit": 0.0},
-		"daily": {"ranked": true, "requires_completion": true, "level_board": false, "shields": true, "zen": false, "speed_scale": 1.0, "time_limit": 0.0},
-		"endless": {"ranked": true, "requires_completion": false, "level_board": false, "shields": true, "zen": false, "speed_scale": 1.0, "time_limit": 0.0},
+		"classic": {"ranked": true, "requires_completion": true, "level_board": true, "shields": true, "zen": false, "speed_scale": 1.0, "time_limit": 0.0, "level_kinds": ["normal", "challenge", "boss"]},
+		"daily": {"ranked": true, "requires_completion": true, "level_board": false, "shields": true, "zen": false, "speed_scale": 1.0, "time_limit": 0.0, "level_kinds": ["daily"]},
+		"endless": {"ranked": true, "requires_completion": false, "level_board": false, "shields": true, "zen": false, "speed_scale": 1.0, "time_limit": 0.0, "level_kinds": ["endless"]},
 		"time_attack": {"ranked": true, "requires_completion": false, "level_board": false, "shields": true, "zen": false, "speed_scale": 1.0, "time_limit": 60.0},
-		"perfect_run": {"ranked": true, "requires_completion": true, "level_board": false, "shields": false, "zen": false, "speed_scale": 1.0, "time_limit": 0.0},
-		"hard": {"ranked": true, "requires_completion": true, "level_board": false, "shields": false, "zen": false, "speed_scale": 1.15, "time_limit": 0.0},
-		"boss_rush": {"ranked": true, "requires_completion": true, "level_board": false, "shields": true, "zen": false, "speed_scale": 1.0, "time_limit": 0.0},
+		"perfect_run": {"ranked": true, "requires_completion": true, "level_board": false, "shields": false, "zen": false, "speed_scale": 1.0, "time_limit": 0.0, "level_kinds": ["normal", "challenge", "boss"]},
+		"hard": {"ranked": true, "requires_completion": true, "level_board": false, "shields": false, "zen": false, "speed_scale": 1.15, "time_limit": 0.0, "level_kinds": ["normal", "challenge", "boss"]},
+		"boss_rush": {"ranked": true, "requires_completion": true, "level_board": false, "shields": true, "zen": false, "speed_scale": 1.0, "time_limit": 0.0, "level_kinds": ["boss"]},
 		"zen": {"ranked": false, "requires_completion": false, "level_board": false, "shields": true, "zen": true, "speed_scale": 1.0, "time_limit": 0.0}
 	},
 	"verifier": {

@@ -20,7 +20,13 @@ level:
 - campaign levels (`wNN_lMM`) come from `data/levels/` (`LevelRepository`);
 - daily levels (`daily_YYYY-MM-DD`) are regenerated from the date with
   `DailyChallengeService.level_for()` — the same deterministic generator +
-  validator pipeline the client uses, independent of any player data.
+  validator pipeline the client uses, independent of any player data. Only
+  the canonical date spelling is accepted (`2026-11-05`, never `2026-11-+5`),
+  so each day has exactly one daily level and one daily board.
+
+The server must run the same game build (code + `data/`) as the clients it
+verifies: a different generator, validator or `data/daily/daily.json` would
+regenerate a different daily, and `sim_version` only guards the simulation.
 
 ## Running the verifier
 
@@ -44,10 +50,20 @@ version banner first, so read the last line).
 
 `score` is the **authoritative** score (from simulation) — store this, never
 the claimed one. Exit codes: `0` valid, `2` invalid (see `reasons`), `1`
-error (bad arguments, unreadable submission, unknown level). Warnings go to
-stderr. A typical backend worker spawns the tool per submission (or keeps a
-pool of Godot processes) and maps exit `0` → accept, `2` → reject (HTTP 422),
-`1` → retryable server error (HTTP 500).
+error (bad arguments, unreadable submission, unknown level, malformed
+verdict). Warnings go to stderr. A typical backend worker spawns the tool per
+submission (or keeps a pool of Godot processes) and maps exit `0` → accept,
+`2` → reject (HTTP 422), `1` → server error (HTTP 500; the client retries it
+for up to 14 days without letting it block its other queued scores).
+
+The exit code is fail-safe: it starts at `1` and becomes `0` only after a
+well-formed verdict with `"valid": true` and no reasons was printed, so an
+unexpected script error can never be read as "valid". Accept a score only
+when the exit code is `0` **and** the last stdout line parses to
+`"valid": true`. A daily submission outside the server's date window is
+refused (`stale_daily` / `future_daily`, exit `2`) before its level is
+regenerated, so old or future dates cannot be used to make the server do the
+expensive generation work.
 
 ## HTTP contract used by the client (`HttpLeaderboardBackend`)
 
@@ -71,12 +87,17 @@ Responses: `2xx {"accepted": true|false, "rank": n, "score": authoritative,
 "reasons": [...]}`; `400/403/404/409/410/422` = rejected (the client drops the
 submission); `429`, `5xx` or no answer = transient (the client keeps it in a
 bounded offline queue — 50 entries, deduplicated by board+score+level — and
-retries later).
+retries later; daily / weekly entries outside the accepted window and
+entries older than 14 days are dropped before retrying).
 
 `GET {base_url}/v1/boards/{board}?limit=n&install_id=<id>` (board id
 URL-encoded) → `{"entries": [{"rank", "name", "score"}], "player": {"rank",
 "name", "score"}}`. Names are display names chosen by the backend; the client
-truncates them and never invents entries.
+treats them as untrusted (control characters and invisible direction marks
+removed, length capped at `leaderboard.name_max_length`) and never invents
+entries. The install id in the query string identifies the player's own row;
+it is a random per-install value, but a backend should still keep it out of
+access logs.
 
 Board ids: `daily:<YYYY-MM-DD>`, `weekly:<YYYY-Www>:<mode>`,
 `alltime:<mode>`, `level:<level_id>` (classic only). Revived runs and zen runs
@@ -88,19 +109,25 @@ are never submitted.
 |---|---|
 | `missing_replay`, `invalid_level` | submission has a replay; level data exists and simulates |
 | `sim_version_mismatch` | client sim version equals the server's `RunReplay.SIM_VERSION` |
-| `invalid_structure` | `RunReplay.validate_structure()` (monotonic ticks, ≥ 2 ticks apart), end tick present, no tap at/after the end |
+| `invalid_structure` | every replay field has the right JSON type and range (string level id / mode, 32-bit seed, whole-number ticks within `max_replay_ticks`) — checked first, nothing malformed is simulated; then `RunReplay.validate_structure()` (monotonic ticks, ≥ 2 ticks apart), end tick present, no tap at/after the end |
 | `level_mismatch`, `seed_mismatch` | submission, replay and authoritative level agree on id and seed |
-| `mode_mismatch`, `unknown_mode`, `unranked_mode` | mode is known, ranked (zen is not) and consistent with the level kind |
+| `mode_mismatch`, `unknown_mode`, `unranked_mode` | mode is known, ranked (zen is not) and consistent with the level kind: daily levels only in daily mode, and the level's `kind` is in the mode's `level_kinds` when the mode lists them (e.g. endless boards only take endless levels) |
 | `future_daily`, `stale_daily` | daily date is today or yesterday on the **server** clock (`daily_accept_days_back`) |
-| `board_mismatch` | the board matches mode/level/date (weekly: current or previous ISO week) |
+| `board_mismatch` | when the submission names a board, it matches mode/level/date (weekly: current or previous ISO week; level boards only for modes with `level_board`) |
 | `tap_rate` | at most 12 taps in any 60-tick (1 s) window (`max_taps_per_second`) |
 | `run_not_finished`, `end_tick_mismatch` | the re-simulated run ends exactly at the replay's `end_tick` |
 | `not_completed` | classic / daily / perfect_run / hard / boss_rush runs must complete |
-| `invalid_score`, `score_mismatch` | the claimed score equals the recomputed score |
+| `invalid_score`, `score_mismatch` | the claimed score is a non-negative whole number equal to the recomputed score |
 
-Mode rules (shields, zen, speed scale, time limit, ranked, completion) live in
-`data/daily/daily.json` → `modes`; the game must start runs with exactly these
-modifiers so client and server simulate identically.
+Mode rules (shields, zen, speed scale, time limit, ranked, completion, level
+kinds) live in `data/daily/daily.json` → `modes`; the game must start runs
+with exactly these modifiers so client and server simulate identically.
+
+Known limit: a replay proves that a run is *possible*, not that a person
+played it. Campaign levels ship their generator solution (`solution.taps`), so
+replaying it is always accepted; the tap-rate rule only stops inhuman input.
+Backends that need more should rank campaign boards by additional signals
+(account age, play history) rather than trust a single replay.
 
 ## Reward claims (`ReplayVerifier.verify_reward_claim`)
 

@@ -15,7 +15,11 @@ extends SceneTree
 ## Prints one JSON object on stdout: the [ReplayVerifier] verdict plus
 ## "level_id" and "server_date" (or {"valid": false, "error": "..."}).
 ## Exit code: 0 valid, 2 invalid, 1 error (bad arguments, unreadable
-## submission, unknown level, missing configuration).
+## submission, unknown level, missing configuration, malformed verdict).
+## Fail-safe: the process exit code is [member exit_code], which starts as
+## 1 and becomes 0 only after a well-formed valid verdict was printed, so an
+## unexpected script error can never turn into "valid". A daily outside the
+## server's date window is refused before its level is regenerated.
 
 const EXIT_VALID: int = 0
 const EXIT_ERROR: int = 1
@@ -27,6 +31,9 @@ const USAGE: String = (
 	+ "--submission=<path.json> [--now=<unix>]"
 )
 
+## Process exit code; see the class description (fail-safe default).
+var exit_code: int = EXIT_ERROR
+
 
 func _initialize() -> void:
 	_main.call_deferred()
@@ -35,11 +42,15 @@ func _initialize() -> void:
 func _main() -> void:
 	# Keep stdout machine-readable: only warnings/errors are logged (stderr).
 	GameLog.min_level = GameLog.Level.WARN
-	quit(run(OS.get_cmdline_user_args()))
+	exit_code = EXIT_ERROR
+	run(OS.get_cmdline_user_args())
+	quit(exit_code)
 
 
-## Runs the verification for the given user arguments; returns the exit code.
+## Runs the verification for the given user arguments; returns the exit code
+## (also stored in [member exit_code]).
 func run(args: PackedStringArray) -> int:
+	exit_code = EXIT_ERROR
 	var opts: Dictionary = parse_args(args)
 	if opts.has("error"):
 		return _fail(str(opts["error"]))
@@ -57,16 +68,23 @@ func run(args: PackedStringArray) -> int:
 	var level_id: String = str(submission.get("level_id", ""))
 	if level_id.is_empty() and typeof(submission.get("replay", null)) == TYPE_DICTIONARY:
 		level_id = str((submission["replay"] as Dictionary).get("level_id", ""))
-	var level: Dictionary = load_level(level_id, config)
-	if level.is_empty():
-		return _fail("unknown or unloadable level '%s'" % level_id)
-	var verdict: Dictionary = ReplayVerifier.new(clock, config).verify(submission, level)
-	verdict["level_id"] = level_id
-	verdict["server_date"] = clock.date_key()
-	verdict["reasons"] = Array(verdict["reasons"] as PackedStringArray)
-	verdict["details"] = Array(verdict["details"] as PackedStringArray)
-	print(JsonIO.canonical(verdict))
-	return EXIT_VALID if bool(verdict["valid"]) else EXIT_INVALID
+	var verifier: ReplayVerifier = ReplayVerifier.new(clock, config)
+	var verdict: Dictionary
+	var window: String = verifier.daily_window_reason(level_id)
+	if not window.is_empty():
+		var detail: String = "%s: %s is outside the accepted window (server %s)" % [window, level_id, clock.date_key()]
+		verdict = {
+			"valid": false,
+			"score": 0,
+			"reasons": PackedStringArray([window]),
+			"details": PackedStringArray([detail]),
+		}
+	else:
+		var level: Dictionary = load_level(level_id, config)
+		if level.is_empty():
+			return _fail("unknown or unloadable level '%s'" % level_id)
+		verdict = verifier.verify(submission, level)
+	return _report(verdict, level_id, clock)
 
 
 ## Parses the user arguments into {"submission": path, "now": unix or -1},
@@ -104,7 +122,31 @@ func load_level(level_id: String, config: Dictionary) -> Dictionary:
 	return LevelRepository.new(catalog).load_level(level_id)
 
 
+## Prints a well-formed verdict and sets the exit code; anything malformed
+## is reported as an error, never as valid.
+func _report(verdict: Dictionary, level_id: String, clock: GameClock) -> int:
+	var valid_v: Variant = verdict.get("valid", null)
+	var reasons_v: Variant = verdict.get("reasons", null)
+	var details_v: Variant = verdict.get("details", null)
+	if (
+		typeof(valid_v) != TYPE_BOOL
+		or typeof(reasons_v) != TYPE_PACKED_STRING_ARRAY
+		or typeof(details_v) != TYPE_PACKED_STRING_ARRAY
+	):
+		return _fail("verifier returned a malformed verdict")
+	var valid: bool = valid_v == true and (reasons_v as PackedStringArray).is_empty()
+	verdict["valid"] = valid
+	verdict["level_id"] = level_id
+	verdict["server_date"] = clock.date_key()
+	verdict["reasons"] = Array(reasons_v as PackedStringArray)
+	verdict["details"] = Array(details_v as PackedStringArray)
+	print(JsonIO.canonical(verdict))
+	exit_code = EXIT_VALID if valid else EXIT_INVALID
+	return exit_code
+
+
 func _fail(message: String) -> int:
 	printerr("verify_replay: " + message)
 	print(JsonIO.canonical({"valid": false, "error": message}))
+	exit_code = EXIT_ERROR
 	return EXIT_ERROR
