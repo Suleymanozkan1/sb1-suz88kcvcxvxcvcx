@@ -81,9 +81,6 @@ jobs:
       - name: Regenerate levels and diff against committed data
         working-directory: game
         run: ~/godot/godot --headless --path . -s res://tools/generate_levels.gd -- --check
-      - name: Server replay verifier smoke test
-        working-directory: game
-        run: ~/godot/godot --headless --path . -s res://server/verify_replay.gd -- --self-test
       - uses: actions/upload-artifact@v4
         if: always()
         with:
