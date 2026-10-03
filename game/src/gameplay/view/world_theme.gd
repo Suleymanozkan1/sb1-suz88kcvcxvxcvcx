@@ -3,6 +3,9 @@ extends RefCounted
 ## Typed view of a world's environment identity (docs/ART_DIRECTION.md §3, §6, §7).
 ## Gameplay colours are NOT here: they are global roles in [Palette].
 
+## Environment colour caps (ART_DIRECTION §3).
+const ENV_MAX_SATURATION: float = 0.45
+const ENV_MAX_VALUE: float = 0.55
 const RIB_PROFILES: PackedStringArray = [
 	"gate", "arch", "hex", "monolith", "lattice", "facet", "truss", "icicle", "ring", "candy"
 ]
@@ -73,6 +76,14 @@ static func from_world(world: Dictionary) -> WorldTheme:
 	t.bpm = float((world.get("music", {}) as Dictionary).get("bpm", 120))
 	t.boss_name = str((world.get("boss", {}) as Dictionary).get("name", ""))
 	t.bright = t.sky_bottom.get_luminance() > 0.5
+	# ART_DIRECTION §3: environment colours stay quiet so gameplay colours win.
+	# High-key worlds keep their light values (the core's ink shell keeps it
+	# legible there) but are still held to the saturation cap.
+	t.sky_top = WorldTheme.quiet(t.sky_top, t.bright)
+	t.sky_bottom = WorldTheme.quiet(t.sky_bottom, t.bright)
+	t.fog = WorldTheme.quiet(t.fog, t.bright)
+	t.floor_color = WorldTheme.quiet(t.floor_color, t.bright)
+	t.lane_color = WorldTheme.quiet(t.lane_color, t.bright)
 	return t
 
 
@@ -81,3 +92,10 @@ static func _c(dict: Dictionary, key: String, fallback: Color) -> Color:
 	if v.is_empty() or not Color.html_is_valid(v):
 		return fallback
 	return Color(v)
+
+
+## [param c] limited to the environment caps: saturation ≤ ENV_MAX_SATURATION
+## and (unless [param high_key]) value ≤ ENV_MAX_VALUE.
+static func quiet(c: Color, high_key: bool) -> Color:
+	var v: float = c.v if high_key else minf(c.v, ENV_MAX_VALUE)
+	return Color.from_hsv(c.h, minf(c.s, ENV_MAX_SATURATION), v, c.a)

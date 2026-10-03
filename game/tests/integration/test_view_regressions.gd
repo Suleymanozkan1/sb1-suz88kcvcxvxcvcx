@@ -127,6 +127,40 @@ func test_magnet_pulls_only_sparks_it_will_collect() -> void:
 		assert_false(field._pulled.has(coloured), "wrong phase: not pulled")
 
 
+func test_collected_sparks_pop_then_vanish() -> void:
+	_view_for("w01_l10", "neon_core")
+	var lvl: SimLevel = _session.sim_level
+	var field: SparkField = _keep(SparkField.new()) as SparkField
+	field.build(lvl)
+	field.set_process(false)
+	var spark: int = -1
+	for i: int in lvl.entity_count():
+		if lvl.e_type[i] == SimConst.EntityType.SPARK:
+			spark = i
+			break
+	assert_ge(float(spark), 0.0, "level has a spark")
+	assert_near(SparkField.pop_scale(0.0), 1.0, 0.001, "pop starts at full size")
+	var peak: float = SparkField.pop_scale(SparkField.POP_TIME * SparkField.POP_PEAK_AT)
+	assert_near(peak, SparkField.POP_PEAK_SCALE, 0.001, "pop peaks at 1.25")
+	assert_near(SparkField.pop_scale(SparkField.POP_TIME), 0.0, 0.001, "pop ends at zero")
+	field.hide_entity(spark)
+	assert_eq(field.popping_count(), 1, "collect starts a pop")
+	assert_true(field.hidden_entities().has(spark), "collected at once for the run")
+	field.advance_pops(SparkField.POP_TIME * 0.5)
+	assert_eq(field.popping_count(), 1, "pop still playing mid-way")
+	field.advance_pops(SparkField.POP_TIME)
+	assert_eq(field.popping_count(), 0, "pop over after 120 ms")
+	field.hide_entity(spark)
+	assert_eq(field.popping_count(), 0, "a hidden spark does not pop twice")
+	var other: int = -1
+	for i: int in range(spark + 1, lvl.entity_count()):
+		if lvl.e_type[i] == SimConst.EntityType.SPARK:
+			other = i
+			break
+	field.hide_entity(other, false)
+	assert_eq(field.popping_count(), 0, "rebuild re-hides without a pop")
+
+
 func test_colorblind_marks_phase_gates_by_shape() -> void:
 	_view_for("w02_l01", "crystal_valley")
 	var lvl: SimLevel = _session.sim_level
@@ -215,3 +249,12 @@ func test_particle_effect_and_background_cosmetics_change_the_view() -> void:
 	view.apply_world(WorldTheme.from_world(_app.catalog.world("neon_core")))
 	assert_eq(view._sky_mat.get_shader_parameter("sky_top") as Color, view.theme.sky_top, "default: world sky")
 	assert_eq(view._particle_color(0, Palette.PRIMARY), Palette.PRIMARY, "default: palette roles")
+
+
+func test_environment_colours_stay_quiet_in_every_world() -> void:
+	for w: Dictionary in _app.catalog.worlds:
+		var t: WorldTheme = WorldTheme.from_world(w)
+		for c: Color in [t.sky_top, t.sky_bottom, t.fog, t.floor_color, t.lane_color]:
+			assert_le(c.s, WorldTheme.ENV_MAX_SATURATION + 0.001, "%s saturation" % str(w.get("id", "")))
+			if not t.bright:
+				assert_le(c.v, WorldTheme.ENV_MAX_VALUE + 0.001, "%s value" % str(w.get("id", "")))

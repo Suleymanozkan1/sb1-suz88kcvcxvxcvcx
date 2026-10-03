@@ -17,6 +17,7 @@ const TYPED_FLAGS: Dictionary = {
 	"tutorial_done": TYPE_BOOL,
 	"last_level": TYPE_STRING,
 	"notifications.daily_day": TYPE_INT,
+	"bonus_chest_day": TYPE_INT,
 }
 
 const DEFAULT_SETTINGS: Dictionary = {

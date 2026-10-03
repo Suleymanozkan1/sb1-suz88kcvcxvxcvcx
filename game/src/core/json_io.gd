@@ -27,13 +27,6 @@ static func read_dict(path: String) -> Dictionary:
 	return {}
 
 
-static func read_array(path: String) -> Array:
-	var data: Variant = read(path)
-	if typeof(data) == TYPE_ARRAY:
-		return data as Array
-	return []
-
-
 ## Canonical, key-sorted JSON (stable output for hashing and diffing).
 static func canonical(data: Variant, indent: String = "") -> String:
 	return JSON.stringify(data, indent, true)

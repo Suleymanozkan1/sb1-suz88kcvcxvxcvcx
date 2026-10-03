@@ -99,6 +99,7 @@ var _turbine_angle: float = 0.0
 var _particle_scale: float = 1.0
 var _colorblind: bool = false
 var _finish_open: float = 0.0
+var _to_release: PackedInt32Array = PackedInt32Array()
 var _glow: bool = true
 var _ambient: bool = true
 
@@ -375,7 +376,7 @@ func set_colorblind(on: bool) -> void:
 	var hidden: Dictionary = sparks.hidden_entities()
 	sparks.build(lvl, theme, session.sim.cursor)
 	for idx2: Variant in hidden:
-		sparks.hide_entity(int(idx2))
+		sparks.hide_entity(int(idx2), false)
 
 
 ## Rewarded revive: the run continues from the failure point. The core comes
@@ -494,15 +495,19 @@ func _update_frame(delta: float) -> void:
 		var through: float = maxf(_finish_open, clampf((d - lvl.length + 0.3) / 1.2, 0.0, 1.0))
 		_finish_membrane.set_instance_shader_parameter("visibility", 1.0 - through)
 	_spawn_entities(lvl, d)
-	for idx: Variant in _active.keys():
+	# Iterate the dictionary itself (no per-frame keys() copy); releases are
+	# collected in a reused array and applied after the loop.
+	_to_release.clear()
+	for idx: Variant in _active:
 		var i: int = int(idx)
 		var view: EntityView = _active[idx] as EntityView
 		var consumed_pickup: bool = (sim.ent_flags[i] & FluxSim.FLAG_CONSUMED) != 0 and _is_pickup(view.entity_type)
 		if lvl.e_d[i] < d - VIEW_BEHIND or consumed_pickup:
-			_pool.release(view)
-			_active.erase(idx)
+			_to_release.append(i)
 			continue
 		view.animate(delta, lvl, t, d)
+	for i: int in _to_release:
+		_release_entity(i)
 	sparks.apply_magnet(core_pos, lvl, sim.cursor, sim.magnet_timer > 0.0 or sim.overdrive_timer > 0.0, sim.phase)
 	_music_pulse = move_toward(_music_pulse, 0.0, delta * 3.0)
 	_floor_mat.set_shader_parameter("beat", 0.0 if reduce_motion else _music_pulse)
@@ -779,7 +784,3 @@ func _release_entity(index: int) -> void:
 	if _active.has(index):
 		_pool.release(_active[index] as Node)
 		_active.erase(index)
-
-
-func active_entity_count() -> int:
-	return _active.size()

@@ -42,6 +42,21 @@ validation, the autopilot, the replay verifier and the tests, so "solvable in th
   every 13 levels (40 introductions: hop, shield, slider, pulse, phase, form gate, moving colours,
   3 lanes, currents, dash, chains, surge, portals, overdrive, ice, beat lock, speed ramp, …).
 * The tutorial (1–5) uses fixed gentle parameters, a forgiving first hit and on-screen tap hints.
+* **Set pieces.** Each world's challenge (L26) and boss (L52) names a pattern that changes how the
+  level is built, not just its label:
+
+  | Pattern | What it does |
+  |---|---|
+  | `rotor_gauntlet` | sliders wherever one fits, all sweeping with one shared period: the blades read as one turning machine |
+  | `rhythm_gauntlet` | every pulse gate opens on the same beat, in unison with the world's boss loop |
+  | `pattern_memory` | the hazard type of the first rows becomes a 4-row motif that repeats row by row |
+  | `color_cascade` | colour flips on most rows (change probability ≥ 0.85) |
+  | `chain_smasher` | dense breakable clusters (cluster chance ≥ 0.75), so one dash sets off chains |
+  | `escape` | a speed ramp through the level |
+  | `survival` | survive-to-the-end objective over a long, dense course |
+  | `fast_field` | a speed bonus with a dense obstacle field |
+
+  Every set piece still goes through the same planning, window measurement and validator.
 
 ## 2. Generator (`game/src/levels/level_generator.gd`)
 

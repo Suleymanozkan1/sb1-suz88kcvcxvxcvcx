@@ -74,15 +74,6 @@ func pump(sim: FluxSim) -> Array[Dictionary]:
 	return added
 
 
-## Generates the course up to [param distance] with no presentation (used by
-## replay verification).
-func extend_to(sim: FluxSim, distance: float) -> void:
-	var guard: int = 0
-	while not failed and _gen.frontier() < distance + AHEAD_DISTANCE and guard < 10000:
-		pump_headless(sim)
-		guard += 1
-
-
 ## The whole course up to [param distance] as one level dictionary, built with
 ## exactly the client's release sequence (begin, then one slot per pump), so a
 ## server re-simulation meets the same entities the player met.

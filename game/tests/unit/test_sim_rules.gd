@@ -208,3 +208,23 @@ func test_run_result_stars_and_grades() -> void:
 	assert_eq(RunResult.compute_grade(true, 2, false, true), RunResult.Grade.GREAT)
 	assert_eq(RunResult.compute_grade(true, 2, false, false), RunResult.Grade.GOOD)
 	assert_eq(RunResult.compute_grade(true, 1, false, false), RunResult.Grade.NORMAL)
+
+
+## A late dodge (still moving out of the lane as the core passes the block)
+## is a near miss: bonus score and a combo step. An early dodge is not.
+func test_late_dodge_is_a_near_miss_early_dodge_is_not() -> void:
+	var barrier: Array = [{"t": "barrier", "d": 30.0, "lanes": [0]}]
+	var late_tick: int = -1
+	for tap: int in range(120, 240):
+		var sim: FluxSim = _run(FluxSim.new(_level(barrier)), [tap])
+		if sim.status == SimConst.Status.COMPLETED and sim.near_misses == 1:
+			late_tick = tap
+			assert_eq(sim.combo, 1, "near miss is a combo step")
+			assert_ge(float(sim.score), float(SimConst.SCORE_NEAR_MISS), "near-miss bonus scored")
+			break
+	assert_gt(float(late_tick), 0.0, "some late dodge survives as a near miss")
+	var early: FluxSim = _run(FluxSim.new(_level(barrier)), [late_tick - 30])
+	assert_eq(early.status, SimConst.Status.COMPLETED)
+	assert_eq(early.near_misses, 0, "a comfortable dodge is not a near miss")
+	var too_late: FluxSim = _run(FluxSim.new(_level(barrier)), [late_tick + 30])
+	assert_eq(too_late.fail_reason, SimConst.FailReason.COLLISION, "and too late is a hit")

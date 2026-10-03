@@ -149,8 +149,15 @@ func _build_ui() -> void:
 	modes.back_requested.connect(_show_main)
 	var daily: DailyScreen = DailyScreen.new()
 	router.register(&"daily", daily)
-	daily.play_requested.connect(func() -> void: _start_run(&"daily"))
+	daily.play_requested.connect(
+		func() -> void:
+			if s.remote_config.get_bool("daily.enabled", true):
+				_start_run(&"daily")
+			else:
+				toast.show_message(Presenters.t("toast.daily_paused"), &"info")
+	)
 	daily.claim_requested.connect(_claim_mission)
+	daily.chest_requested.connect(_open_bonus_chest)
 	daily.back_requested.connect(_show_main)
 	var progress: ProgressScreen = ProgressScreen.new()
 	router.register(&"progress", progress)
@@ -219,6 +226,9 @@ func _show_main() -> void:
 	router.show_screen(&"main", Presenters.main_menu(s))
 	if not attract:
 		_start_attract()
+	# The next level's world track loads in the background while the menu shows.
+	var next: Dictionary = WorldCatalog.parse_level_id(s.progression.next_level_to_play())
+	s.audio.prefetch_music(str(s.catalog.world_at(int(next.get("world_index", 1))).get("id", "")))
 	_reveals.append_array(s.take_level_up_reveals())
 	if not _reveals.is_empty():
 		_next_reveal()
@@ -231,6 +241,7 @@ func _show_worlds() -> void:
 
 func _show_levels(world_id: String) -> void:
 	_world_id = world_id
+	s.audio.prefetch_music(world_id)
 	_go(GameStateMachine.State.LEVEL_SELECT)
 	router.show_screen(&"levels", Presenters.level_grid(s, world_id))
 
@@ -338,6 +349,10 @@ func _start_run(mode_id: StringName, level_id: String = "") -> void:
 		s.bus.toast_requested.emit(Presenters.t("toast.run_unavailable"), &"info")
 		_show_main()
 		return
+	if runs.streamer != null and fsm.can_transition(GameStateMachine.State.ENDLESS):
+		# Streamed courses (endless, time attack) enter through ENDLESS: the
+		# weekly course is primed there before the countdown.
+		_go(GameStateMachine.State.ENDLESS)
 	_go(GameStateMachine.State.COUNTDOWN)
 	_present_level(session.level_data)
 	router.clear_screen()
@@ -444,6 +459,15 @@ func _resume() -> void:
 	s.bus.run_paused.emit(false)
 
 
+## The daily result card names the run's rank among the player's own daily
+## scores (local: no global board without a backend); "" for other modes.
+func _daily_rank_text(result: RunResult) -> String:
+	if session.mode_id != &"daily":
+		return ""
+	var rank: Dictionary = s.daily.rank_text_local(result.score)
+	return Presenters.t(str(rank.get("key", ""))).format(rank.get("params", {}) as Dictionary)
+
+
 func _quit_run() -> void:
 	_commit_pending()
 	session.set_paused(false)
@@ -494,7 +518,8 @@ func _on_run_ended(result: RunResult) -> void:
 				"new_best": bool(_last_outcome.get("new_best", false)),
 				"reward": _last_outcome.get("reward"),
 				"can_double": bool(_last_outcome.get("can_double", false)),
-				"has_next": bool(_last_outcome.get("has_next", false))
+				"has_next": bool(_last_outcome.get("has_next", false)),
+				"rank_text": _daily_rank_text(result)
 			}
 		)
 		if s.ads.can_show_interstitial(&"level_end"):
@@ -599,6 +624,25 @@ func _double_reward() -> void:
 			"bundle": extra
 		}
 	)
+	_next_reveal()
+
+
+## Optional rewarded bonus chest (Daily screen, once a day): the fixed
+## reward_tables bonus_chest contents, granted only after the ad completed.
+func _open_bonus_chest() -> void:
+	if not Presenters.bonus_chest_offered(s):
+		return
+	var shown: Dictionary = await s.ads.show_rewarded(&"bonus_chest")
+	if not bool(shown.get("granted", false)):
+		return
+	s.profile.flags[Presenters.BONUS_CHEST_FLAG] = s.clock.day_number()
+	var bundle: RewardBundle = s.rewards.grant(s.rewards.compute(RewardEngine.TABLE_BONUS_CHEST))
+	s.save.mark_dirty()
+	(router.screen(&"daily") as DailyScreen).enter(Presenters.daily(s))
+	var title: String = Presenters.t("reveal.bonus_chest")
+	_reveals.append({"eyebrow": Presenters.t("reveal.bonus"), "title": title, "subtitle": "", "bundle": bundle})
+	# The chest's XP can level the player up: say so now, not after the next run.
+	_reveals.append_array(s.take_level_up_reveals())
 	_next_reveal()
 
 

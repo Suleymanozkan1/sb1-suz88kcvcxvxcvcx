@@ -20,14 +20,15 @@ no assets. Patterns that inspired our own GDScript implementations are listed pe
 - **Version:** 4.7.2-stable official Linux build for headless tooling/tests; matching 4.7.2 export
   templates for Android/iOS/Web.
 - **License obligations:** ship the Godot MIT notice and the third-party notices from `COPYRIGHT.txt`.
-  `game/src/ui/screens/settings_screen.gd` has a "Licenses" view that prints `Engine.get_license_text()`
-  and `Engine.get_copyright_info()`, so these notices ship inside the game.
+  Settings → Licences (`Presenters.licenses_text()`, shown by `game/src/ui/screens/settings_screen.gd`)
+  prints the game's asset licences, `Engine.get_license_text()` and the third-party components from
+  `Engine.get_copyright_info()`, so these notices ship inside the game.
 - **API facts verified in the 4.7.2 source (and the features they drive):**
 
 | API | Evidence in engine source | Used by |
 |---|---|---|
 | `Logger` + `OS.add_logger()` | `core/core_bind.h:125`, `core/core_bind.cpp:716` | `game/src/core/error_reporter.gd` (global error capture) |
-| `Input.vibrate_handheld(duration_ms, amplitude)` | `core/input/input.h:433` | `game/src/systems/haptics_service.gd` |
+| `Input.vibrate_handheld(duration_ms, amplitude)` | `core/input/input.h:433` | `game/src/systems/haptics/haptics_service.gd` |
 | `DisplayServer.get_display_safe_area()` | `servers/display/display_server.h:310` (Android/iOS only) | `game/src/ui/components/safe_area_container.gd` |
 | `AudioStreamWAV` QOA import (default `compress/mode=2`); `save_to_wav` PCM only | `editor/import/resource_importer_wav.cpp:89`, `scene/resources/audio_stream_wav.cpp:532` | Generated WAVs are saved as 16-bit PCM and compressed to QOA on import |
 | `rendering/rendering_device/fallback_to_opengl3` (default true) | `main/main.cpp:2398` | `game/project.godot`: low-end devices fall back to the Compatibility renderer |
@@ -47,7 +48,7 @@ no assets. Patterns that inspired our own GDScript implementations are listed pe
 | `mobile/multitouch_cubes`, `mobile/multitouch_view` | `InputEventScreenTouch` per-finger handling. Our input handler accepts only touch-down of new fingers. |
 | `3d/particles`, `2d/particles` | GPU/CPU particles. We use `CPUParticles3D` bursts so behaviour matches across renderers. |
 | `2d/glow`, `3d/tonemap_color_correction` | `WorldEnvironment` glow/tonemap. The HUD sits on its own CanvasLayer. |
-| `3d/graphics_settings` | Runtime quality toggles. Our presets live in `game/src/systems/quality_service.gd`. |
+| `3d/graphics_settings` | Runtime quality toggles. Our presets live in `game/src/systems/quality/quality_service.gd`. |
 | `misc/custom_logging` | `Logger` subclass + `OS.add_logger`, made thread-safe. |
 | `loading/load_threaded` | `load_threaded_request` / `load_threaded_get`. |
 | `2d/finite_state_machine` | FSM pattern. Ours is a table-driven state machine with validated transitions. |
@@ -90,7 +91,7 @@ no assets. Patterns that inspired our own GDScript implementations are listed pe
 |---|---|---|---|---|
 | Godot Engine (headless) | 4.7.2-stable | MIT | Official GitHub release binary | Import, tests, tools, export |
 | gdtoolkit (`gdlint`, `gdformat`) | 4.5.0 | MIT | `pip install gdtoolkit==4.5.0` (PyPI) | GDScript lint and format in CI |
-| Python 3 + NumPy | 3.11 / see `tools/requirements.txt` | PSF / BSD-3 | PyPI | Offline audio synthesis (`tools/audio/synth_bank.py`), report scripts |
+| Python 3 + NumPy | 3.11 / see `tools/audio/requirements.txt` | PSF / BSD-3 | PyPI | Offline audio synthesis (`tools/audio/synth_bank.py`), report scripts |
 
 ## Fonts
 

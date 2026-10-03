@@ -40,12 +40,3 @@ func names() -> PackedStringArray:
 ## The most recent event, or an empty dictionary.
 func last() -> Dictionary:
 	return events.back() if not events.is_empty() else {}
-
-
-## All stored events with the given name.
-func with_name(event_name: String) -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	for event: Dictionary in events:
-		if str(event.get("event", "")) == event_name:
-			out.append(event)
-	return out

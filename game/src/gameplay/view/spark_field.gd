@@ -1,12 +1,18 @@
 class_name SparkField
 extends Node3D
 ## All sparks (and prisms) of a level drawn with one MultiMesh each — a single
-## draw call regardless of count. Collected items are hidden by zero-scaling
-## their instance transform; magnet pulls are animated per frame.
+## draw call regardless of count. Collected items pop (scale 1 → 1.25 → 0 in
+## 120 ms, ART_DIRECTION §8) and then stay zero-scaled; magnet pulls are
+## animated per frame.
 
 const SPARK_SHADER: Shader = preload("res://assets/shaders/spark.gdshader")
 const SPARK_Y: float = 0.38
 const TILTED: Basis = Basis(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1))
+const POP_TIME: float = 0.12
+const POP_PEAK_SCALE: float = 1.25
+## Fraction of POP_TIME spent growing to the peak before collapsing.
+const POP_PEAK_AT: float = 0.35
+const HIDDEN: Transform3D = Transform3D(Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO), Vector3.ZERO)
 
 ## Colour-blind aid: phase-B sparks lie on their side (a horizontal diamond
 ## next to phase A's upright one).
@@ -19,15 +25,44 @@ var _spark_slot: Dictionary = {}
 var _prism_slot: Dictionary = {}
 var _hidden: Dictionary = {}
 var _base_pos: Dictionary = {}
-## Sparks currently drawn displaced by the magnet pull.
+## Sparks currently drawn displaced by the magnet pull -> drawn position.
 var _pulled: Dictionary = {}
 var _tilted: Dictionary = {}
+## Collected entity index -> [elapsed seconds, position] while its pop plays.
+var _popping: Dictionary = {}
 
 var _built: bool = false
 
 
 func _ready() -> void:
 	_ensure_built()
+
+
+func _process(delta: float) -> void:
+	if not _popping.is_empty():
+		advance_pops(delta)
+
+
+## Plays the collect pops forward by [param delta] seconds.
+func advance_pops(delta: float) -> void:
+	for idx: Variant in _popping.keys():
+		var k: int = int(idx)
+		var state: Array = _popping[k] as Array
+		var elapsed: float = float(state[0]) + delta
+		if elapsed >= POP_TIME:
+			_popping.erase(k)
+			_set_instance(k, HIDDEN)
+			continue
+		state[0] = elapsed
+		_set_instance(k, Transform3D(_basis_of(k).scaled(Vector3.ONE * pop_scale(elapsed)), state[1] as Vector3))
+
+
+## Scale of a collected item [param elapsed] seconds into its pop.
+static func pop_scale(elapsed: float) -> float:
+	var t: float = clampf(elapsed / POP_TIME, 0.0, 1.0)
+	if t < POP_PEAK_AT:
+		return lerpf(1.0, POP_PEAK_SCALE, t / POP_PEAK_AT)
+	return lerpf(POP_PEAK_SCALE, 0.0, (t - POP_PEAK_AT) / (1.0 - POP_PEAK_AT))
 
 
 func _ensure_built() -> void:
@@ -63,7 +98,7 @@ func build(lvl: SimLevel, _theme: WorldTheme = null, from_index: int = 0) -> voi
 	_base_pos.clear()
 	_pulled.clear()
 	_tilted.clear()
-	_pulled.clear()
+	_popping.clear()
 	var sparks: Array[int] = []
 	var prisms: Array[int] = []
 	for i: int in range(maxi(0, from_index), lvl.entity_count()):
@@ -83,7 +118,7 @@ func rebuild_append(lvl: SimLevel, from_index: int = 0) -> void:
 	build(lvl, null, from_index)
 	for idx: Variant in hidden_before:
 		if int(idx) >= from_index:
-			hide_entity(int(idx))
+			hide_entity(int(idx), false)
 
 
 func _fill(mm: MultiMesh, list: Array[int], lvl: SimLevel, slots: Dictionary) -> void:
@@ -103,16 +138,28 @@ func _basis_of(index: int) -> Basis:
 	return TILTED if _tilted.has(index) else Basis.IDENTITY
 
 
-func hide_entity(index: int) -> void:
+## Hides a collected item. With [param pop] it first plays the collect pop
+## from where it is drawn (its magnet-pulled spot, if any).
+func hide_entity(index: int, pop: bool = true) -> void:
+	if _hidden.has(index):
+		return
 	_hidden[index] = true
+	if pop and (_spark_slot.has(index) or _prism_slot.has(index)):
+		_popping[index] = [0.0, _pulled.get(index, _base_pos.get(index, Vector3.ZERO))]
+		return
+	_set_instance(index, HIDDEN)
+
+
+func _set_instance(index: int, xform: Transform3D) -> void:
 	if _spark_slot.has(index):
-		_spark_mm.multimesh.set_instance_transform(
-			int(_spark_slot[index]), Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO)
-		)
+		_spark_mm.multimesh.set_instance_transform(int(_spark_slot[index]), xform)
 	elif _prism_slot.has(index):
-		_prism_mm.multimesh.set_instance_transform(
-			int(_prism_slot[index]), Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO)
-		)
+		_prism_mm.multimesh.set_instance_transform(int(_prism_slot[index]), xform)
+
+
+## Entities whose collect pop is still playing.
+func popping_count() -> int:
+	return _popping.size()
 
 
 func hidden_entities() -> Dictionary:
@@ -161,7 +208,7 @@ func apply_magnet(core: Vector3, lvl: SimLevel, from_index: int, active: bool, p
 				var t: float = clampf(1.0 - dist / 3.0, 0.0, 1.0)
 				var p: Vector3 = base.lerp(core, t * 0.6)
 				_spark_mm.multimesh.set_instance_transform(int(_spark_slot[i]), Transform3D(_basis_of(i), p))
-				_pulled[i] = true
+				_pulled[i] = p
 		i += 1
 
 
@@ -174,3 +221,4 @@ func clear() -> void:
 	_base_pos.clear()
 	_pulled.clear()
 	_tilted.clear()
+	_popping.clear()

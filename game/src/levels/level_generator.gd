@@ -20,6 +20,14 @@ const HAZARD_SPARK_GAP: float = 1.1
 ## Hazard types a chapter's "hazards" weights can name (world data is checked
 ## against this list: an unknown key would silently place nothing).
 const HAZARD_KINDS: PackedStringArray = ["barrier", "slider", "pulse_gate", "phase_gate", "breakable"]
+## Set-piece patterns of bosses and challenges that shape hazard choice here
+## (escape, survival, fast_field, color_cascade and chain_smasher are shaped
+## by DifficultyModel parameters instead).
+const PATTERN_ROTOR: String = "rotor_gauntlet"
+const PATTERN_RHYTHM: String = "rhythm_gauntlet"
+const PATTERN_MEMORY: String = "pattern_memory"
+## Hazard-type motif length of a pattern_memory level.
+const MOTIF_LENGTH: int = 4
 const MIN_DASH_GAP_FACTOR: float = 1.3
 const GENERATOR_VERSION: int = 1
 
@@ -48,6 +56,8 @@ var _last_dash_d: float = -INF
 var _slot_index: int = 0
 var _window_min_seen: float = INF
 var _dropped: int = 0
+var _motif: Array[String] = []
+var _motif_row: int = -1
 
 
 ## Generates a complete level dictionary (or an empty dictionary on failure).
@@ -99,6 +109,8 @@ func start(level_spec: LevelSpec, attempt: int = 0) -> void:
 	_last_dash_d = -INF
 	_slot_index = 0
 	_window_min_seen = INF
+	_motif.clear()
+	_motif_row = -1
 	_base = {
 		"id": spec.id,
 		"lanes": spec.lanes,
@@ -493,14 +505,23 @@ func _desired_state(change: bool) -> Dictionary:
 
 
 func _pick_hazard(allowed: Array[String]) -> String:
+	# pattern_memory: the hazard type of the first MOTIF_LENGTH rows becomes a
+	# motif that repeats row by row, so the set piece can be learned and read
+	# ahead (every hazard of a row shares the row's type).
+	var memory: bool = spec.pattern == PATTERN_MEMORY
+	if memory and _motif.size() == MOTIF_LENGTH and allowed.has(_motif[_slot_index % MOTIF_LENGTH]):
+		return _motif[_slot_index % MOTIF_LENGTH]
 	var weights: Dictionary = {}
 	for name: String in allowed:
 		var w: float = float(spec.hazards.get(name, 0.0))
 		if w > 0.0:
 			weights[name] = w
-	if weights.is_empty():
-		return allowed[0]
-	return str(_rng.pick_weighted(weights))
+	var picked: String = allowed[0] if weights.is_empty() else str(_rng.pick_weighted(weights))
+	if memory and _motif.size() < MOTIF_LENGTH and _motif_row != _slot_index:
+		# The first pick of each of the first rows that have hazards.
+		_motif.append(picked)
+		_motif_row = _slot_index
+	return picked
 
 
 func _arrival_time(d_slot: float, target: Dictionary) -> float:
@@ -572,10 +593,13 @@ func _hop_hazard(d_slot: float, lane: int, path_lane: int, t_arrive: float, allo
 		allowed.append("slider")
 	if spec.forms.has("phase"):
 		allowed.append("phase_gate")
-	var kind: String = _pick_hazard(allowed)
+	var rotor: bool = spec.pattern == PATTERN_ROTOR
+	# rotor_gauntlet: every slider sweeps with one shared period, so the
+	# blades read as one rotating machine rather than separate hazards.
+	var kind: String = "slider" if rotor and allow_slider else _pick_hazard(allowed)
 	match kind:
 		"slider":
-			var beats: float = [2.0, 3.0, 4.0][_rng.range_int(0, 2)] as float
+			var beats: float = 2.0 if rotor else [2.0, 3.0, 4.0][_rng.range_int(0, 2)] as float
 			var period: float = beats * spec.beat_seconds
 			# Sit on the blocked lane exactly when the core arrives.
 			var offset: float = SimConst.wrap01(-t_arrive / period)
@@ -597,7 +621,8 @@ func _hop_hazard(d_slot: float, lane: int, path_lane: int, t_arrive: float, allo
 
 ## A pulse gate whose open (or closed) window is centred on the arrival time.
 func _timed_pulse(d_slot: float, lanes: Array, t_arrive: float, open_at_arrival: bool) -> Dictionary:
-	var beats: float = [1.0, 2.0][_rng.range_int(0, 1)] as float
+	# rhythm_gauntlet: every gate pulses on the same beat, in unison with the music.
+	var beats: float = 1.0 if spec.pattern == PATTERN_RHYTHM else [1.0, 2.0][_rng.range_int(0, 1)] as float
 	var period: float = beats * spec.beat_seconds * 2.0
 	var open_frac: float = 0.5
 	var center_u: float = open_frac * 0.5 if open_at_arrival else open_frac + (1.0 - open_frac) * 0.5

@@ -4,8 +4,6 @@ extends RefCounted
 
 enum Grade { NONE = 0, NORMAL = 1, GOOD = 2, GREAT = 3, PERFECT = 4 }
 
-const GRADE_NAMES: PackedStringArray = ["none", "normal", "good", "great", "perfect"]
-
 var level_id: String = ""
 var mode: StringName = &"classic"
 var completed: bool = false
@@ -88,7 +86,3 @@ static func compute_grade(completed: bool, stars: int, perfect: bool, combo_met:
 	if stars >= 2:
 		return Grade.GOOD
 	return Grade.NORMAL
-
-
-func grade_name() -> String:
-	return GRADE_NAMES[grade]

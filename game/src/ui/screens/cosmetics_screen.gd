@@ -303,15 +303,6 @@ func _build_packs() -> void:
 	_packs.add_child(note)
 
 
-static func _color(p: Dictionary, key: String, fallback: Color) -> Color:
-	var v: Variant = p.get(key, null)
-	if typeof(v) == TYPE_COLOR:
-		return v as Color
-	if typeof(v) == TYPE_STRING and Color.html_is_valid(str(v)):
-		return Color(str(v))
-	return fallback
-
-
 func handle_back() -> bool:
 	back_requested.emit()
 	return true

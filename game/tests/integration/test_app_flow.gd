@@ -6,6 +6,16 @@ extends TestCase
 const FIXED_UNIX: int = 1790000000
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 
+class WatchedAds:
+	extends AdProvider
+
+	func is_available(_kind: StringName) -> bool:
+		return true
+
+	func show(_kind: StringName, _placement: StringName) -> Dictionary:
+		return {"shown": true, "completed": true}
+
+
 var _app: AppServices
 var _session: GameplaySession
 var _runs: RunController
@@ -236,5 +246,45 @@ func test_fail_card_stays_clear_and_music_follows_the_run() -> void:
 	await tree.create_timer(GameFlow.RESULT_DELAY + 0.2).timeout
 	assert_eq(flow.router.top_id(), &"fail", "fail card on top")
 	assert_false(flow._reveals.is_empty(), "the reveal waits for a calmer moment")
+	flow.queue_free()
+	await wait_frames(2)
+
+
+func test_bonus_chest_is_optional_and_once_a_day() -> void:
+	var flow: GameFlow = MAIN_SCENE.instantiate() as GameFlow
+	flow.s = _app
+	tree.root.add_child(flow)
+	await wait_frames(3)
+	assert_false(Presenters.bonus_chest_offered(_app), "no ad available: no offer")
+	_app.ads._provider = WatchedAds.new()
+	assert_true(Presenters.bonus_chest_offered(_app), "offered when an ad can play")
+	var coins: int = _app.economy.balance(EconomyService.COINS)
+	flow._show_daily()
+	await flow._open_bonus_chest()
+	var chest: Dictionary = RewardEngine.load_tables()["bonus_chest"]["reward"] as Dictionary
+	assert_eq(_app.economy.balance(EconomyService.COINS), coins + int(chest.get("coins", 0)), "fixed chest contents")
+	assert_false(Presenters.bonus_chest_offered(_app), "once a day")
+	assert_eq(flow.router.top_id(), &"reward", "revealed")
+	flow.queue_free()
+	await wait_frames(2)
+
+
+func test_bonus_chest_level_up_is_revealed_with_it() -> void:
+	var flow: GameFlow = MAIN_SCENE.instantiate() as GameFlow
+	flow.s = _app
+	tree.root.add_child(flow)
+	await wait_frames(3)
+	_app.ads._provider = WatchedAds.new()
+	_app.take_level_up_reveals()
+	var bar: Dictionary = _app.progression.xp_progress()
+	_app.profile.xp += int(bar["needed"]) - int(bar["into_level"]) - 1
+	var level: int = _app.profile.player_level
+	flow._show_daily()
+	await flow._open_bonus_chest()
+	assert_gt(float(_app.profile.player_level), float(level), "chest XP levelled up")
+	var level_up: String = TranslationServer.translate("reveal.level_up")
+	var queued: Array = flow._reveals.filter(func(r: Dictionary) -> bool: return str(r.get("eyebrow", "")) == level_up)
+	assert_eq(queued.size(), 1, "level-up revealed after the chest, not after the next run")
+	assert_true(_app.take_level_up_reveals().is_empty(), "nothing left over for the next run")
 	flow.queue_free()
 	await wait_frames(2)

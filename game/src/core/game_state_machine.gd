@@ -102,9 +102,5 @@ func transition_to(to: State, data: Dictionary = {}) -> bool:
 	return true
 
 
-func is_in(state: State) -> bool:
-	return current == state
-
-
 func is_gameplay() -> bool:
 	return current in [State.COUNTDOWN, State.PLAYING, State.PAUSED, State.FAILED, State.COMPLETE]

@@ -209,6 +209,13 @@ func _apply_special(spec: LevelSpec, special: Dictionary) -> void:
 	spec.hop_time = float(special.get("hop_time", spec.hop_time))
 	spec.form_segment = int(special.get("form_segment", spec.form_segment))
 	spec.density = 1.0
+	match spec.pattern:
+		"color_cascade":
+			# The colour flips almost every row: a cascade to read and follow.
+			spec.change_prob = maxf(spec.change_prob, 0.85)
+		"chain_smasher":
+			# Dense breakable clusters: one dash sets off long chains.
+			spec.cluster_chance = maxf(spec.cluster_chance, 0.75)
 	var bounds: Dictionary = curve.get("duration_bounds", {}) as Dictionary
 	var key: String = "special_boss" if spec.kind == "boss" else "special_challenge"
 	var b: Array = bounds.get(key, [30, 120]) as Array

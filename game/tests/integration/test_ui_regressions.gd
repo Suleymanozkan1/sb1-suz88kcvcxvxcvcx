@@ -168,6 +168,18 @@ func test_daily_rank_uses_the_service_total() -> void:
 	assert_eq(daily._rank.text, "—", "no rank before playing")
 
 
+func test_locked_daily_button_fits_the_screen() -> void:
+	var limit: float = 720.0 - 2.0 * UiTokens.MARGIN
+	for locale: String in ["en", "tr"]:
+		TranslationServer.set_locale(locale)
+		var daily: DailyScreen = _screen(DailyScreen.new()) as DailyScreen
+		for key: String in ["daily.paused", "mode.unlock.levels_cleared"]:
+			var label: String = TranslationServer.translate(key).format({"n": 20})
+			daily.enter({"status": {}, "unlocked": false, "requirement": label})
+			assert_true(daily._play.disabled, "locked button is inert")
+			assert_le(daily._play.get_combined_minimum_size().x, limit, "%s %s fits" % [locale, key])
+
+
 func test_durations_use_localized_units() -> void:
 	TranslationServer.set_locale("tr")
 	assert_eq(DailyScreen.format_duration(2 * 86400 + 3 * 3600), "2 g 03 sa")
@@ -260,3 +272,16 @@ func test_shop_says_what_an_item_changes() -> void:
 		var key: String = "shop.affects." + str(it["category"])
 		assert_eq(shop._detail_effect.text, str(TranslationServer.translate(key)), str(it["id"]))
 		assert_ne(shop._detail_effect.text, key, "translated: %s" % key)
+
+
+func test_daily_result_card_shows_the_rank() -> void:
+	var c: CompleteOverlay = _screen(CompleteOverlay.new()) as CompleteOverlay
+	var r: RunResult = RunResult.new()
+	r.completed = true
+	r.score = 900
+	var rank: Dictionary = _app.daily.rank_text_local(900)
+	var text: String = Presenters.t(str(rank["key"])).format(rank["params"] as Dictionary)
+	c.enter({"result": r, "reward": RewardBundle.new("run"), "rank_text": text})
+	assert_true(c._rank.visible and c._rank.text == text, "rank line on the daily card")
+	c.enter({"result": r, "reward": RewardBundle.new("run")})
+	assert_false(c._rank.visible, "no rank line for other modes")

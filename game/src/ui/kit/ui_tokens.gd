@@ -10,11 +10,14 @@ const RADIUS: int = 4
 const HAIRLINE: int = 1
 const STROKE: int = 2
 
-const BUTTON_HEIGHT_PRIMARY: int = 80
-const BUTTON_HEIGHT: int = 64
-const ICON_BUTTON: int = 64
+## Touch sizes: the 720-wide canvas spans a phone's width, so on a 390 pt /
+## 412 dp phone one canvas px is about 0.54 pt. 88 px is about 48 pt, at or
+## above the iOS (44 pt) and Android (48 dp) minimum touch targets.
+const BUTTON_HEIGHT_PRIMARY: int = 96
+const BUTTON_HEIGHT: int = 88
+const ICON_BUTTON: int = 88
 const ICON_SIZE: int = 28
-const MIN_TOUCH: int = 64
+const MIN_TOUCH: int = 88
 
 ## Typography scale: [size, weight].
 const H1: Array[int] = [64, 800]

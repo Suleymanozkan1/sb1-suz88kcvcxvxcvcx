@@ -229,6 +229,12 @@ func play_music(track: String, boss: bool = false) -> bool:
 	return true
 
 
+## Loads [param track]'s loops in the background ahead of time (e.g. the
+## world the player is about to enter). Returns the requests made.
+func prefetch_music(track: String) -> int:
+	return _bank.prefetch_music(track) if _bank != null else 0
+
+
 ## Fades the current music out over [param fade_s] seconds (negative = bank default).
 func stop_music(fade_s: float = -1.0) -> void:
 	if not _ready_ok:
@@ -285,11 +291,6 @@ func current_track() -> String:
 ## True while a music track is audible or fading.
 func is_music_playing() -> bool:
 	return _ready_ok and _decks[_active_deck].is_playing()
-
-
-## Running beat index of the current track (-1 before the first beat).
-func current_beat() -> int:
-	return _beat_index
 
 
 ## Position inside the current beat (0..1), for pulsing visuals.

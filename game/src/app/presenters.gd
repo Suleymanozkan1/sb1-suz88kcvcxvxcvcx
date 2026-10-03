@@ -3,6 +3,7 @@ extends RefCounted
 ## Builds screen payloads from real system state. Screens stay dumb views and
 ## every number they show comes from here — nothing is invented for display.
 
+const BONUS_CHEST_FLAG: String = "bonus_chest_day"
 const CATEGORY_ORDER: PackedStringArray = [
 	"core_skin",
 	"trail",
@@ -56,7 +57,9 @@ static func main_menu(s: AppServices) -> Dictionary:
 	var daily: Dictionary = s.daily.status()
 	var claimable: int = s.missions.claimable_count()
 	var badge: String = ""
-	var daily_open: bool = s.modes.is_unlocked(&"daily", s.mode_progress())
+	var daily_open: bool = (
+		s.modes.is_unlocked(&"daily", s.mode_progress()) and s.remote_config.get_bool("daily.enabled", true)
+	)
 	if daily_open and not bool(daily.get("completed", false)):
 		badge = t("menu.daily_new")
 	elif claimable > 0:
@@ -199,15 +202,30 @@ static func daily(s: AppServices) -> Dictionary:
 		missions[kind] = list
 	var req: Dictionary = s.modes.requirement(&"daily")
 	return {
-		"unlocked": s.modes.is_unlocked(&"daily", s.mode_progress()),
-		"requirement": t(str(req["key"])).format(req["args"] as Dictionary),
+		# Remotely paused (daily.enabled false): missions stay, the challenge waits.
+		"unlocked": s.modes.is_unlocked(&"daily", s.mode_progress()) and s.remote_config.get_bool("daily.enabled", true),
+		"requirement":
+		(
+			t(str(req["key"])).format(req["args"] as Dictionary)
+			if s.remote_config.get_bool("daily.enabled", true)
+			else t("daily.paused")
+		),
 		"date_label": t("daily.date").format({"date": str(status.get("date_key", ""))}),
 		"world_name": world_name(world),
 		"status": status,
 		"rank": rank,
 		"missions": missions,
 		"reset": {"daily": s.missions.time_left_seconds("daily"), "weekly": s.missions.time_left_seconds("weekly")},
+		"bonus_chest": bonus_chest_offered(s),
 	}
+
+
+## The optional bonus chest: once per UTC day, only while a rewarded ad can
+## really play (never an empty or broken offer).
+static func bonus_chest_offered(s: AppServices) -> bool:
+	var opened: Variant = s.profile.flags.get(BONUS_CHEST_FLAG, -1)
+	var today: bool = typeof(opened) == TYPE_INT and int(opened) == s.clock.day_number()
+	return not today and s.ads.is_rewarded_available(&"bonus_chest")
 
 
 static func progress(s: AppServices, tab: String, board: Dictionary) -> Dictionary:
@@ -368,10 +386,23 @@ static func settings(s: AppServices, restore_status: String) -> Dictionary:
 	}
 
 
-## Human-readable licence list from assets/LICENSES.json (fonts, audio, icons, engine).
+## Human-readable licence notices: the game's own assets (assets/LICENSES.json),
+## then the Godot Engine MIT licence text and its third-party components, as
+## the engine's licence requires them to ship with the game.
 static func licenses_text() -> String:
-	var lines: PackedStringArray = PackedStringArray(["Godot Engine — MIT License"])
+	var lines: PackedStringArray = PackedStringArray()
 	for e: Variant in JsonIO.read_dict("res://assets/LICENSES.json").get("entries", []) as Array:
 		var entry: Dictionary = e as Dictionary
 		lines.append("%s — %s" % [str(entry.get("name", entry.get("path", ""))), str(entry.get("license", ""))])
+	lines.append("")
+	lines.append("Godot Engine — MIT License")
+	lines.append(Engine.get_license_text())
+	lines.append("Third-party components in Godot Engine:")
+	for info: Dictionary in Engine.get_copyright_info():
+		var licenses: PackedStringArray = PackedStringArray()
+		for part: Variant in info.get("parts", []) as Array:
+			var lic: String = str((part as Dictionary).get("license", ""))
+			if not lic.is_empty() and not licenses.has(lic):
+				licenses.append(lic)
+		lines.append("%s — %s" % [str(info.get("name", "")), ", ".join(licenses)])
 	return "\n".join(lines)

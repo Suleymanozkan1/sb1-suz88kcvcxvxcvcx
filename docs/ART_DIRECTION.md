@@ -45,8 +45,10 @@ Worlds change only environment colours, light and materials.
 | Ink / Graphite / Slate | `#0B0E14` / `#1A1F29` / `#2A3140` | UI surfaces, environment darks |
 | Fog / Bone | `#8A93A6` / `#E8ECF2` | Secondary text / primary text |
 
-Environment palettes stay within saturation ≤ 0.45 and value ≤ 0.55 (sky and floor), so gameplay
-colours always win. Each world defines `sky_top`, `sky_bottom`, `fog`, `floor`, `structure`,
+Environment palettes stay within saturation ≤ 0.45 and value ≤ 0.55 (sky, fog, floor and lanes), so
+gameplay colours always win. `WorldTheme.quiet()` enforces this on load; high-key worlds (sky
+luminance > 0.5, e.g. Cloud Factory) keep their light values and rely on the core's ink shell for
+contrast, but stay within the saturation cap. Each world defines `sky_top`, `sky_bottom`, `fog`, `floor`, `structure`,
 `key_light`, `sink` and a **story accent** (one hue, used only in the far background).
 
 ## 4. Shape language
@@ -56,7 +58,8 @@ colours always win. Each world defines `sky_top`, `sky_bottom`, `fog`, `floor`, 
   the colour, communicates the tap meaning.
 * **Collectibles:** spark = small octahedral shard (always the same silhouette); prism = larger shard
   with an orbiting ring (the "premium" version of the same family).
-* **Obstacles:** chamfered blocks. Every hazard uses the same chamfer ratio (8 % of the shortest edge)
+* **Obstacles:** chamfered blocks. Every hazard uses the same, bolder chamfer ratio (16 % of the
+  shortest edge, `ViewKit.HAZARD_CHAMFER`; structure, posts and ribs use 8 %, `MeshFactory.CHAMFER_RATIO`)
   and the same height (0.9 u). Variation comes from what they do: a *barrier* is a solid block; a
   *slider* is a block on a visible floor track whose length shows its range; a *shutter* (pulse gate)
   is a panel that physically drops into the floor when open; a *breakable* is the same block in glass
@@ -132,8 +135,10 @@ nothing stretches or tiles visibly.
 | Overdrive | state change | Trail thickens; brief distortion ring |
 | Complete / Perfect | reward | Slow-down, core dives into the sink; Perfect adds a gold ring sweep and ≤ 30 rising motes |
 
-The camera shakes only on fail, shield hit and boss impacts. Hops get a 0.15 u lean, and dash or heavy
-surge get a small FOV kick (meaning: speed).
+The camera shakes only on impacts: fail (0.6 trauma), shield hit (0.35), a Zen-mode bump (0.15, Zen's
+stand-in for a hit) and a shatter (0.12, small). Collecting, near misses and taps never shake. Hops get a
+0.15 u lean, and dash or heavy surge get a small FOV kick (meaning: speed). Reduce motion scales all of
+it to 20 %.
 
 ## 10. UI design system
 
@@ -154,10 +159,11 @@ surge get a small FOV kick (meaning: speed).
 * **Surfaces:** flat Graphite panels with a 1 px Slate hairline and a 4 px corner radius. No gradients,
   no glass blur, no glow.
 * **Buttons:**
-  * **Primary:** solid PRIMARY with Ink label, 80 px tall. One per screen.
+  * **Primary:** solid PRIMARY with Ink label, 96 px tall. One per screen.
   * **Secondary:** 2 px Bone-40 % outline.
   * **Tertiary:** text only.
-  * **Icon button:** 64 px hit area, 28 px glyph.
+  * **Icon button:** 88 px hit area, 28 px glyph. Every interactive control is at least 88 px
+    (about 48 pt / dp on a phone, since the 720 px canvas spans the screen width).
   * **Destructive:** FAILURE outline.
 * **Icons:** one system drawn in code (`IconGlyph`). 24-unit grid, 2-unit stroke, round caps and joins,
   no fills except status dots. No emoji, 3D, flat-mixed or raster icons.

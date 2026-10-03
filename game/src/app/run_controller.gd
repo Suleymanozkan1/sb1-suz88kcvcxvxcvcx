@@ -252,7 +252,7 @@ func _finish_scored(mode_id: StringName, result: RunResult, outcome: Dictionary)
 	var spec: Dictionary = services.modes.score_reward(mode_id, result.score) if eligible else {}
 	if spec.is_empty():
 		return RewardBundle.new("mode:" + String(mode_id))
-	return services.grant_reward_spec(spec, "mode:" + String(mode_id))
+	return services.grant_reward_spec(services.rewards.with_coin_scale(spec), "mode:" + String(mode_id))
 
 
 ## Grants the optional rewarded-ad double. Only called after the ad completed.

@@ -31,10 +31,6 @@ func screen(id: StringName) -> UiScreen:
 	return _screens.get(id, null) as UiScreen
 
 
-func has_screen(id: StringName) -> bool:
-	return _screens.has(id)
-
-
 func _ensure_built(id: StringName) -> UiScreen:
 	var s: UiScreen = screen(id)
 	if s == null:

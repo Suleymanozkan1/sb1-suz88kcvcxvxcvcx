@@ -9,7 +9,9 @@ extends RefCounted
 const DATA_PATH: String = "res://data/modes/modes.json"
 const MODIFIER_KEYS: PackedStringArray = ["zen", "speed_scale", "shields_allowed", "strict", "time_limit"]
 const SOURCES: PackedStringArray = ["campaign", "campaign_pick", "daily", "endless", "boss_rush"]
-const UNLOCK_TYPES: PackedStringArray = ["none", "levels_cleared", "perfects", "bosses_cleared", "world_cleared"]
+const UNLOCK_TYPES: PackedStringArray = [
+	"none", "levels_cleared", "perfects", "bosses_cleared", "world_cleared", "stars"
+]
 const ENDLESS_SEED_SALT: String = "fluxdrop-endless-v1:"
 
 static var _shared: ModeCatalog
@@ -92,7 +94,7 @@ func verifier_modifiers(mode_id: StringName) -> Dictionary:
 	}
 
 
-## progress: {"levels_cleared", "perfects", "bosses_cleared", "worlds_cleared"}.
+## progress: {"levels_cleared", "perfects", "bosses_cleared", "worlds_cleared", "stars"}.
 func is_unlocked(mode_id: StringName, progress: Dictionary) -> bool:
 	var unlock: Dictionary = mode(mode_id).get("unlock", {}) as Dictionary
 	var value: int = int(unlock.get("value", 0))
@@ -105,6 +107,8 @@ func is_unlocked(mode_id: StringName, progress: Dictionary) -> bool:
 			return int(progress.get("bosses_cleared", 0)) >= value
 		"world_cleared":
 			return int(progress.get("worlds_cleared", 0)) >= value
+		"stars":
+			return int(progress.get("stars", 0)) >= value
 	return true
 
 

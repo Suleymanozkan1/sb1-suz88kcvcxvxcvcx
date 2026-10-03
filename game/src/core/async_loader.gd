@@ -2,8 +2,9 @@ class_name AsyncLoader
 extends RefCounted
 ## Thin wrapper over ResourceLoader threaded loading with a result cache.
 ##
-## Used to stream world music and heavy resources in the background so the
-## next world/level never blocks the main thread.
+## [SoundBank] uses it to load the next world's music loops in the background
+## (requested from the menu and the level select), so starting a world's music
+## never blocks a frame.
 
 var _requested: Dictionary = {}
 var _cache: Dictionary = {}
@@ -47,7 +48,3 @@ func get_resource(path: String) -> Resource:
 
 func evict(path: String) -> void:
 	_cache.erase(path)
-
-
-func cached_count() -> int:
-	return _cache.size()

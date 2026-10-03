@@ -56,11 +56,6 @@ func _icon_color() -> Color:
 	return UiTokens.TEXT
 
 
-func set_glyph_color(c: Color) -> void:
-	if glyph != null:
-		glyph.color = c
-
-
 func _layout_glyph() -> void:
 	pivot_offset = size * 0.5
 	if glyph == null:

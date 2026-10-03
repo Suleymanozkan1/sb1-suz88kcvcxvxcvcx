@@ -48,11 +48,6 @@ func release(node: Node) -> void:
 	_free.append(node)
 
 
-func release_all() -> void:
-	while not _active.is_empty():
-		release(_active[_active.size() - 1])
-
-
 func active_count() -> int:
 	return _active.size()
 

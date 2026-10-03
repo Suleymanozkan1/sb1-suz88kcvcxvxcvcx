@@ -149,3 +149,11 @@ func test_stream_uses_the_mode_ramp_distance() -> void:
 	var data: Dictionary = _stream(7).begin()
 	var mods: Dictionary = data["modifiers"] as Dictionary
 	assert_near(float(mods["ramp_distance"]), 900.0, 0.01, "endless ramps over its configured distance")
+
+
+func test_star_total_unlocks_the_time_attack_challenge() -> void:
+	var c: ModeCatalog = _catalog()
+	assert_eq(str(c.mode(&"time_attack")["unlock"]["type"]), "stars")
+	assert_false(c.is_unlocked(&"time_attack", {"stars": 59, "levels_cleared": 520}), "stars, not clears")
+	assert_true(c.is_unlocked(&"time_attack", {"stars": 60}))
+	assert_eq(c.requirement(&"time_attack")["key"], "mode.unlock.stars")

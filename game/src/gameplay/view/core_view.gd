@@ -256,10 +256,6 @@ func squash(axis: Vector3, amount: float) -> void:
 	_scale_vel += axis * amount * 11.0 - (Vector3.ONE - axis) * amount * 4.0
 
 
-func flash_pulse(amount: float) -> void:
-	_pulse = maxf(_pulse, amount)
-
-
 func update_visuals(delta: float, sim: FluxSim) -> void:
 	if _anticipation_left > 0.0:
 		_anticipation_left -= delta

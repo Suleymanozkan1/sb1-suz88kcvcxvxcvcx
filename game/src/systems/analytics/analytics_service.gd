@@ -51,11 +51,6 @@ func add_sink(sink: AnalyticsSink) -> void:
 		_sinks.append(sink)
 
 
-## Unregisters a sink.
-func remove_sink(sink: AnalyticsSink) -> void:
-	_sinks.erase(sink)
-
-
 ## Registered sinks.
 func sinks() -> Array[AnalyticsSink]:
 	return _sinks.duplicate()

@@ -64,13 +64,5 @@ var unlock_stars: int = 0
 var endless: bool = false
 
 
-func form_list() -> PackedStringArray:
-	var out: PackedStringArray = PackedStringArray()
-	for f: String in forms:
-		if float(forms[f]) > 0.0:
-			out.append(f)
-	return out
-
-
 func is_special() -> bool:
 	return kind != "normal"

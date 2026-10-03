@@ -78,6 +78,8 @@ const DEFAULT_MIXER: Dictionary = {
 ## Validation issues found while parsing (empty for a healthy bank).
 var problems: PackedStringArray = PackedStringArray()
 var source_path: String = ""
+## Background loader for music (see [method prefetch_music]).
+var loader: AsyncLoader = AsyncLoader.new()
 var _sfx: Dictionary = {}
 var _music: Dictionary = {}
 var _stingers: Dictionary = {}
@@ -203,12 +205,30 @@ func stream_at(path: String) -> AudioStream:
 	if _streams.has(path):
 		return _streams[path] as AudioStream
 	var stream: AudioStream = null
-	if ResourceLoader.exists(path):
+	if loader.is_ready(path):
+		# Prefetched in the background: no load on the main thread.
+		stream = loader.get_resource(path) as AudioStream
+		loader.evict(path)
+	elif ResourceLoader.exists(path):
 		stream = ResourceLoader.load(path) as AudioStream
 	if stream == null:
 		GameLog.warn(LOG_CHANNEL, "cannot load audio stream %s" % path)
 	_streams[path] = stream
 	return stream
+
+
+## Starts loading [param track]'s loops (base, intensity and boss) on a
+## background thread, so starting that world's music later never blocks a
+## frame. Returns how many loads were requested.
+func prefetch_music(track: String) -> int:
+	var entry: Dictionary = music(track)
+	var n: int = 0
+	for key: String in ["base", "hi", "boss"]:
+		var path: String = str(entry.get(key, ""))
+		if not path.is_empty() and not _streams.has(path):
+			loader.request(path)
+			n += 1
+	return n
 
 
 ## Loads every sound effect up front so the first play never hitches. Returns

@@ -55,6 +55,7 @@ const DUPLICATE_SOURCE_SUFFIX: String = ":duplicate"
 const AD_DOUBLE_SOURCE_SUFFIX: String = ":ad_double"
 const LEVEL_SOURCE_PREFIX: String = "level:"
 const DEFAULT_SOURCE: String = "reward"
+const SPEC_COINS_KEY: String = "coins"
 const BADGE_ID_PREFIX: String = "badge_"
 
 ## Safe values used when the level table is missing or damaged.
@@ -76,6 +77,11 @@ const FALLBACK_WORLD_COUNT: int = 10
 
 ## Parsed reward tables (see reward_tables.json). Treat as read-only.
 var tables: Dictionary = {}
+## Remote economy tuning (remote config economy.coin_multiplier times the
+## weekend event bonus, and economy.daily_reward_multiplier). 1.0 pays the
+## tables exactly as shipped; set by AppServices, never by the player.
+var coin_scale: float = 1.0
+var daily_scale: float = 1.0
 
 var _profile: PlayerProfile
 var _bus: EventBus
@@ -192,7 +198,7 @@ func compute_level_reward(result: RunResult, ctx: Dictionary) -> RewardBundle:
 	# A completed run always pays something, even with damaged data.
 	coins = maxi(coins, maxi(_level_int("replay_coins_min"), MIN_COMPLETED_COINS))
 	coins += _level_int("coins_per_new_star") * new_stars
-	bundle.add(RewardBundle.TYPE_COINS, coins)
+	bundle.add(RewardBundle.TYPE_COINS, RewardEngine.scaled(coins, coin_scale))
 	if _flag(ctx, "first_perfect") and result.perfect:
 		bundle.add(RewardBundle.TYPE_GEMS, _level_int("perfect_first_gems"))
 		var badge: String = _level_string("perfect_badge_prefix") + tier
@@ -393,7 +399,28 @@ func _daily_streak(ctx: Dictionary) -> RewardBundle:
 		if entry_tier <= tier and entry_tier > best_tier:
 			best_tier = entry_tier
 	var source: String = "%s:%d" % [TABLE_DAILY_STREAK, mini(tier, maxi(best_tier, 1))]
-	return bundle_from_spec(daily_tier_reward(tables, tier), source)
+	var spec: Dictionary = daily_tier_reward(tables, tier).duplicate()
+	if spec.has(SPEC_COINS_KEY):
+		spec[SPEC_COINS_KEY] = RewardEngine.scaled(EconomyService.int_or(spec[SPEC_COINS_KEY], 0), daily_scale)
+	return bundle_from_spec(spec, source)
+
+
+## [param spec] with its coins scaled by the live [member coin_scale]: score
+## modes pay through reward specs, and live events must reach them too.
+func with_coin_scale(spec: Dictionary) -> Dictionary:
+	if not spec.has(SPEC_COINS_KEY):
+		return spec
+	var out: Dictionary = spec.duplicate()
+	out[SPEC_COINS_KEY] = RewardEngine.scaled(EconomyService.int_or(spec[SPEC_COINS_KEY], 0), coin_scale)
+	return out
+
+
+## [param amount] times a tuning [param scale] (rounded; a positive amount
+## never drops to zero).
+static func scaled(amount: int, scale: float) -> int:
+	if amount <= 0 or is_equal_approx(scale, 1.0) or is_nan(scale):
+		return amount
+	return maxi(1, roundi(float(amount) * clampf(scale, 0.0, 4.0)))
 
 
 ## Most one completed run of a level can pay before the optional ad double:

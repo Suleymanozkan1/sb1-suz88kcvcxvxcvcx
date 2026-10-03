@@ -151,6 +151,13 @@ the streak-table reward of the allowed tier, a level by its tier and kind
 (`RewardEngine.level_reward_ceiling`: first-clear or replay coins, every star
 new, the first perfect, full XP), coins and gems at most doubled by the
 optional ad.
+Live economy tuning: call `verifier.apply_remote_tuning(values)` with the
+remote-config values snapshot the backend serves (`economy.coin_multiplier`,
+`economy.daily_reward_multiplier`, `events.weekend_coin_bonus`) before
+checking claims, so the bounds scale coins exactly like the client. The client
+applies the weekend bonus by its own clock when a run starts, so the server
+allows the bonus on every day while one is configured (a Sunday run claimed on
+Monday, or in another time zone, is never refused for it).
 Daily tiers are recomputed from the claim history with the same gentle streak
 rule as the client (`DailyChallengeService.tier_after`); a higher claimed tier
 is clamped (`allowed_tier`) rather than rejected, so honest players who

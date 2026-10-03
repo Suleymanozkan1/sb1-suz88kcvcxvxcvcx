@@ -20,6 +20,7 @@ var _best: Label
 var _stars: Array[IconGlyph] = []
 var _rewards: HBoxContainer
 var _actions: VBoxContainer
+var _rank: Label
 var _double: UiButton
 var _next: UiButton
 var _seq_tween: Tween
@@ -49,6 +50,9 @@ func build() -> void:
 	_best = UiKit.text("", &"caption", UiTokens.TEXT_MUTED)
 	_best.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(_best)
+	_rank = UiKit.text("", &"caption", UiTokens.TEXT_MUTED)
+	_rank.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(_rank)
 	col.add_child(UiKit.spacer(true, UiTokens.u(2)))
 	_rewards = UiKit.hbox(UiTokens.u(4))
 	_rewards.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -110,6 +114,8 @@ func enter(payload: Dictionary) -> void:
 				_rewards.add_child(chip)
 				reward_labels.append(chip.get_node("Value") as Label)
 				reward_values.append(int(item["amount"]))
+	_rank.text = str(payload.get("rank_text", ""))
+	_rank.visible = not _rank.text.is_empty()
 	_double.visible = bool(payload.get("can_double", false))
 	_next.visible = bool(payload.get("has_next", true))
 	_set_actions_live(false)

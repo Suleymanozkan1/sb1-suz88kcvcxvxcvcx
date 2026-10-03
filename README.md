@@ -49,8 +49,11 @@ internet permissions) and **iOS** (Xcode project, arm64, iOS 14+). Data JSON is 
   `godot --headless --path game --export-debug "Android" build/android/fluxdrop-debug.apk`.
   CI does this on every push (`.github/workflows/ci.yml`, job `android`).
 * Android release and store upload need a release keystore and Play Console account (not in the repo).
-* iOS needs macOS + Xcode; CI exports the Xcode project and compiles it for the simulator without
-  signing. Device builds need an Apple team ID and provisioning profile.
+* iOS: the Xcode project exports on any OS once an App Store team ID is set
+  (`--export-debug "iOS" build/ios/FluxDrop.ipa` with `application/export_project_only=true`; verified
+  here on Linux: Xcode project, frameworks and a 13 MB .pck). Compiling, signing and device builds need
+  macOS + Xcode, an Apple team ID and a provisioning profile; CI injects the team ID from the
+  `IOS_TEAM_ID` secret and compiles an unsigned simulator build on macOS.
 
 ## Architecture in one paragraph
 
@@ -104,8 +107,8 @@ No third-party runtime code is shipped. Reference repositories inspected (and wh
 
 ## Known issues and limits
 
-* **iOS**: no macOS/Xcode/Apple account in the build environment — the iOS export is defined (preset +
-  CI job) but was not produced here (BLOCKED).
+* **iOS**: the Xcode project was exported here, but compiling and signing need macOS/Xcode and an Apple
+  account, which this environment does not have (BLOCKED); the CI macOS job has not been observed running.
 * **Release signing**: no release keystore / store accounts — only a signed *debug* APK was produced.
 * **CodeRabbit**: the CLI could not be installed (network policy); substitute independent reviews are
   logged in [docs/CODERABBIT_REPORT.md](docs/CODERABBIT_REPORT.md).

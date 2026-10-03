@@ -75,7 +75,10 @@ const SPARK_COLLECT_RADIUS: float = 0.6
 const SPARK_COLLECT_DEPTH: float = 0.55
 const MAGNET_COLLECT_RADIUS: float = 2.0
 const PICKUP_RADIUS: float = 0.7
-const NEAR_MISS_MARGIN: float = 0.34
+## Closest approach that still counts as a near miss: about 50 ms before the
+## last moment for a hop past a block (a settled core in the next lane is 0.72
+## away, so riding a lane is never a near miss).
+const NEAR_MISS_MARGIN: float = 0.6
 const PORTAL_CAPTURE_HALF_WIDTH: float = 0.55
 ## How far ahead/behind the core the sim inspects entities (units).
 const ENTITY_REACH: float = 1.2
@@ -163,10 +166,6 @@ static func is_hazard(type_id: int) -> bool:
 		or type_id == EntityType.BREAKABLE
 		or type_id == EntityType.PHASE_GATE
 	)
-
-
-static func is_collectible(type_id: int) -> bool:
-	return type_id == EntityType.SPARK or type_id == EntityType.PRISM
 
 
 static func lane_x(lane: int, lane_count: int) -> float:

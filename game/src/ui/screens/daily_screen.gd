@@ -8,12 +8,14 @@ extends UiScreen
 signal play_requested
 signal claim_requested(mission_id: String)
 signal back_requested
+signal chest_requested
 
 const MAX_TIER: int = 7
 const TIER_DOT: int = 20
 const MISSION_KINDS: PackedStringArray = ["daily", "weekly"]
 
 var _date: Label
+var _chest: VBoxContainer
 var _world: Label
 var _best: Label
 var _rank: Label
@@ -51,6 +53,13 @@ func build() -> void:
 	scroll.add_child(body)
 	body.add_child(_challenge_card())
 	body.add_child(_streak_card())
+	# Optional once-a-day bonus chest; only offered when an ad can really play.
+	_chest = UiKit.vbox(UiTokens.UNIT / 2)
+	var chest_button: UiButton = UiKit.button(tr("daily.bonus_chest"), UiKit.ButtonRole.SECONDARY, &"coin")
+	chest_button.pressed.connect(func() -> void: chest_requested.emit())
+	_chest.add_child(chest_button)
+	_chest.add_child(UiKit.text(tr("daily.bonus_chest.desc"), &"caption", UiTokens.TEXT_MUTED))
+	body.add_child(_chest)
 	body.add_child(_missions_section())
 
 
@@ -152,6 +161,7 @@ func _missions_section() -> VBoxContainer:
 ##           "rank": {"rank", "of"}, "missions": {"daily": [...], "weekly": [...]},
 ##           "reset": {"daily": secs, "weekly": secs}}
 func enter(payload: Dictionary) -> void:
+	_chest.visible = bool(payload.get("bonus_chest", false))
 	var status: Dictionary = payload.get("status", {}) as Dictionary
 	_date.text = str(payload.get("date_label", ""))
 	_world.text = str(payload.get("world_name", ""))

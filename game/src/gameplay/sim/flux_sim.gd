@@ -9,6 +9,9 @@ extends RefCounted
 
 const FLAG_CONSUMED: int = 1
 const FLAG_RESOLVED: int = 2
+## Set while passing a hazard whenever the core came within the near-miss
+## margin of it (judged over the whole pass, not only its centre line).
+const FLAG_CLOSE: int = 4
 
 var level: SimLevel
 ## Presentation events are recorded only when needed (off for solver searches).
@@ -601,6 +604,10 @@ func _check_hazard(i: int, type: int, ed: float, t: float) -> void:
 			SimConst.FailReason.WRONG_PHASE if type == SimConst.EntityType.PHASE_GATE else SimConst.FailReason.COLLISION
 		)
 		return
+	if clearance < SimConst.NEAR_MISS_MARGIN:
+		# A late dodge is close at the front of the hazard and clear by its
+		# centre line: the closest approach over the pass decides.
+		ent_flags[i] |= FLAG_CLOSE
 	if (ent_flags[i] & FLAG_RESOLVED) == 0 and _crossed(ed):
 		ent_flags[i] |= FLAG_RESOLVED
 		if type == SimConst.EntityType.PHASE_GATE:
@@ -608,7 +615,7 @@ func _check_hazard(i: int, type: int, ed: float, t: float) -> void:
 			_combo_up()
 			var gained: int = _add_score(SimConst.SCORE_GATE_PASS)
 			_emit(SimConst.EventType.GATE_PASS, i, gained)
-		elif clearance < SimConst.NEAR_MISS_MARGIN:
+		elif (ent_flags[i] & FLAG_CLOSE) != 0:
 			near_misses += 1
 			_combo_up()
 			var nm_gain: int = _add_score(SimConst.SCORE_NEAR_MISS)

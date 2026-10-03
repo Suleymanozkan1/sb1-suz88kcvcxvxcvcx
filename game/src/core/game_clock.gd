@@ -10,10 +10,6 @@ func set_fixed_unix(unix_seconds: int) -> void:
 	_fixed_unix = unix_seconds
 
 
-func clear_fixed() -> void:
-	_fixed_unix = -1
-
-
 func now_unix() -> int:
 	if _fixed_unix >= 0:
 		return _fixed_unix

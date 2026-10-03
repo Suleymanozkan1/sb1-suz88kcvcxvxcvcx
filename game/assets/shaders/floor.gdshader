@@ -52,15 +52,17 @@ void fragment() {
 	// Panel seams across the track every seam_spacing units (speed cue).
 	float seam = aa_line(fract(dist / seam_spacing) - 0.5, 0.004 * seam_spacing) * on_track;
 	col *= 1.0 - seam * 0.16;
-	ALBEDO = col;
-	ROUGHNESS = 0.82 - groove * 0.2;
-	METALLIC = 0.18;
-	SPECULAR = 0.4;
+	// Underwater worlds: drifting caustic light on the panels. It is painted
+	// into the albedo, so it is lit by the scene and never glows.
 	if (caustics > 0.0) {
 		vec2 p = vec2(x * 1.3, dist * 0.9);
 		float c1 = sin(p.x * 2.1 + TIME * 1.1 + sin(p.y * 1.7 + TIME * 0.7));
 		float c2 = sin(p.y * 2.3 - TIME * 0.9 + sin(p.x * 1.9 - TIME * 0.6));
 		float caustic = pow(max(0.0, c1 * c2), 3.0);
-		EMISSION = caustic_color.rgb * caustic * caustics;
+		col = mix(col, caustic_color.rgb, caustic * caustics);
 	}
+	ALBEDO = col;
+	ROUGHNESS = 0.82 - groove * 0.2;
+	METALLIC = 0.18;
+	SPECULAR = 0.4;
 }

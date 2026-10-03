@@ -150,11 +150,18 @@ jobs:
           mv /tmp/tpl/templates/* "$TPL/"
       - name: Export Xcode project (signing is configured by the release team)
         working-directory: game
+        env:
+          # Godot refuses to export without a team ID. The release team ID comes
+          # from the IOS_TEAM_ID secret; without it a non-signing ID is used,
+          # which is enough for the unsigned simulator build below.
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
           GODOT=/tmp/godot/Godot.app/Contents/MacOS/Godot
+          TEAM="${IOS_TEAM_ID:-ABCDE12345}"
+          sed -i '' "s/^application\/app_store_team_id=\"\"/application\/app_store_team_id=\"${TEAM}\"/" export_presets.cfg
           mkdir -p build/ios
           $GODOT --headless --path . --import
-          $GODOT --headless --path . --export-release "iOS" build/ios/FluxDrop.ipa
+          $GODOT --headless --path . --export-debug "iOS" build/ios/FluxDrop.ipa
           ls -la build/ios
       - name: Compile for the simulator without signing
         working-directory: game/build/ios

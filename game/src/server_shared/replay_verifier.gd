@@ -46,6 +46,9 @@ const REASON_NOT_FINISHED: String = "run_not_finished"
 const REASON_SCORE_MISMATCH: String = "score_mismatch"
 
 const CLAIM_UNKNOWN_TYPE: String = "unknown_claim_type"
+## Highest economy multiplier a tuning snapshot can set (RewardEngine.scaled
+## clamps to the same value).
+const MAX_TUNING_SCALE: float = 4.0
 const CLAIM_INVALID: String = "invalid_claim"
 const CLAIM_INVALID_DELTA: String = "invalid_delta"
 const CLAIM_NEGATIVE_DELTA: String = "negative_delta"
@@ -75,6 +78,13 @@ const MAX_SEED: int = 0xFFFFFFFF
 
 var clock: GameClock
 var config: Dictionary = {}
+
+## The live remote economy tuning the backend runs with (economy.coin_multiplier
+## times any weekend bonus, economy.daily_reward_multiplier): reward-claim
+## bounds scale coins by the same factors. 1.0 = the shipped tables. Set them
+## with [method apply_remote_tuning] from the config the backend serves.
+var coin_scale: float = 1.0
+var daily_scale: float = 1.0
 
 var _cfg: Dictionary = {}
 var _tables: Dictionary = {}
@@ -205,6 +215,24 @@ func tap_rate_ok(tap_ticks: PackedInt32Array) -> bool:
 		if hi - lo + 1 > allowed:
 			return false
 	return true
+
+
+## Sets [member coin_scale] and [member daily_scale] from a remote-config
+## values snapshot (the keys the client reads). The client applies the
+## weekend coin bonus by its own clock at run start, so the bound allows the
+## bonus on every day whenever one is configured: a run started on Sunday and
+## claimed on Monday, or in another time zone, is never refused for it.
+func apply_remote_tuning(values: Dictionary) -> void:
+	var bonus: float = maxf(0.0, _tuning(values, "events.weekend_coin_bonus", 0.0))
+	coin_scale = _tuning(values, "economy.coin_multiplier", 1.0) * (1.0 + bonus)
+	daily_scale = _tuning(values, "economy.daily_reward_multiplier", 1.0)
+
+
+static func _tuning(values: Dictionary, key: String, fallback: float) -> float:
+	var v: Variant = values.get(key, fallback)
+	if not _is_number(v) or is_nan(float(v)) or is_inf(float(v)):
+		return fallback
+	return clampf(float(v), 0.0, MAX_TUNING_SCALE)
 
 
 ## Plausibility of a reward claim. [param claim]: {"type": "daily"|"level",
@@ -469,7 +497,7 @@ func _check_level_deltas(
 	var ceiling: Dictionary = RewardEngine.level_reward_ceiling(
 		_tables, str(data.get("tier", "")), str(data.get("kind", "normal")), first_clear
 	)
-	_check_against(raw as Dictionary, ceiling, "%s reward" % level_id, out)
+	_check_against(raw as Dictionary, ceiling, coin_scale, "%s reward" % level_id, out)
 
 
 ## A daily reward is the streak table's reward for the tier the history
@@ -480,18 +508,24 @@ func _check_tier_deltas(raw: Variant, tier: int, out: Verdict) -> void:
 		return
 	if _tables.is_empty():
 		_tables = RewardEngine.load_tables()
-	_check_against(raw as Dictionary, RewardEngine.daily_tier_reward(_tables, tier), "tier %d daily reward" % tier, out)
+	_check_against(
+		raw as Dictionary, RewardEngine.daily_tier_reward(_tables, tier), daily_scale, "tier %d daily reward" % tier, out
+	)
 
 
-## Rejects deltas above [param reward] (coins and gems may be doubled by the
-## optional rewarded ad, XP never).
-func _check_against(deltas: Dictionary, reward: Dictionary, what: String, out: Verdict) -> void:
+## Rejects deltas above [param reward] (coins scaled by [param scale] like
+## the client's remote tuning; coins and gems may be doubled by the optional
+## rewarded ad, XP never).
+func _check_against(deltas: Dictionary, reward: Dictionary, scale: float, what: String, out: Verdict) -> void:
 	var doubled: Array = _array(_dict(_tables.get("ad_double", {})).get("types", []))
 	for k: Variant in deltas:
 		var currency: String = str(k)
 		if not _is_whole(deltas[k]):
 			continue
-		var limit: int = int(reward.get(currency, 0)) * (2 if doubled.has(currency) else 1)
+		var base: int = int(reward.get(currency, 0))
+		if currency == "coins":
+			base = RewardEngine.scaled(base, scale)
+		var limit: int = base * (2 if doubled.has(currency) else 1)
 		if int(deltas[k]) > limit:
 			out.reject(
 				CLAIM_IMPOSSIBLE_DELTA, "%s delta %d above the %s (%d)" % [currency, int(deltas[k]), what, limit]

@@ -10,6 +10,11 @@ signal booted
 const SAVE_INTERVAL: float = 1.5
 const ANALYTICS_FILE: String = "user://analytics/events.jsonl"
 const REMOTE_CACHE: String = "user://remote_config.json"
+## 1970-01-01 (day 0) was a Thursday; weekdays count from Sunday = 0.
+const EPOCH_WEEKDAY: int = 4
+const DAYS_PER_WEEK: int = 7
+const SATURDAY: int = 6
+const SUNDAY: int = 0
 const DEFAULT_PLAYER_NAME: String = "You"
 
 var bus: EventBus
@@ -140,6 +145,9 @@ func _boot_platform() -> void:
 		RemoteConfig.load_defaults(), RemoteConfig.file_reader(REMOTE_CACHE), RemoteConfig.file_writer(REMOTE_CACHE)
 	)
 	remote_config.load_cache()
+	_apply_remote_tuning()
+	remote_config.applied.connect(func(_keys: PackedStringArray) -> void: _apply_remote_tuning())
+	bus.run_started.connect(func(_level: String, _mode: StringName) -> void: _apply_remote_tuning())
 	transport = HttpTransport.new()
 	transport.name = "HttpTransport"
 	add_child(transport)
@@ -358,6 +366,7 @@ func mode_progress() -> Dictionary:
 		"perfects": profile.stat("unique_perfects"),
 		"bosses_cleared": distinct_bosses,
 		"worlds_cleared": profile.stat("worlds_completed"),
+		"stars": progression.total_stars(),
 	}
 
 
@@ -378,6 +387,18 @@ func _process(delta: float) -> void:
 	if _save_left <= 0.0 and not hold_autosave:
 		_save_left = SAVE_INTERVAL
 		save.flush_if_dirty(profile)
+
+
+## Remote economy tuning: coin multiplier (times the weekend event bonus on
+## UTC Saturdays and Sundays) and daily reward multiplier. Recomputed at boot,
+## when a config snapshot arrives and at every run start (the weekend begins
+## and ends at midnight).
+func _apply_remote_tuning() -> void:
+	var weekday: int = posmod(clock.day_number() + EPOCH_WEEKDAY, DAYS_PER_WEEK)
+	var weekend: bool = weekday == SATURDAY or weekday == SUNDAY
+	var bonus: float = remote_config.get_float("events.weekend_coin_bonus", 0.0) if weekend else 0.0
+	rewards.coin_scale = remote_config.get_float("economy.coin_multiplier", 1.0) * (1.0 + bonus)
+	rewards.daily_scale = remote_config.get_float("economy.daily_reward_multiplier", 1.0)
 
 
 ## Wallet/ledger consistency (after load and after every run). Detection

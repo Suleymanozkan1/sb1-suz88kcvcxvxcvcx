@@ -74,8 +74,11 @@ LeaderboardService(local + optional http), AdsService(NullAdProvider), StoreServ
 NotificationService(NullNotificationProvider), HapticsService, AudioService(node), QualityService
 ```
 
-Saves are debounced (any persisted fact marks the save dirty; flush every 1.5 s) and forced on
-application pause, focus loss and close. Tests and tools build their own isolated graph
+Saves are debounced (any persisted fact marks the save dirty; flush every 1.5 s, held while a run is
+being played so a save never hitches gameplay) and forced on application pause, focus loss and close.
+Remote economy tuning (coin/daily multipliers, weekend event bonus) is applied to the `RewardEngine` at
+boot, on every config snapshot and at each run start. `IntegrityMonitor.check()` runs after load and
+after every run. Tests and tools build their own isolated graph
 (`auto_boot = false`, `boot(MemorySaveStorage, fixed GameClock)`); the autoload only boots for the real
 game.
 
@@ -86,7 +89,10 @@ game.
 screen + a stack of overlays, only the top overlay visible, Android back/Escape routed to the top
 screen) and the `GameStateMachine` (BOOT, MAIN_MENU, WORLD_SELECT, LEVEL_SELECT, MODES, COUNTDOWN,
 PLAYING, PAUSED, FAILED, COMPLETE, REWARD, SHOP, COLLECTION, SETTINGS, DAILY, PROGRESS, ENDLESS;
-illegal transitions are rejected and logged).
+illegal transitions are rejected and logged; streamed courses enter through ENDLESS). A pending
+failed run (revive still on offer) is applied when the app is backgrounded or closed. Changing language
+marks every built screen stale; each is rebuilt in the new language on its next show. Entering a
+different world passes through a short ink veil.
 
 The main menu shows a live attract run (the next level played by its stored solution) behind the UI.
 `RunController.prepare(mode, level)` turns a request into level data + sim modifiers (campaign, daily,
@@ -105,7 +111,14 @@ granted, cosmetic unlocks) which GameFlow shows after the result sequence.
   camera spring rig, post effects driven by budgets. It emits `feedback(kind, strength, pitch_step)`
   which GameFlow fans out to audio and haptics.
 * Quality presets (Low/Medium/High/Ultra + battery saver + automatic downgrade from a frame monitor)
-  set render scale, MSAA, post FX, particle scale, trail length, dynamic light and shadows.
+  set render scale, MSAA and fps cap (re-applied on every automatic step), post FX, glow, ambient
+  particles, particle scale, trail length, dynamic light and shadows. Reduce Motion scales camera
+  shake, lean and FOV kicks; Colour-blind adds shape markers to phase gates and phase-B sparks.
+* Cosmetics: skins and trails drive the core shader and ribbon; particle, effect and background items
+  drive burst colours/sizes, fail/perfect colours, shockwave strength and the sky; UI themes recolour
+  the shared Theme; avatar, frame and badge form the `ProfileEmblem`.
+* `AsyncLoader` (threaded `ResourceLoader`) prefetches the next world's music loops from the menu and
+  the level select; `SoundBank` takes the prefetched stream instead of loading on the main thread.
 
 ## 5. Persistence and integrity
 
@@ -121,8 +134,13 @@ Leaderboard submissions carry the replay. `ReplayVerifier` (shared with `game/se
 re-simulates with the mode's sim modifiers from `ModeCatalog` (single source of truth for client and
 server), rebuilds daily levels from the date and streamed courses from their seed, and rejects score
 mismatches, impossible tap rates, sim-version mismatches, wrong level kinds for the mode, stale dailies
-and incomplete runs. Offline submissions are queued (bounded) and flushed on reconnect. No hosted
-backend ships with this build; the HTTP backend is enabled by a remote-config URL.
+and incomplete runs. The server CLI refuses unranked modes, unofficial weekly seeds and over-long
+streams before rebuilding a course. Reward claims are bounded by the real daily-tier or level reward
+(scaled like the client's remote tuning) and need one verified run each. Offline submissions are queued
+(bounded, persisted) and flushed at boot, on reconnect and after any successful server answer; a 2xx
+without an explicit verdict is retried, never counted as accepted. Submissions carry the
+IntegrityMonitor codes for review. No hosted backend ships with this build; the HTTP backend is enabled
+by a remote-config URL (host-checked: no credentials or ?/# tricks before the path).
 
 ## 7. Error handling and observability
 
@@ -134,7 +152,7 @@ platform) and drops forbidden parameters. Remote config is typed, clamped and ca
 ## 8. Testing and CI
 
 `game/tests/run_tests.gd` discovers `test_*.gd` under `tests/unit` and `tests/integration`, awaits
-async tests and fails a test whose body hits a script error. 680+ tests cover the sim rules and
+async tests and fails a test whose body hits a script error. 730+ tests cover the sim rules and
 determinism, level pipeline (generator determinism, validator detection, solver), every system module,
 save corruption/recovery/migration, economy invariants, the replay verifier (genuine, tampered,
 streamed), the app flow end to end (boot, first clear, failed run, daily once-only rewards, endless,

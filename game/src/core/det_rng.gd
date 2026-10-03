@@ -27,10 +27,6 @@ func set_seed(seed_value: int) -> void:
 		next_u32()
 
 
-func get_state() -> int:
-	return _state
-
-
 func next_u32() -> int:
 	var s: int = _state
 	s ^= (s << 13) & MASK32
@@ -102,7 +98,3 @@ static func hash_string(text: String) -> int:
 		h ^= byte
 		h = (h * FNV_PRIME) & MASK32
 	return h
-
-
-static func combine(a: int, b: int) -> int:
-	return hash_string("%d:%d" % [a & MASK32, b & MASK32])

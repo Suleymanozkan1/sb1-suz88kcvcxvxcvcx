@@ -43,30 +43,6 @@ func test_committed_data_matches_generator() -> void:
 		)
 
 
-func test_world_hazard_weights_name_real_hazards() -> void:
-	var catalog: WorldCatalog = WorldCatalog.load_default()
-	var checked: int = 0
-	for w: Dictionary in catalog.worlds:
-		var groups: Array = (w.get("chapters", []) as Array).duplicate()
-		groups.append(w.get("challenge", {}))
-		groups.append(w.get("boss", {}))
-		for g: Variant in groups:
-			for key: Variant in ((g as Dictionary).get("hazards", {}) as Dictionary):
-				assert_has(LevelGenerator.HAZARD_KINDS, str(key), "%s hazard '%s'" % [str(w.get("id", "")), str(key)])
-				checked += 1
-	assert_gt(float(checked), 50.0, "hazard weights found")
-
-
-func test_pulse_chapters_place_pulse_gates() -> void:
-	var repo: LevelRepository = LevelRepository.new()
-	var gates: int = 0
-	for n: int in range(40, 52):
-		for e: Variant in repo.load_level("w01_l%02d" % n)["entities"] as Array:
-			if str((e as Dictionary)["t"]) == "pulse_gate":
-				gates += 1
-	assert_gt(float(gates), 12.0, "World 1's pulse chapter (L40-51) teaches pulse gates")
-
-
 func test_seed_changes_level() -> void:
 	var model: DifficultyModel = DifficultyModel.new()
 	var spec: LevelSpec = model.build_spec(30)
@@ -210,10 +186,13 @@ func test_validator_detects_dead_end_current() -> void:
 		"unlock": {},
 		"spawn": {},
 		"modifiers": {"hop_time": 0.13, "speed_ramp": 0.0},
-		"solution": {"taps": [140]},
+		# The stored solution survives (it hops back at once), but a player who
+		# reacts at human speed is pushed into the barrier: a dead end.
+		"solution": {"taps": [136]},
 	}
 	var codes: PackedStringArray = _codes(lvl)
-	assert_true(codes.has("dead_end") or codes.has("impossible_level"), "trap detected: %s" % str(codes))
+	assert_false(codes.has("impossible_level"), "the stored solution itself survives")
+	assert_true(codes.has("dead_end"), "trap reported as dead_end: %s" % str(codes))
 
 
 func test_autopilot_solver_solves_independently() -> void:

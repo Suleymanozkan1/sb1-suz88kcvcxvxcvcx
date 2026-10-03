@@ -113,15 +113,6 @@ func current_locale() -> String:
 	return _locale
 
 
-## Locales that have a table, sorted.
-func locales() -> PackedStringArray:
-	var out: PackedStringArray = PackedStringArray()
-	for locale: String in _tables:
-		out.append(locale)
-	out.sort()
-	return out
-
-
 ## All keys of [param locale], sorted.
 func keys(locale: String) -> PackedStringArray:
 	var out: PackedStringArray = PackedStringArray()

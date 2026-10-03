@@ -18,7 +18,7 @@ Everything in this document is implemented. Data lives in `game/data/`; numbers 
 4. Reach the finish arch → stars land, score and rewards count up → **NEXT LEVEL** is the primary button.
 5. Fail → the fail card shows how far you got and a specific tip → **PLAY AGAIN** is instant (no scene reload).
 
-A typical early level lasts 8–15 s, late levels 30–60 s, specials up to ~2 minutes.
+A typical early level lasts 8–15 s, late levels 30–60 s; specials (mid-world challenges and bosses) 60–120 s.
 
 ## 2. Controls and forms
 
@@ -40,7 +40,8 @@ announced by a form gate, a morph animation, a HUD hint (`TAP = …`) and a dist
 `shield` (absorbs one hit), `magnet` (pulls sparks for 4 s).
 
 Collisions: with a shield the hit consumes it (brief invulnerability); without one the run fails.
-Near misses (passing within 0.34 m of a hazard) score and build combo.
+Near misses — a last-moment dodge that brings the core within 0.6 m of a hazard at any point of the
+pass (about 50 ms before it would have hit) — score and build combo. Riding the next lane is never one.
 
 ## 4. Scoring, combo, grades and stars
 
@@ -85,7 +86,7 @@ All modes run the same deterministic simulation with different rules (`data/mode
 |---|---|---|---|
 | Classic | campaign levels, stars, rewards | always | all-time per mode + per level |
 | Endless | seeded infinite course, weekly seed (everyone races the same course) | 10 levels | weekly |
-| Time Attack | 60 s on a fast streamed course, no shields, highest score | 20 levels | weekly |
+| Time Attack | 60 s on a fast streamed course, no shields, highest score | 60 stars | weekly |
 | Daily | one generated level per UTC day, same for everyone | 3 levels | daily |
 | Perfect Run | any campaign level; a missed spark or a hit ends the run | 5 perfects | all-time |
 | Zen | never fails, slower, no score pressure, no boards | always | — |
@@ -99,9 +100,18 @@ All modes run the same deterministic simulation with different rules (`data/mode
 * **Coins** come only from play (first clears, new stars, missions, achievements, daily streak). Replays
   give a small floor so farming has no spikes. **Gems** are rare (first perfects, achievements, high
   streak tiers).
-* Currency buys **cosmetics only**: 112 items in 9 categories — core skins (19, ten distinct animated
-  shader styles), trails (12, eight styles), collect bursts (9), fail/perfect effects (9), skies (10),
-  UI themes (8), avatar frames (10), avatars (14 geometric glyphs) and badges (21, earned only).
+* Currency buys **cosmetics only**: 112 items in 9 categories, and every category changes something
+  the player sees (the shop states it before purchase): core skins (19, ten distinct animated shader
+  styles), trails (12, eight styles), bursts (9: colour and size of neutral-spark, prism and near-miss
+  bursts — phase colours stay information), fail/perfect effects (9: fail flash, perfect burst,
+  shockwave strength), skies (10: replace the world sky), UI themes (8: buttons, meters, panels),
+  avatar frames (10), avatars (14 geometric glyphs) and badges (21, earned only) — the last three form
+  the profile emblem on the menu and Progress. Default items keep the art direction's palette.
+* Live tuning without a release: remote config `economy.coin_multiplier`,
+  `economy.daily_reward_multiplier` and `events.weekend_coin_bonus` (UTC Saturday/Sunday) scale coin
+  rewards; the server's reward-claim bounds use the same factors. Difficulty is tuned through
+  `data/difficulty/curve.json` and the generator (levels are validated content, so speed is never
+  changed under a shipped level at runtime).
 * Optional store packs (`data/store/products.json`) contain cosmetics only; a test enforces that no
   product contains currency or gameplay items. This build ships with a null store provider, which
   says honestly that the store is unavailable.
@@ -111,7 +121,10 @@ All modes run the same deterministic simulation with different rules (`data/mode
 
 * **Daily**: one level per UTC date generated from the date seed (difficulty follows the weekday,
   Monday easiest); first completion rewards a streak tier 1–7. Missing a day lowers the tier by one step —
-  it never resets to zero. The reset countdown shows the real UTC reset.
+  it never resets to zero. The reset countdown shows the real UTC reset. The challenge can be paused
+  remotely (`daily.enabled`); missions stay available and the screen says why.
+* **Bonus chest**: once per UTC day on the Daily screen, fixed contents (`reward_tables.json`), offered
+  only when a rewarded ad can really play; watching is never required.
 * **Missions**: 3 daily + 3 weekly picked deterministically per period from 15 + 13 templates; progress
   is measured from real stats; rewards are claimed explicitly; unclaimed missions simply expire.
 * **Achievements**: 82 (progress, skill, combo, collection, daily, boss, mastery, secret), each with a
@@ -119,31 +132,38 @@ All modes run the same deterministic simulation with different rules (`data/mode
 
 ## 9. Leaderboards and anti-cheat
 
-Boards: daily, weekly per mode, all-time per mode, per level (classic). Offline, the game records the
+Boards: daily, weekly per mode, all-time per mode, per level (classic); streamed courses (endless,
+time attack) rank only on the weekly board of the week whose official seed built them. Offline, the game records the
 player's own bests locally and queues submissions; it never shows invented players. A run is submitted
 as a replay (tap ticks + level id + mode + sim version). The server verifier (`game/server/`) re-simulates
 the replay with the same code and rejects score mismatches, impossible tap rates, wrong versions, stale
-dailies and incomplete runs. Streamed courses are rebuilt from their seed for verification. No hosted
-backend is part of this build (see `game/server/README.md`).
+dailies and incomplete runs. Streamed courses are rebuilt from their seed for verification (after
+cheap seed/mode/length checks). Server-side reward claims are bounded by what the content really pays,
+one claim per verified run. Wallet/ledger anomalies (IntegrityMonitor) are reported once per session as
+analytics and sent with submissions for review — never punished on the device. No hosted backend is
+part of this build (see `game/server/README.md`).
 
 ## 10. Feel: juice with a budget
 
 Feedback is layered by importance (see `ART_DIRECTION.md` §8–9): hit-stop and slow motion only on
 meaningful events, camera shake capped, chromatic aberration only on fail and Overdrive, collect bursts
-pooled. Audio: procedural SFX bank (31 sounds), combo pitch steps, music intensity stem driven by combo,
-boss loops, stingers for complete/perfect. Haptics: per-event patterns with a 40 ms global floor and
+pooled. Audio: procedural SFX bank (31 sounds), combo pitch steps, music intensity stem that follows the
+live combo (and drops on a break), boss loops for bosses and mid-world challenges, stingers for
+complete/perfect; the floor's lane lips breathe with the music beat; the next world's music loads in the
+background. Haptics: per-event patterns with a 40 ms global floor and
 per-kind rate limits; battery saver halves amplitude. Reduce Motion and Colour-blind options are in
 Settings.
 
 ## 11. Tutorial (≤ 20 s)
 
-Levels 1–3 teach hop with a pulsing tap hint placed exactly on the stored solution's tap ticks, then
-fade it out; levels 4–5 confirm without hints. The first hit in tutorial levels is forgiven. Every new
+Levels 1–5 (tutorial-flagged) teach hop with a pulsing tap hint placed exactly on the stored
+solution's tap ticks. The first hit in levels 1–3 is forgiven. Every new
 form is introduced by a form gate with a one-line HUD hint (`TAP = SWITCH COLOUR`).
 
 ## 12. Ethics
 
 No dark patterns: no fake urgency (countdowns are real resets), no fake rewards (the UI animates the
 exact bundle granted), interstitial ads only at natural breaks with a frequency cap and never during
-the tutorial or after any purchase, rewarded ads always optional (revive, double), notifications opt-in
+the tutorial or after any purchase, rewarded ads always optional (revive, double, bonus chest),
+nothing covers PLAY AGAIN after a fail, notifications opt-in
 with neutral copy, analytics opt-in and free of personal data.

@@ -6,7 +6,8 @@ extends RefCounted
 ## run exactly. Leaderboard / daily submissions carry a replay so the server can
 ## re-simulate and compute the authoritative score (see server/verify_replay.gd).
 
-const SIM_VERSION: int = 1
+## 2: near misses judged by the closest approach over a whole hazard pass.
+const SIM_VERSION: int = 2
 ## A human cannot produce two distinct taps less than this many ticks apart.
 const MIN_TAP_GAP_TICKS: int = 2
 ## Human tap-rate ceiling shared by the client queue and the server verifier
