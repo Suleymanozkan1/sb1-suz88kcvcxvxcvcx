@@ -64,6 +64,33 @@ func test_v0_hostile_values_are_neutralized() -> void:
 	assert_empty(weird["levels"])
 
 
+func test_v0_level_ids_are_trimmed_and_merged() -> void:
+	var legacy: Dictionary = {
+		"coins": 5,
+		"stars": {" w01_l01 ": 2, "w01_l01": 1},
+		"best": {"w01_l01 ": 700, "w01_l02": 40},
+	}
+	var levels: Dictionary = SaveMigrations.migrate(legacy, 0)["levels"] as Dictionary
+	assert_eq(levels.size(), 2, "ids that differ only by spaces are one level")
+	var l1: Dictionary = levels["w01_l01"] as Dictionary
+	assert_eq(l1["stars"], 2, "the highest value wins for a duplicated id")
+	assert_eq(l1["best_score"], 700, "a trimmed id still finds its best score")
+	assert_eq((levels["w01_l02"] as Dictionary)["stars"], 0)
+
+
+func test_v0_with_many_levels_keeps_every_level() -> void:
+	var stars: Dictionary = {}
+	var best: Dictionary = {}
+	for i: int in 3000:
+		stars["lvl_%05d" % i] = i % 4
+		best["lvl_%05d" % (i + 1500)] = i
+	var levels: Dictionary = SaveMigrations.migrate({"coins": 1, "stars": stars, "best": best}, 0)["levels"] as Dictionary
+	assert_eq(levels.size(), 4500, "union of both maps")
+	assert_eq((levels["lvl_00003"] as Dictionary)["stars"], 3)
+	assert_eq((levels["lvl_04499"] as Dictionary)["best_score"], 2999)
+	assert_eq(levels.keys()[0], "lvl_00000", "levels are emitted in sorted id order")
+
+
 func test_migrated_payload_builds_a_valid_profile() -> void:
 	var profile: PlayerProfile = PlayerProfile.from_dict(SaveMigrations.migrate(_legacy(), 0))
 	assert_eq(profile.coins, 321)

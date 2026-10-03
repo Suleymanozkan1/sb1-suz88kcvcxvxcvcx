@@ -8,6 +8,10 @@ extends SaveStorage
 ## and stale ones from an interrupted previous session are purged on startup.
 
 const DEFAULT_DIR: String = "user://save"
+## Entries larger than this read as unreadable instead of being loaded into
+## memory, so a runaway or hostile file cannot crash every launch; the caller
+## then sets it aside like any other damaged entry.
+const MAX_ENTRY_BYTES: int = 32 * 1024 * 1024
 
 var _base_dir: String = DEFAULT_DIR
 
@@ -22,14 +26,26 @@ func _init(base_dir: String = DEFAULT_DIR) -> void:
 		_purge_stale_temp_files()
 
 
-## Returns the entry's text, or "" when it is missing or unreadable.
+## Returns the entry's text, or "" when it is missing, unreadable or larger
+## than [constant MAX_ENTRY_BYTES].
 func read_text(entry_name: String) -> String:
 	if not _is_valid_name(entry_name):
 		return ""
 	var path: String = _path(entry_name)
 	if not _is_file(path):
 		return ""
-	return FileAccess.get_file_as_string(path)
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		GameLog.warn("save", "cannot open %s: %s" % [path, error_string(FileAccess.get_open_error())])
+		return ""
+	var length: int = file.get_length()
+	if length > MAX_ENTRY_BYTES:
+		file.close()
+		GameLog.warn("save", "%s is too large to read (%d bytes)" % [path, length])
+		return ""
+	var text: String = file.get_buffer(length).get_string_from_utf8()
+	file.close()
+	return text
 
 
 ## Writes "<name>.tmp", then renames it over the entry (atomic replace).

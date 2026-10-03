@@ -106,6 +106,18 @@ func test_memory_rejects_unsafe_names() -> void:
 	assert_empty(storage.list_names())
 
 
+func test_names_with_control_characters_are_rejected() -> void:
+	var storage: MemorySaveStorage = MemorySaveStorage.new()
+	var bad_names: Array[String] = [
+		"line\nbreak.json", "tab\there.json", "carriage\r.json",
+		"esc%s.json" % String.chr(0x1B), "del%s.json" % String.chr(SaveStorage.DELETE_CODE),
+	]
+	for bad: String in bad_names:
+		assert_eq(storage.write_text(bad, "x"), ERR_INVALID_PARAMETER, "name %s" % bad.c_escape())
+	assert_empty(storage.list_names())
+	assert_eq(storage.write_text("profile ışık.json", "x"), OK, "printable non-ASCII names stay allowed")
+
+
 func test_file_creates_nested_directory() -> void:
 	var root: String = _unique_dir("nested")
 	var dir_path: String = root.path_join("deeper/save")
@@ -178,6 +190,20 @@ func test_file_purges_stale_temp_on_startup() -> void:
 	var second: FileSaveStorage = FileSaveStorage.new(dir_path)
 	assert_empty(_temp_files(dir_path), "interrupted write purged")
 	assert_eq(second.read_text("profile.json"), "good")
+
+
+func test_file_oversized_entry_reads_as_unreadable() -> void:
+	var dir_path: String = _unique_dir("big")
+	var storage: FileSaveStorage = FileSaveStorage.new(dir_path)
+	# Seeking past the end makes a sparse file, so the test stays fast and small on disk.
+	var file: FileAccess = FileAccess.open(dir_path.path_join("profile.json"), FileAccess.WRITE)
+	file.seek(FileSaveStorage.MAX_ENTRY_BYTES)
+	file.store_8(0)
+	file.close()
+	assert_true(storage.exists("profile.json"))
+	assert_eq(storage.read_text("profile.json"), "", "too large to load into memory")
+	assert_eq(storage.write_text("small.json", "ok"), OK)
+	assert_eq(storage.read_text("small.json"), "ok", "normal entries still read")
 
 
 func test_file_rejects_unsafe_names() -> void:

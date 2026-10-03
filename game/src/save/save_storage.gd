@@ -14,6 +14,10 @@ const TEMP_SUFFIX: String = ".tmp"
 const MAX_NAME_LENGTH: int = 96
 ## Characters that would let a name escape the storage directory.
 const FORBIDDEN_NAME_CHARS: PackedStringArray = ["/", "\\", ":", "*", "?", "\"", "<", ">", "|"]
+## Lowest character code allowed in a name (everything below is a control code).
+const FIRST_PRINTABLE_CODE: int = 0x20
+## The DEL control character, also refused in names.
+const DELETE_CODE: int = 0x7F
 
 
 ## Returns the stored text, or "" when the entry is missing or unreadable.
@@ -46,8 +50,8 @@ func list_names() -> PackedStringArray:
 	return PackedStringArray()
 
 
-## Shared name rule for every implementation: a plain, short file name that
-## cannot traverse directories or collide with a temp entry.
+## Shared name rule for every implementation: a plain, short, printable file
+## name that cannot traverse directories or collide with a temp entry.
 func _is_valid_name(entry_name: String) -> bool:
 	if entry_name.is_empty() or entry_name.length() > MAX_NAME_LENGTH:
 		return false
@@ -55,6 +59,10 @@ func _is_valid_name(entry_name: String) -> bool:
 		return false
 	for ch: String in FORBIDDEN_NAME_CHARS:
 		if entry_name.contains(ch):
+			return false
+	for i: int in entry_name.length():
+		var code: int = entry_name.unicode_at(i)
+		if code < FIRST_PRINTABLE_CODE or code == DELETE_CODE:
 			return false
 	return true
 

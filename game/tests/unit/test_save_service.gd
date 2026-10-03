@@ -4,6 +4,26 @@ extends TestCase
 
 const NOW: int = 1790000000
 const I18N_DIR: String = "res://data/i18n/parts"
+## Saves written by this build, byte for byte. The checksum covers the payload
+## as re-serialised by the engine, so if an engine upgrade ever changes how JSON
+## numbers are written, every existing player save would fail verification.
+## These fixtures make such an upgrade fail here first.
+const GOLDEN_V1: String = (
+	'{"checksum":"9d7cae691c447a6c94684c756694443be044600db01b0295c92def4e344840f9",'
+	+ '"format":"fluxdrop-save","payload":{"coins":4321,"created_at":1789990000,'
+	+ '"flags":{"big":123456.789,"note":"Çekirdek ışığı ✦","ratio":0.1,"tiny":0.000125},'
+	+ '"gems":7,"install_id":"0123456789abcdef0123456789abcdef",'
+	+ '"ledger":[{"delta":-50,"reason":"shop"},{"delta":15,"reason":null}],'
+	+ '"levels":{"w01_l01":{"best_score":4200,"best_time":41.25,"perfect":true,"stars":3},'
+	+ '"w03_l12":{"best_score":120,"best_time":63.0,"perfect":false,"stars":1}},'
+	+ '"settings":{"language":"tr","music_volume":0.8,"sfx_volume":0.35}},'
+	+ '"saved_at":1790000000,"version":1}'
+)
+const GOLDEN_V0: String = (
+	'{"checksum":"31a97dc2498d497b43204d9144d7b597ad99b104f11ce61a84808e2d8b38af81",'
+	+ '"format":"fluxdrop-save","payload":{"best":{"w01_l01":5000},"coins":321,'
+	+ '"stars":{"w01_l01":3,"w01_l02":1}},"saved_at":1789999900,"version":0}'
+)
 
 var _clock: GameClock
 var _storage: MemorySaveStorage
@@ -139,6 +159,7 @@ func test_decode_rejects_damaged_inputs() -> void:
 		"truncated": JSON.stringify(good).substr(0, 40),
 		"array root": "[1, 2, 3]",
 		"bare object": "{\"hello\": \"world\"}",
+		"bare legacy object": "{\"coins\": 999999, \"stars\": {\"w01_l01\": 3}, \"best\": {}}",
 	}
 	var variants: Dictionary = {
 		"wrong format": {"format": "another-game"},
@@ -158,6 +179,66 @@ func test_decode_rejects_damaged_inputs() -> void:
 		assert_false(result["ok"] as bool, "%s must be rejected" % label)
 		assert_ne(str(result["error"]), "", "%s has an error message" % label)
 		assert_empty(result["payload"], "%s exposes no payload" % label)
+
+
+func _golden_payload() -> Dictionary:
+	return {
+		"install_id": "0123456789abcdef0123456789abcdef",
+		"created_at": 1789990000,
+		"coins": 4321,
+		"gems": 7,
+		"levels": {
+			"w01_l01": {"stars": 3, "best_score": 4200, "perfect": true, "best_time": 41.25},
+			"w03_l12": {"stars": 1, "best_score": 120, "perfect": false, "best_time": 63.0},
+		},
+		"settings": {"sfx_volume": 0.35, "music_volume": 0.8, "language": "tr"},
+		"flags": {"note": "Çekirdek ışığı ✦", "ratio": 0.1, "tiny": 0.000125, "big": 123456.789},
+		"ledger": [{"delta": -50, "reason": "shop"}, {"delta": 15, "reason": null}],
+	}
+
+
+func test_golden_saves_from_this_build_still_load() -> void:
+	assert_eq(SaveService.encode_payload(_golden_payload(), 1, NOW), GOLDEN_V1, "encoder output is stable")
+	var v1: Dictionary = SaveService.decode(GOLDEN_V1)
+	assert_true(v1["ok"] as bool, "stored v1 save verifies: %s" % str(v1["error"]))
+	var payload: Dictionary = v1["payload"] as Dictionary
+	assert_eq(typeof(payload["coins"]), TYPE_INT)
+	assert_eq(payload["coins"], 4321)
+	assert_eq((payload["flags"] as Dictionary)["note"], "Çekirdek ışığı ✦")
+	assert_near((payload["flags"] as Dictionary)["tiny"] as float, 0.000125, 0.0000001)
+	assert_eq(((payload["ledger"] as Array)[0] as Dictionary)["delta"], -50)
+	assert_eq(((payload["ledger"] as Array)[1] as Dictionary)["reason"], null)
+	_storage.corrupt(SaveService.MAIN, GOLDEN_V1)
+	var p: PlayerProfile = _service.load_profile()
+	assert_eq(_service.last_load_source, SaveService.SOURCE_MAIN)
+	assert_eq(p.coins, 4321)
+	assert_eq(p.stars_for("w01_l01"), 3)
+	assert_near(p.settings["sfx_volume"] as float, 0.35, 0.000001)
+	var v0: Dictionary = SaveService.decode(GOLDEN_V0)
+	assert_true(v0["ok"] as bool, "stored v0 save verifies: %s" % str(v0["error"]))
+	assert_eq(v0["version"], SaveMigrations.LEGACY_VERSION)
+	_storage.corrupt(SaveService.MAIN, GOLDEN_V0)
+	var migrated: PlayerProfile = _make_service(_storage).load_profile()
+	assert_eq(migrated.coins, 321)
+	assert_eq(migrated.total_stars(), 4)
+	assert_empty(_recovered)
+
+
+func test_out_of_range_numbers_are_clamped_the_same_on_every_cpu() -> void:
+	var payload: Dictionary = {"coins": 1e300, "gems": -1e300, "xp": 12.5, "stats": {"runs": 9.0e18}}
+	var result: Dictionary = SaveService.decode(SaveService.encode_payload(payload, SaveService.CURRENT_VERSION, NOW))
+	assert_true(result["ok"] as bool)
+	var loaded: Dictionary = result["payload"] as Dictionary
+	var limit: int = int(SaveService.MAX_EXACT_INT)
+	assert_eq(typeof(loaded["coins"]), TYPE_INT, "no float left for a CPU-specific int conversion")
+	assert_eq(loaded["coins"], limit)
+	assert_eq(loaded["gems"], -limit)
+	assert_eq(typeof(loaded["xp"]), TYPE_FLOAT, "fractions stay floats")
+	assert_eq((loaded["stats"] as Dictionary)["runs"], limit)
+	var p: PlayerProfile = PlayerProfile.from_dict(loaded)
+	assert_eq(p.coins, limit)
+	assert_eq(p.gems, 0)
+	assert_eq(p.stat("runs"), limit)
 
 
 func test_decode_reports_future_version_separately() -> void:

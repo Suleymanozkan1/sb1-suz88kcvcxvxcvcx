@@ -15,6 +15,10 @@ extends RefCounted
 ## [constant FUTURE] (or a numbered slot) and kept. A damaged MAIN is kept as [constant QUARANTINE]
 ## for support instead of being silently discarded.
 ## [br][br]
+## Every file must carry this envelope, including version-0 (legacy shape)
+## saves; a bare object without it is rejected like any other wrong format, so a
+## hand-written file cannot skip the checksum.
+## [br][br]
 ## The checksum detects storage damage and casual edits; it is not a security
 ## boundary (the salt ships with the game), and [method PlayerProfile.from_dict]
 ## still sanitises every loaded value.
@@ -25,6 +29,8 @@ signal saved(bytes: int)
 ## loaded, "new" when save files existed but none was usable.
 signal recovered(source: String)
 
+## Result of inspecting one save slot: absent, loadable, written by a newer
+## game version, or damaged.
 enum Probe { MISSING, VALID, FUTURE, CORRUPT }
 
 const MAIN: String = "profile.json"
@@ -50,7 +56,8 @@ const SOURCE_MIGRATED: String = "migrated"
 const MAX_SAVE_CHARS: int = 16 * 1024 * 1024
 ## Deepest JSON nesting walked when normalising values (guards the call stack).
 const MAX_NESTING: int = 64
-## Integral JSON numbers up to 2^53 are restored as exact ints.
+## Integral JSON numbers up to 2^53 are restored as exact ints; larger
+## magnitudes are clamped to +/-2^53 so every CPU converts them the same way.
 const MAX_EXACT_INT: float = 9007199254740992.0
 ## How JSON.stringify spells +/-infinity; seeing it triggers the slow sanitiser.
 const INFINITY_LITERAL: String = "e99999"
@@ -199,8 +206,8 @@ static func encode_payload(payload: Dictionary, version: int, now_unix: int) -> 
 ## Parses and verifies a save. Returns
 ## [code]{"ok", "payload", "version", "saved_at", "error"}[/code]. A file from a
 ## newer version reports ok=false with its [code]version[/code] set so callers
-## can tell it apart from damage. A bare legacy v0 object (no envelope) is
-## accepted as version 0.
+## can tell it apart from damage. Anything without the checksummed envelope
+## (including a bare legacy object) is rejected.
 static func decode(text: String) -> Dictionary:
 	return _decode(text, true)
 
@@ -219,9 +226,6 @@ static func _decode(text: String, restore_numbers: bool) -> Dictionary:
 		problem = "unparseable JSON (line %d: %s)" % [json.get_error_line(), json.get_error_message()]
 	elif typeof(json.data) != TYPE_DICTIONARY:
 		problem = "save root is not an object"
-	elif _is_legacy_shape(json.data as Dictionary):
-		out["version"] = SaveMigrations.LEGACY_VERSION
-		out["payload"] = json.data
 	else:
 		problem = _read_envelope(json.data as Dictionary, out)
 	out["error"] = problem
@@ -361,14 +365,6 @@ static func _read_envelope(root: Dictionary, out: Dictionary) -> String:
 	return ""
 
 
-## A pre-envelope v0 save: a bare object with numeric coins and a stars map.
-static func _is_legacy_shape(root: Dictionary) -> bool:
-	if root.has("format") or root.has("payload"):
-		return false
-	var coins_type: int = typeof(root.get("coins"))
-	return (coins_type == TYPE_INT or coins_type == TYPE_FLOAT) and typeof(root.get("stars")) == TYPE_DICTIONARY
-
-
 ## SHA-256 hex of [code]JsonIO.canonical(payload) + CHECKSUM_SALT[/code]. The
 ## payload must be in parsed-JSON form (numbers as floats) on both the writing
 ## and the reading side, because ints and integral floats serialise differently.
@@ -419,8 +415,9 @@ static func _json_safe(value: Variant, depth: int) -> Variant:
 
 
 ## Turns parsed JSON numbers back into ints where they are whole (JSON parsing
-## yields floats only) and replaces non-finite numbers with 0. Works in place on
-## freshly parsed containers; scalars are handled inline to keep it fast.
+## yields floats only), clamps out-of-range magnitudes and replaces non-finite
+## numbers with 0. Works in place on freshly parsed containers; scalars are
+## handled inline to keep it fast.
 static func _restore_numbers(container: Variant, depth: int) -> void:
 	if depth > MAX_NESTING:
 		return
@@ -443,7 +440,14 @@ static func _restore_numbers(container: Variant, depth: int) -> void:
 				_restore_numbers(list[i], depth + 1)
 
 
+## One parsed JSON number in profile form: whole values become ints, values
+## beyond +/-2^53 are clamped there (float-to-int conversion of larger values
+## differs between x86 and ARM), fractions stay floats, NaN/infinity become 0.
 static func _number_from_json(f: float) -> Variant:
-	if f == floorf(f) and absf(f) <= MAX_EXACT_INT:
+	if not is_finite(f):
+		return 0.0
+	if absf(f) >= MAX_EXACT_INT:
+		return int(MAX_EXACT_INT) if f > 0.0 else -int(MAX_EXACT_INT)
+	if f == floorf(f):
 		return int(f)
-	return f if is_finite(f) else 0.0
+	return f

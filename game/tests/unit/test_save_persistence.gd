@@ -76,15 +76,16 @@ func test_migrates_enveloped_v0_save() -> void:
 	assert_eq(p.install_id.length(), 32)
 
 
-func test_migrates_bare_legacy_file_and_keeps_it_as_backup() -> void:
-	var legacy_text: String = JSON.stringify({"coins": 77, "stars": {"w01_l01": 2}, "best": {"w01_l01": 999}})
+func test_migrated_save_is_rewritten_and_legacy_kept_as_backup() -> void:
+	var legacy_text: String = SaveService.encode_payload(
+		{"coins": 77, "stars": {"w01_l01": 2}, "best": {"w01_l01": 999}}, SaveMigrations.LEGACY_VERSION, 0)
 	_storage.corrupt(SaveService.MAIN, legacy_text)
 	var service: SaveService = _service()
 	var p: PlayerProfile = service.load_profile()
 	assert_eq(service.last_load_source, SaveService.SOURCE_MIGRATED)
 	assert_eq(p.coins, 77)
 	assert_eq(p.stars_for("w01_l01"), 2)
-	assert_eq(p.created_at, NOW, "no timestamp in the legacy file, so now")
+	assert_eq(p.created_at, NOW, "no usable timestamp in the legacy file, so now")
 	assert_eq(service.flush_if_dirty(p), OK)
 	var main: Dictionary = SaveService.decode(_storage.read_text(SaveService.MAIN))
 	assert_true(main["ok"] as bool)
@@ -93,6 +94,37 @@ func test_migrates_bare_legacy_file_and_keeps_it_as_backup() -> void:
 	var again: SaveService = _service()
 	assert_eq(again.load_profile().coins, 77)
 	assert_eq(again.last_load_source, SaveService.SOURCE_MAIN)
+
+
+func test_bare_legacy_object_without_envelope_is_not_trusted() -> void:
+	var writer: SaveService = SaveService.new(_storage, _clock)
+	assert_eq(writer.save_profile(_profile(100)), OK)
+	assert_eq(writer.save_profile(_profile(200)), OK)
+	# A hand-written legacy-shaped file has no checksum, so it must not load.
+	var bare: String = JSON.stringify({"coins": 99999999, "stars": {"w01_l01": 3}, "best": {"w01_l01": 999}})
+	_storage.corrupt(SaveService.MAIN, bare)
+	var service: SaveService = _service()
+	var p: PlayerProfile = service.load_profile()
+	assert_eq(p.coins, 100, "the checksummed backup is used instead")
+	assert_eq(service.last_load_source, SaveService.SOURCE_BACKUP)
+	assert_eq(_recovered, PackedStringArray([SaveService.SOURCE_BACKUP]))
+	assert_eq(_storage.read_text(SaveService.QUARANTINE), bare, "kept aside for diagnosis")
+
+
+func test_file_storage_sets_aside_an_oversized_main() -> void:
+	var dir_path: String = _unique_dir("huge")
+	var writer: SaveService = SaveService.new(FileSaveStorage.new(dir_path), _clock)
+	assert_eq(writer.save_profile(_profile(100)), OK)
+	assert_eq(writer.save_profile(_profile(200)), OK)
+	var file: FileAccess = FileAccess.open(dir_path.path_join(SaveService.MAIN), FileAccess.WRITE)
+	file.seek(FileSaveStorage.MAX_ENTRY_BYTES)
+	file.store_8(0)
+	file.close()
+	var reader: SaveService = _service(FileSaveStorage.new(dir_path))
+	assert_eq(reader.load_profile().coins, 100, "backup used without reading the huge file")
+	assert_eq(reader.last_load_source, SaveService.SOURCE_BACKUP)
+	assert_true(FileAccess.file_exists(dir_path.path_join(SaveService.QUARANTINE)))
+	assert_false(FileAccess.file_exists(dir_path.path_join(SaveService.MAIN)))
 
 
 func test_file_storage_end_to_end_leaves_no_temp_files() -> void:

@@ -52,18 +52,19 @@ static func _step(data: Dictionary, version: int) -> Dictionary:
 ## v0 kept only coins plus per-level star and best-score maps. A level with
 ## stars was cleared at least once; three stars imply the perfect star.
 static func _v0_to_v1(old: Dictionary) -> Dictionary:
-	var stars: Dictionary = _dict(old.get("stars", {}))
-	var best: Dictionary = _dict(old.get("best", {}))
-	var ids: PackedStringArray = PackedStringArray()
-	for key: Variant in stars.keys() + best.keys():
-		var id: String = str(key).strip_edges()
-		if not id.is_empty() and not ids.has(id):
+	var stars: Dictionary = _by_level_id(old.get("stars", {}))
+	var best: Dictionary = _by_level_id(old.get("best", {}))
+	var ids: Array[String] = []
+	for id: String in stars:
+		ids.append(id)
+	for id: String in best:
+		if not stars.has(id):
 			ids.append(id)
 	ids.sort()
 	var levels: Dictionary = {}
 	for id: String in ids:
-		var level_stars: int = clampi(_int(stars.get(id, 0)), 0, MAX_STARS)
-		var best_score: int = maxi(0, _int(best.get(id, 0)))
+		var level_stars: int = clampi(int(stars.get(id, 0)), 0, MAX_STARS)
+		var best_score: int = maxi(0, int(best.get(id, 0)))
 		var clears: int = 1 if level_stars > 0 else 0
 		var attempts: int = 1 if clears > 0 or best_score > 0 else 0
 		levels[id] = {
@@ -82,8 +83,21 @@ static func _v0_to_v1(old: Dictionary) -> Dictionary:
 	}
 
 
-static func _dict(value: Variant) -> Dictionary:
-	return value as Dictionary if typeof(value) == TYPE_DICTIONARY else {}
+## Legacy {level_id: number} map as trimmed level id -> int. Empty ids are
+## dropped; ids that collide after trimming keep the highest value. Linear in
+## the map size, so a huge or hostile legacy file cannot stall loading.
+static func _by_level_id(value: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if typeof(value) != TYPE_DICTIONARY:
+		return out
+	var source: Dictionary = value as Dictionary
+	for key: Variant in source:
+		var id: String = str(key).strip_edges()
+		if id.is_empty():
+			continue
+		var number: int = _int(source[key])
+		out[id] = maxi(number, int(out[id])) if out.has(id) else number
+	return out
 
 
 static func _int(value: Variant) -> int:
