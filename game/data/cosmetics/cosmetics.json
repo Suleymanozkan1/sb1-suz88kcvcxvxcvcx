@@ -1,0 +1,1873 @@
+{
+	"schema_version": 1,
+	"categories": [
+		"core_skin",
+		"trail",
+		"particle",
+		"background",
+		"theme",
+		"effect",
+		"badge",
+		"frame",
+		"avatar"
+	],
+	"min_per_category": {
+		"core_skin": 14,
+		"trail": 10,
+		"particle": 8,
+		"background": 8,
+		"theme": 6,
+		"effect": 8,
+		"badge": 16,
+		"frame": 8,
+		"avatar": 12
+	},
+	"rarities": [
+		"common",
+		"rare",
+		"epic",
+		"legendary"
+	],
+	"core_styles": [
+		"plasma",
+		"fire",
+		"ice",
+		"void",
+		"crystal",
+		"electric",
+		"molten",
+		"aurora",
+		"candy",
+		"nebula"
+	],
+	"trail_styles": [
+		"solid",
+		"pulses",
+		"sparkle",
+		"flame",
+		"rainbow",
+		"helix",
+		"digital",
+		"ghost"
+	],
+	"frame_patterns": [
+		"plain",
+		"double",
+		"dashed",
+		"dotted",
+		"chevron",
+		"circuit",
+		"laurel",
+		"crown"
+	],
+	"avatar_glyphs": [
+		"orb",
+		"bolt",
+		"triangle",
+		"diamond",
+		"hexagon",
+		"wave",
+		"plus",
+		"star",
+		"eye",
+		"spiral",
+		"moon",
+		"crown",
+		"comet"
+	],
+	"badge_icons": [
+		"spark",
+		"star",
+		"diamond",
+		"flame",
+		"shield",
+		"crown",
+		"sun",
+		"planet",
+		"bolt",
+		"trophy"
+	],
+	"perfect_tiers": [
+		"tutorial",
+		"early",
+		"core_learning",
+		"mechanic_expansion",
+		"combination",
+		"advanced_timing",
+		"expert",
+		"master",
+		"challenge",
+		"endgame"
+	],
+	"ranges": {
+		"core_skin.anim_speed": [
+			0.25,
+			3.0
+		],
+		"particle.size_mult": [
+			0.5,
+			2.0
+		],
+		"particle.count_mult": [
+			0.5,
+			2.0
+		],
+		"background.star_density": [
+			0.0,
+			1.0
+		],
+		"effect.shockwave": [
+			0.0,
+			2.0
+		]
+	},
+	"items": [
+		{
+			"id": "core_plasma",
+			"category": "core_skin",
+			"name_key": "cos.core_plasma.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "default"
+			},
+			"params": {
+				"style": 0,
+				"color_a": "#3df5ff",
+				"color_b": "#ff3dcc",
+				"rim": "#ffffff",
+				"anim_speed": 1.0
+			}
+		},
+		{
+			"id": "core_fire",
+			"category": "core_skin",
+			"name_key": "cos.core_fire.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 400
+			},
+			"params": {
+				"style": 1,
+				"color_a": "#ff7a1a",
+				"color_b": "#ffd23d",
+				"rim": "#fff1c2",
+				"anim_speed": 1.2
+			}
+		},
+		{
+			"id": "core_ice",
+			"category": "core_skin",
+			"name_key": "cos.core_ice.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 400
+			},
+			"params": {
+				"style": 2,
+				"color_a": "#9ef0ff",
+				"color_b": "#3d8bff",
+				"rim": "#e8fbff",
+				"anim_speed": 0.8
+			}
+		},
+		{
+			"id": "core_toxic",
+			"category": "core_skin",
+			"name_key": "cos.core_toxic.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 600
+			},
+			"params": {
+				"style": 0,
+				"color_a": "#7dff3d",
+				"color_b": "#1fffb0",
+				"rim": "#eaffd6",
+				"anim_speed": 1.4
+			}
+		},
+		{
+			"id": "core_void",
+			"category": "core_skin",
+			"name_key": "cos.core_void.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "stars",
+				"value": 90
+			},
+			"params": {
+				"style": 3,
+				"color_a": "#6b2dff",
+				"color_b": "#120624",
+				"rim": "#c48bff",
+				"anim_speed": 0.9
+			}
+		},
+		{
+			"id": "core_crystal",
+			"category": "core_skin",
+			"name_key": "cos.core_crystal.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "coins",
+				"value": 900
+			},
+			"params": {
+				"style": 4,
+				"color_a": "#b8fff4",
+				"color_b": "#ff9cf0",
+				"rim": "#ffffff",
+				"anim_speed": 1.0
+			}
+		},
+		{
+			"id": "core_electric",
+			"category": "core_skin",
+			"name_key": "cos.core_electric.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "player_level",
+				"value": 5
+			},
+			"params": {
+				"style": 5,
+				"color_a": "#e9ff3d",
+				"color_b": "#3dc8ff",
+				"rim": "#ffffff",
+				"anim_speed": 1.6
+			}
+		},
+		{
+			"id": "core_molten",
+			"category": "core_skin",
+			"name_key": "cos.core_molten.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "coins",
+				"value": 1200
+			},
+			"params": {
+				"style": 6,
+				"color_a": "#ff3d1f",
+				"color_b": "#ffb03d",
+				"rim": "#ffd9a0",
+				"anim_speed": 0.7
+			}
+		},
+		{
+			"id": "core_frostbite",
+			"category": "core_skin",
+			"name_key": "cos.core_frostbite.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "player_level",
+				"value": 9
+			},
+			"params": {
+				"style": 2,
+				"color_a": "#d6f5ff",
+				"color_b": "#7a5cff",
+				"rim": "#ffffff",
+				"anim_speed": 1.3
+			}
+		},
+		{
+			"id": "core_aurora",
+			"category": "core_skin",
+			"name_key": "cos.core_aurora.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "stars",
+				"value": 300
+			},
+			"params": {
+				"style": 7,
+				"color_a": "#3dffa8",
+				"color_b": "#8b5cff",
+				"rim": "#d6fff0",
+				"anim_speed": 0.9
+			}
+		},
+		{
+			"id": "core_candy",
+			"category": "core_skin",
+			"name_key": "cos.core_candy.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "coins",
+				"value": 1500
+			},
+			"params": {
+				"style": 8,
+				"color_a": "#ff6fb5",
+				"color_b": "#fff0f7",
+				"rim": "#ffffff",
+				"anim_speed": 1.1
+			}
+		},
+		{
+			"id": "core_nebula",
+			"category": "core_skin",
+			"name_key": "cos.core_nebula.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "gems",
+				"value": 40
+			},
+			"params": {
+				"style": 9,
+				"color_a": "#8a3dff",
+				"color_b": "#ff3d8b",
+				"rim": "#ffd6f5",
+				"anim_speed": 0.6
+			}
+		},
+		{
+			"id": "core_solar",
+			"category": "core_skin",
+			"name_key": "cos.core_solar.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "perfects",
+				"value": 50
+			},
+			"params": {
+				"style": 1,
+				"color_a": "#ffd23d",
+				"color_b": "#ff5e1a",
+				"rim": "#ffffff",
+				"anim_speed": 1.5
+			}
+		},
+		{
+			"id": "core_shadow",
+			"category": "core_skin",
+			"name_key": "cos.core_shadow.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "achievement",
+				"value": "boss_10"
+			},
+			"params": {
+				"style": 3,
+				"color_a": "#ff1f4b",
+				"color_b": "#05010a",
+				"rim": "#ff7a8e",
+				"anim_speed": 1.2
+			}
+		},
+		{
+			"id": "core_prism",
+			"category": "core_skin",
+			"name_key": "cos.core_prism.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "stars",
+				"value": 900
+			},
+			"params": {
+				"style": 7,
+				"color_a": "#ff3d3d",
+				"color_b": "#3dffd2",
+				"rim": "#ffffff",
+				"anim_speed": 1.4
+			}
+		},
+		{
+			"id": "core_neon_pulse",
+			"category": "core_skin",
+			"name_key": "cos.core_neon_pulse.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"style": 5,
+				"color_a": "#ff3df5",
+				"color_b": "#3dfff2",
+				"rim": "#ffffff",
+				"anim_speed": 2.0
+			}
+		},
+		{
+			"id": "core_inferno",
+			"category": "core_skin",
+			"name_key": "cos.core_inferno.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"style": 6,
+				"color_a": "#ff2a00",
+				"color_b": "#ffe03d",
+				"rim": "#ffffff",
+				"anim_speed": 1.3
+			}
+		},
+		{
+			"id": "core_deep_space",
+			"category": "core_skin",
+			"name_key": "cos.core_deep_space.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"style": 9,
+				"color_a": "#1f3dff",
+				"color_b": "#b03dff",
+				"rim": "#9ee8ff",
+				"anim_speed": 0.8
+			}
+		},
+		{
+			"id": "core_starlight",
+			"category": "core_skin",
+			"name_key": "cos.core_starlight.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"style": 4,
+				"color_a": "#fff7d6",
+				"color_b": "#9ec8ff",
+				"rim": "#ffffff",
+				"anim_speed": 1.2
+			}
+		},
+		{
+			"id": "trail_classic",
+			"category": "trail",
+			"name_key": "cos.trail_classic.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "default"
+			},
+			"params": {
+				"style": 0,
+				"head": "#3df5ff",
+				"tail": "#ff3dcc"
+			}
+		},
+		{
+			"id": "trail_pulse",
+			"category": "trail",
+			"name_key": "cos.trail_pulse.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 350
+			},
+			"params": {
+				"style": 1,
+				"head": "#3dc8ff",
+				"tail": "#3dffa8"
+			}
+		},
+		{
+			"id": "trail_sparkle",
+			"category": "trail",
+			"name_key": "cos.trail_sparkle.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 500
+			},
+			"params": {
+				"style": 2,
+				"head": "#fff7d6",
+				"tail": "#ffd23d"
+			}
+		},
+		{
+			"id": "trail_flame",
+			"category": "trail",
+			"name_key": "cos.trail_flame.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "coins",
+				"value": 800
+			},
+			"params": {
+				"style": 3,
+				"head": "#ffd23d",
+				"tail": "#ff3d1f"
+			}
+		},
+		{
+			"id": "trail_rainbow",
+			"category": "trail",
+			"name_key": "cos.trail_rainbow.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "stars",
+				"value": 180
+			},
+			"params": {
+				"style": 4,
+				"head": "#ff3d3d",
+				"tail": "#3d8bff"
+			}
+		},
+		{
+			"id": "trail_helix",
+			"category": "trail",
+			"name_key": "cos.trail_helix.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "player_level",
+				"value": 6
+			},
+			"params": {
+				"style": 5,
+				"head": "#b03dff",
+				"tail": "#3df5ff"
+			}
+		},
+		{
+			"id": "trail_digital",
+			"category": "trail",
+			"name_key": "cos.trail_digital.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "coins",
+				"value": 1100
+			},
+			"params": {
+				"style": 6,
+				"head": "#3dff6f",
+				"tail": "#0a7a2a"
+			}
+		},
+		{
+			"id": "trail_ghost",
+			"category": "trail",
+			"name_key": "cos.trail_ghost.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "perfects",
+				"value": 25
+			},
+			"params": {
+				"style": 7,
+				"head": "#e8f0ff",
+				"tail": "#6b7aa8"
+			}
+		},
+		{
+			"id": "trail_comet",
+			"category": "trail",
+			"name_key": "cos.trail_comet.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "gems",
+				"value": 15
+			},
+			"params": {
+				"style": 0,
+				"head": "#ffffff",
+				"tail": "#3d8bff"
+			}
+		},
+		{
+			"id": "trail_neon_pulse",
+			"category": "trail",
+			"name_key": "cos.trail_neon_pulse.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"style": 1,
+				"head": "#ff3df5",
+				"tail": "#3dfff2"
+			}
+		},
+		{
+			"id": "trail_inferno",
+			"category": "trail",
+			"name_key": "cos.trail_inferno.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"style": 3,
+				"head": "#ffe03d",
+				"tail": "#ff2a00"
+			}
+		},
+		{
+			"id": "trail_starlight",
+			"category": "trail",
+			"name_key": "cos.trail_starlight.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"style": 2,
+				"head": "#ffffff",
+				"tail": "#9ec8ff"
+			}
+		},
+		{
+			"id": "particle_classic",
+			"category": "particle",
+			"name_key": "cos.particle_classic.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "default"
+			},
+			"params": {
+				"colors": [
+					"#3df5ff",
+					"#ff3dcc",
+					"#ffffff"
+				],
+				"size_mult": 1.0,
+				"count_mult": 1.0
+			}
+		},
+		{
+			"id": "particle_embers",
+			"category": "particle",
+			"name_key": "cos.particle_embers.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 300
+			},
+			"params": {
+				"colors": [
+					"#ff7a1a",
+					"#ffd23d",
+					"#ff3d1f"
+				],
+				"size_mult": 0.9,
+				"count_mult": 1.3
+			}
+		},
+		{
+			"id": "particle_frost",
+			"category": "particle",
+			"name_key": "cos.particle_frost.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 450
+			},
+			"params": {
+				"colors": [
+					"#e8fbff",
+					"#9ef0ff",
+					"#3d8bff"
+				],
+				"size_mult": 1.1,
+				"count_mult": 0.9
+			}
+		},
+		{
+			"id": "particle_bubbles",
+			"category": "particle",
+			"name_key": "cos.particle_bubbles.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "player_level",
+				"value": 4
+			},
+			"params": {
+				"colors": [
+					"#9ef0ff",
+					"#3dffd2",
+					"#ffffff"
+				],
+				"size_mult": 1.4,
+				"count_mult": 0.8
+			}
+		},
+		{
+			"id": "particle_confetti",
+			"category": "particle",
+			"name_key": "cos.particle_confetti.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "coins",
+				"value": 700
+			},
+			"params": {
+				"colors": [
+					"#ff6fb5",
+					"#ffd23d",
+					"#3dffa8",
+					"#3dc8ff"
+				],
+				"size_mult": 1.0,
+				"count_mult": 1.5
+			}
+		},
+		{
+			"id": "particle_stardust",
+			"category": "particle",
+			"name_key": "cos.particle_stardust.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "stars",
+				"value": 150
+			},
+			"params": {
+				"colors": [
+					"#fff7d6",
+					"#ffd23d",
+					"#ffffff"
+				],
+				"size_mult": 0.7,
+				"count_mult": 1.8
+			}
+		},
+		{
+			"id": "particle_glitch",
+			"category": "particle",
+			"name_key": "cos.particle_glitch.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "gems",
+				"value": 20
+			},
+			"params": {
+				"colors": [
+					"#3dff6f",
+					"#ff3df5",
+					"#ffffff"
+				],
+				"size_mult": 0.8,
+				"count_mult": 1.2
+			}
+		},
+		{
+			"id": "particle_void",
+			"category": "particle",
+			"name_key": "cos.particle_void.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "perfects",
+				"value": 100
+			},
+			"params": {
+				"colors": [
+					"#6b2dff",
+					"#c48bff",
+					"#1a0a2e"
+				],
+				"size_mult": 1.2,
+				"count_mult": 1.0
+			}
+		},
+		{
+			"id": "particle_neon_pulse",
+			"category": "particle",
+			"name_key": "cos.particle_neon_pulse.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"colors": [
+					"#ff3df5",
+					"#3dfff2",
+					"#ffffff"
+				],
+				"size_mult": 1.1,
+				"count_mult": 1.4
+			}
+		},
+		{
+			"id": "bg_world",
+			"category": "background",
+			"name_key": "cos.bg_world.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "default"
+			},
+			"params": {
+				"use_world_palette": true,
+				"sky_top": "#05081a",
+				"sky_bottom": "#0d1a4a",
+				"star_density": 0.5
+			}
+		},
+		{
+			"id": "bg_dusk",
+			"category": "background",
+			"name_key": "cos.bg_dusk.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 500
+			},
+			"params": {
+				"use_world_palette": false,
+				"sky_top": "#1a0826",
+				"sky_bottom": "#4a1238",
+				"star_density": 0.4
+			}
+		},
+		{
+			"id": "bg_deep_sea",
+			"category": "background",
+			"name_key": "cos.bg_deep_sea.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 700
+			},
+			"params": {
+				"use_world_palette": false,
+				"sky_top": "#020d1a",
+				"sky_bottom": "#053d4a",
+				"star_density": 0.2
+			}
+		},
+		{
+			"id": "bg_emerald",
+			"category": "background",
+			"name_key": "cos.bg_emerald.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "coins",
+				"value": 900
+			},
+			"params": {
+				"use_world_palette": false,
+				"sky_top": "#021a10",
+				"sky_bottom": "#0a4a2a",
+				"star_density": 0.35
+			}
+		},
+		{
+			"id": "bg_starfield",
+			"category": "background",
+			"name_key": "cos.bg_starfield.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "stars",
+				"value": 240
+			},
+			"params": {
+				"use_world_palette": false,
+				"sky_top": "#000000",
+				"sky_bottom": "#0a0a24",
+				"star_density": 1.0
+			}
+		},
+		{
+			"id": "bg_aurora_sky",
+			"category": "background",
+			"name_key": "cos.bg_aurora_sky.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "player_level",
+				"value": 10
+			},
+			"params": {
+				"use_world_palette": false,
+				"sky_top": "#02101a",
+				"sky_bottom": "#1a3d4a",
+				"star_density": 0.7
+			}
+		},
+		{
+			"id": "bg_crimson",
+			"category": "background",
+			"name_key": "cos.bg_crimson.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "gems",
+				"value": 25
+			},
+			"params": {
+				"use_world_palette": false,
+				"sky_top": "#1a0205",
+				"sky_bottom": "#4a0a14",
+				"star_density": 0.45
+			}
+		},
+		{
+			"id": "bg_deep_space",
+			"category": "background",
+			"name_key": "cos.bg_deep_space.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"use_world_palette": false,
+				"sky_top": "#030014",
+				"sky_bottom": "#1a0a3d",
+				"star_density": 0.9
+			}
+		},
+		{
+			"id": "bg_midnight",
+			"category": "background",
+			"name_key": "cos.bg_midnight.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"use_world_palette": false,
+				"sky_top": "#000814",
+				"sky_bottom": "#001d3d",
+				"star_density": 0.6
+			}
+		},
+		{
+			"id": "bg_sunrise",
+			"category": "background",
+			"name_key": "cos.bg_sunrise.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"use_world_palette": false,
+				"sky_top": "#1a0a24",
+				"sky_bottom": "#7a2a3d",
+				"star_density": 0.3
+			}
+		},
+		{
+			"id": "theme_neon",
+			"category": "theme",
+			"name_key": "cos.theme_neon.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "default"
+			},
+			"params": {
+				"accent": "#3df5ff",
+				"accent_2": "#ff3dcc",
+				"panel_tint": "#0b1030"
+			}
+		},
+		{
+			"id": "theme_mono",
+			"category": "theme",
+			"name_key": "cos.theme_mono.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 300
+			},
+			"params": {
+				"accent": "#ffffff",
+				"accent_2": "#9aa3b8",
+				"panel_tint": "#101216"
+			}
+		},
+		{
+			"id": "theme_ember",
+			"category": "theme",
+			"name_key": "cos.theme_ember.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 600
+			},
+			"params": {
+				"accent": "#ff7a1a",
+				"accent_2": "#ffd23d",
+				"panel_tint": "#1f0d08"
+			}
+		},
+		{
+			"id": "theme_glacier",
+			"category": "theme",
+			"name_key": "cos.theme_glacier.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 600
+			},
+			"params": {
+				"accent": "#9ef0ff",
+				"accent_2": "#3d8bff",
+				"panel_tint": "#08142a"
+			}
+		},
+		{
+			"id": "theme_jungle",
+			"category": "theme",
+			"name_key": "cos.theme_jungle.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "stars",
+				"value": 120
+			},
+			"params": {
+				"accent": "#3dff6f",
+				"accent_2": "#d2ff3d",
+				"panel_tint": "#08200f"
+			}
+		},
+		{
+			"id": "theme_royal",
+			"category": "theme",
+			"name_key": "cos.theme_royal.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "player_level",
+				"value": 7
+			},
+			"params": {
+				"accent": "#b03dff",
+				"accent_2": "#ffd23d",
+				"panel_tint": "#160828"
+			}
+		},
+		{
+			"id": "theme_midnight",
+			"category": "theme",
+			"name_key": "cos.theme_midnight.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"accent": "#4d7cff",
+				"accent_2": "#3dffd2",
+				"panel_tint": "#000814"
+			}
+		},
+		{
+			"id": "theme_sunrise",
+			"category": "theme",
+			"name_key": "cos.theme_sunrise.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"accent": "#ff8a5c",
+				"accent_2": "#ffd23d",
+				"panel_tint": "#1a0a24"
+			}
+		},
+		{
+			"id": "fx_classic",
+			"category": "effect",
+			"name_key": "cos.fx_classic.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "default"
+			},
+			"params": {
+				"fail_color": "#ff3d5e",
+				"perfect_color": "#3df5ff",
+				"accent": "#ffffff",
+				"shockwave": 1.0
+			}
+		},
+		{
+			"id": "fx_soft_glow",
+			"category": "effect",
+			"name_key": "cos.fx_soft_glow.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "player_level",
+				"value": 2
+			},
+			"params": {
+				"fail_color": "#ff8a9e",
+				"perfect_color": "#9ef0ff",
+				"accent": "#fff7d6",
+				"shockwave": 0.4
+			}
+		},
+		{
+			"id": "fx_ember",
+			"category": "effect",
+			"name_key": "cos.fx_ember.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 400
+			},
+			"params": {
+				"fail_color": "#ff5e1a",
+				"perfect_color": "#ffd23d",
+				"accent": "#fff1c2",
+				"shockwave": 1.1
+			}
+		},
+		{
+			"id": "fx_frost",
+			"category": "effect",
+			"name_key": "cos.fx_frost.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 500
+			},
+			"params": {
+				"fail_color": "#3d8bff",
+				"perfect_color": "#e8fbff",
+				"accent": "#9ef0ff",
+				"shockwave": 0.9
+			}
+		},
+		{
+			"id": "fx_glitch",
+			"category": "effect",
+			"name_key": "cos.fx_glitch.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "gems",
+				"value": 20
+			},
+			"params": {
+				"fail_color": "#ff3df5",
+				"perfect_color": "#3dff6f",
+				"accent": "#ffffff",
+				"shockwave": 1.2
+			}
+		},
+		{
+			"id": "fx_void",
+			"category": "effect",
+			"name_key": "cos.fx_void.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "perfects",
+				"value": 10
+			},
+			"params": {
+				"fail_color": "#6b2dff",
+				"perfect_color": "#c48bff",
+				"accent": "#1a0a2e",
+				"shockwave": 1.3
+			}
+		},
+		{
+			"id": "fx_supernova",
+			"category": "effect",
+			"name_key": "cos.fx_supernova.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "stars",
+				"value": 360
+			},
+			"params": {
+				"fail_color": "#ff3d8b",
+				"perfect_color": "#fff7d6",
+				"accent": "#ffd23d",
+				"shockwave": 1.6
+			}
+		},
+		{
+			"id": "fx_prism",
+			"category": "effect",
+			"name_key": "cos.fx_prism.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "achievement",
+				"value": "combo_50"
+			},
+			"params": {
+				"fail_color": "#ff3d3d",
+				"perfect_color": "#3dffd2",
+				"accent": "#ffffff",
+				"shockwave": 1.4
+			}
+		},
+		{
+			"id": "fx_inferno",
+			"category": "effect",
+			"name_key": "cos.fx_inferno.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"fail_color": "#ff2a00",
+				"perfect_color": "#ffe03d",
+				"accent": "#ffffff",
+				"shockwave": 1.5
+			}
+		},
+		{
+			"id": "badge_newcomer",
+			"category": "badge",
+			"name_key": "cos.badge_newcomer.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "default"
+			},
+			"params": {
+				"icon": "spark",
+				"color": "#3df5ff"
+			},
+			"desc_key": "cos.badge_newcomer.desc"
+		},
+		{
+			"id": "badge_perfect_tutorial",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_tutorial.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "perfects",
+				"value": "tutorial"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#9ef0ff"
+			},
+			"desc_key": "cos.badge_perfect_tutorial.desc"
+		},
+		{
+			"id": "badge_perfect_early",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_early.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "perfects",
+				"value": "early"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#3df5ff"
+			},
+			"desc_key": "cos.badge_perfect_early.desc"
+		},
+		{
+			"id": "badge_perfect_core_learning",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_core_learning.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "perfects",
+				"value": "core_learning"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#3dffa8"
+			},
+			"desc_key": "cos.badge_perfect_core_learning.desc"
+		},
+		{
+			"id": "badge_perfect_mechanic_expansion",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_mechanic_expansion.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "perfects",
+				"value": "mechanic_expansion"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#7dff3d"
+			},
+			"desc_key": "cos.badge_perfect_mechanic_expansion.desc"
+		},
+		{
+			"id": "badge_perfect_combination",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_combination.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "perfects",
+				"value": "combination"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#ffd23d"
+			},
+			"desc_key": "cos.badge_perfect_combination.desc"
+		},
+		{
+			"id": "badge_perfect_advanced_timing",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_advanced_timing.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "perfects",
+				"value": "advanced_timing"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#ff9a3d"
+			},
+			"desc_key": "cos.badge_perfect_advanced_timing.desc"
+		},
+		{
+			"id": "badge_perfect_expert",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_expert.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "perfects",
+				"value": "expert"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#ff5e7a"
+			},
+			"desc_key": "cos.badge_perfect_expert.desc"
+		},
+		{
+			"id": "badge_perfect_master",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_master.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "perfects",
+				"value": "master"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#ff3df5"
+			},
+			"desc_key": "cos.badge_perfect_master.desc"
+		},
+		{
+			"id": "badge_perfect_challenge",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_challenge.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "perfects",
+				"value": "challenge"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#b03dff"
+			},
+			"desc_key": "cos.badge_perfect_challenge.desc"
+		},
+		{
+			"id": "badge_perfect_endgame",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_endgame.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "perfects",
+				"value": "endgame"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#fff7d6"
+			},
+			"desc_key": "cos.badge_perfect_endgame.desc"
+		},
+		{
+			"id": "badge_perfects_100",
+			"category": "badge",
+			"name_key": "cos.badge_perfects_100.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "perfects",
+				"value": 100
+			},
+			"params": {
+				"icon": "diamond",
+				"color": "#b8fff4"
+			},
+			"desc_key": "cos.badge_perfects_100.desc"
+		},
+		{
+			"id": "badge_combo_master",
+			"category": "badge",
+			"name_key": "cos.badge_combo_master.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "achievement",
+				"value": "combo_50"
+			},
+			"params": {
+				"icon": "flame",
+				"color": "#ff7a1a"
+			},
+			"desc_key": "cos.badge_combo_master.desc"
+		},
+		{
+			"id": "badge_untouchable",
+			"category": "badge",
+			"name_key": "cos.badge_untouchable.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "achievement",
+				"value": "no_miss_100"
+			},
+			"params": {
+				"icon": "shield",
+				"color": "#3dffa8"
+			},
+			"desc_key": "cos.badge_untouchable.desc"
+		},
+		{
+			"id": "badge_boss_master",
+			"category": "badge",
+			"name_key": "cos.badge_boss_master.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "achievement",
+				"value": "boss_10"
+			},
+			"params": {
+				"icon": "crown",
+				"color": "#ffd23d"
+			},
+			"desc_key": "cos.badge_boss_master.desc"
+		},
+		{
+			"id": "badge_daily_master",
+			"category": "badge",
+			"name_key": "cos.badge_daily_master.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "achievement",
+				"value": "daily_30"
+			},
+			"params": {
+				"icon": "sun",
+				"color": "#ff9a3d"
+			},
+			"desc_key": "cos.badge_daily_master.desc"
+		},
+		{
+			"id": "badge_perfect_world",
+			"category": "badge",
+			"name_key": "cos.badge_perfect_world.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "achievement",
+				"value": "perfect_world"
+			},
+			"params": {
+				"icon": "planet",
+				"color": "#ff3df5"
+			},
+			"desc_key": "cos.badge_perfect_world.desc"
+		},
+		{
+			"id": "badge_first_perfect",
+			"category": "badge",
+			"name_key": "cos.badge_first_perfect.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "achievement",
+				"value": "first_perfect"
+			},
+			"params": {
+				"icon": "star",
+				"color": "#ffffff"
+			},
+			"desc_key": "cos.badge_first_perfect.desc"
+		},
+		{
+			"id": "badge_lightspeed",
+			"category": "badge",
+			"name_key": "cos.badge_lightspeed.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "achievement",
+				"value": "fast_clears_60"
+			},
+			"params": {
+				"icon": "bolt",
+				"color": "#9ef0ff"
+			},
+			"desc_key": "cos.badge_lightspeed.desc"
+		},
+		{
+			"id": "badge_completionist",
+			"category": "badge",
+			"name_key": "cos.badge_completionist.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "achievement",
+				"value": "levels_520"
+			},
+			"params": {
+				"icon": "trophy",
+				"color": "#ffd23d"
+			},
+			"desc_key": "cos.badge_completionist.desc"
+		},
+		{
+			"id": "badge_grandmaster",
+			"category": "badge",
+			"name_key": "cos.badge_grandmaster.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "achievement",
+				"value": "unique_perfects_520"
+			},
+			"params": {
+				"icon": "diamond",
+				"color": "#ff3df5"
+			},
+			"desc_key": "cos.badge_grandmaster.desc"
+		},
+		{
+			"id": "frame_simple",
+			"category": "frame",
+			"name_key": "cos.frame_simple.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "default"
+			},
+			"params": {
+				"color": "#3df5ff",
+				"accent": "#0b1030",
+				"pattern": "plain"
+			}
+		},
+		{
+			"id": "frame_double",
+			"category": "frame",
+			"name_key": "cos.frame_double.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 300
+			},
+			"params": {
+				"color": "#ff3dcc",
+				"accent": "#3df5ff",
+				"pattern": "double"
+			}
+		},
+		{
+			"id": "frame_dashed",
+			"category": "frame",
+			"name_key": "cos.frame_dashed.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 450
+			},
+			"params": {
+				"color": "#ffd23d",
+				"accent": "#ff7a1a",
+				"pattern": "dashed"
+			}
+		},
+		{
+			"id": "frame_dotted",
+			"category": "frame",
+			"name_key": "cos.frame_dotted.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "stars",
+				"value": 60
+			},
+			"params": {
+				"color": "#3dffa8",
+				"accent": "#0a4a2a",
+				"pattern": "dotted"
+			}
+		},
+		{
+			"id": "frame_chevron",
+			"category": "frame",
+			"name_key": "cos.frame_chevron.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "coins",
+				"value": 800
+			},
+			"params": {
+				"color": "#ff7a1a",
+				"accent": "#ffd23d",
+				"pattern": "chevron"
+			}
+		},
+		{
+			"id": "frame_circuit",
+			"category": "frame",
+			"name_key": "cos.frame_circuit.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "player_level",
+				"value": 8
+			},
+			"params": {
+				"color": "#3dff6f",
+				"accent": "#0a7a2a",
+				"pattern": "circuit"
+			}
+		},
+		{
+			"id": "frame_laurel",
+			"category": "frame",
+			"name_key": "cos.frame_laurel.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "perfects",
+				"value": 50
+			},
+			"params": {
+				"color": "#ffd23d",
+				"accent": "#fff1c2",
+				"pattern": "laurel"
+			}
+		},
+		{
+			"id": "frame_crown",
+			"category": "frame",
+			"name_key": "cos.frame_crown.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "stars",
+				"value": 1200
+			},
+			"params": {
+				"color": "#fff7d6",
+				"accent": "#ffd23d",
+				"pattern": "crown"
+			}
+		},
+		{
+			"id": "frame_neon_pulse",
+			"category": "frame",
+			"name_key": "cos.frame_neon_pulse.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"color": "#ff3df5",
+				"accent": "#3dfff2",
+				"pattern": "circuit"
+			}
+		},
+		{
+			"id": "frame_starlight",
+			"category": "frame",
+			"name_key": "cos.frame_starlight.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"color": "#fff7d6",
+				"accent": "#9ec8ff",
+				"pattern": "double"
+			}
+		},
+		{
+			"id": "avatar_orb",
+			"category": "avatar",
+			"name_key": "cos.avatar_orb.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "default"
+			},
+			"params": {
+				"glyph": "orb",
+				"bg": "#0b1030",
+				"fg": "#3df5ff"
+			}
+		},
+		{
+			"id": "avatar_bolt",
+			"category": "avatar",
+			"name_key": "cos.avatar_bolt.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 300
+			},
+			"params": {
+				"glyph": "bolt",
+				"bg": "#1a1408",
+				"fg": "#ffd23d"
+			}
+		},
+		{
+			"id": "avatar_triangle",
+			"category": "avatar",
+			"name_key": "cos.avatar_triangle.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 300
+			},
+			"params": {
+				"glyph": "triangle",
+				"bg": "#1a0826",
+				"fg": "#ff3dcc"
+			}
+		},
+		{
+			"id": "avatar_diamond",
+			"category": "avatar",
+			"name_key": "cos.avatar_diamond.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "coins",
+				"value": 500
+			},
+			"params": {
+				"glyph": "diamond",
+				"bg": "#08142a",
+				"fg": "#9ef0ff"
+			}
+		},
+		{
+			"id": "avatar_hexagon",
+			"category": "avatar",
+			"name_key": "cos.avatar_hexagon.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "stars",
+				"value": 30
+			},
+			"params": {
+				"glyph": "hexagon",
+				"bg": "#08200f",
+				"fg": "#3dff6f"
+			}
+		},
+		{
+			"id": "avatar_wave",
+			"category": "avatar",
+			"name_key": "cos.avatar_wave.name",
+			"rarity": "common",
+			"unlock": {
+				"type": "player_level",
+				"value": 3
+			},
+			"params": {
+				"glyph": "wave",
+				"bg": "#020d1a",
+				"fg": "#3dc8ff"
+			}
+		},
+		{
+			"id": "avatar_plus",
+			"category": "avatar",
+			"name_key": "cos.avatar_plus.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "coins",
+				"value": 700
+			},
+			"params": {
+				"glyph": "plus",
+				"bg": "#1f0d08",
+				"fg": "#ff7a1a"
+			}
+		},
+		{
+			"id": "avatar_star",
+			"category": "avatar",
+			"name_key": "cos.avatar_star.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "stars",
+				"value": 450
+			},
+			"params": {
+				"glyph": "star",
+				"bg": "#160828",
+				"fg": "#fff7d6"
+			}
+		},
+		{
+			"id": "avatar_eye",
+			"category": "avatar",
+			"name_key": "cos.avatar_eye.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "gems",
+				"value": 10
+			},
+			"params": {
+				"glyph": "eye",
+				"bg": "#05010a",
+				"fg": "#c48bff"
+			}
+		},
+		{
+			"id": "avatar_spiral",
+			"category": "avatar",
+			"name_key": "cos.avatar_spiral.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "perfects",
+				"value": 25
+			},
+			"params": {
+				"glyph": "spiral",
+				"bg": "#02101a",
+				"fg": "#3dffa8"
+			}
+		},
+		{
+			"id": "avatar_moon",
+			"category": "avatar",
+			"name_key": "cos.avatar_moon.name",
+			"rarity": "epic",
+			"unlock": {
+				"type": "player_level",
+				"value": 12
+			},
+			"params": {
+				"glyph": "moon",
+				"bg": "#000814",
+				"fg": "#d6f5ff"
+			}
+		},
+		{
+			"id": "avatar_crown",
+			"category": "avatar",
+			"name_key": "cos.avatar_crown.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "player_level",
+				"value": 15
+			},
+			"params": {
+				"glyph": "crown",
+				"bg": "#1a1408",
+				"fg": "#ffd23d"
+			}
+		},
+		{
+			"id": "avatar_comet",
+			"category": "avatar",
+			"name_key": "cos.avatar_comet.name",
+			"rarity": "legendary",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"glyph": "comet",
+				"bg": "#030014",
+				"fg": "#9ee8ff"
+			}
+		},
+		{
+			"id": "avatar_starlight",
+			"category": "avatar",
+			"name_key": "cos.avatar_starlight.name",
+			"rarity": "rare",
+			"unlock": {
+				"type": "premium"
+			},
+			"params": {
+				"glyph": "star",
+				"bg": "#0b1030",
+				"fg": "#fff7d6"
+			}
+		}
+	]
+}
