@@ -1,0 +1,126 @@
+{
+  "ambient_particles": "stars",
+  "boss": {
+    "current": 0.15,
+    "duration": 95,
+    "hazards": {
+      "barrier": 0.5,
+      "pulse": 0.2,
+      "slider": 0.3
+    },
+    "name": "Event Horizon",
+    "pattern": "escape",
+    "portal": 0.15,
+    "speed_ramp": 0.45
+  },
+  "boss_level": 52,
+  "challenge": {
+    "hazards": {
+      "barrier": 0.6,
+      "slider": 0.4
+    },
+    "name": "Singularity Slip",
+    "pattern": "escape",
+    "portal": 0.2,
+    "speed_ramp": 0.3
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.7,
+        "pulse": 0.3
+      },
+      "intro": "portal_maze",
+      "portal": 0.3,
+      "start": 1
+    },
+    {
+      "current": 0.3,
+      "end": 25,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.6,
+        "slider": 0.4
+      },
+      "intro": "void_wells",
+      "start": 14
+    },
+    {
+      "end": 39,
+      "form_segment": 4,
+      "forms": {
+        "hop": 0.4,
+        "phase": 0.3,
+        "surge": 0.3
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "phase_gate": 0.3,
+        "pulse": 0.3
+      },
+      "intro": "form_flux",
+      "start": 27
+    },
+    {
+      "current": 0.1,
+      "end": 51,
+      "forms": {
+        "dash": 0.2,
+        "hop": 0.4,
+        "phase": 0.2,
+        "surge": 0.2
+      },
+      "hazards": {
+        "barrier": 0.3,
+        "breakable": 0.15,
+        "phase_gate": 0.2,
+        "pulse": 0.15,
+        "slider": 0.2
+      },
+      "intro": "master_mix",
+      "portal": 0.1,
+      "start": 40
+    }
+  ],
+  "hazard_material": "void",
+  "id": "void_space",
+  "index": 9,
+  "lanes": 3,
+  "levels": 52,
+  "lighting": {
+    "ambient": "#2a1450",
+    "ambient_energy": 0.6,
+    "fog_density": 0.014,
+    "glow": 1.2,
+    "sun_color": "#c8b0ff",
+    "sun_energy": 0.5
+  },
+  "music": {
+    "boss_track": "void_space_boss",
+    "bpm": 140,
+    "root_midi": 49,
+    "scale": "locrian",
+    "track": "void_space"
+  },
+  "name": "Void Space",
+  "palette": {
+    "accent": "#ff4d9e",
+    "floor": "#06030f",
+    "fog": "#0a0518",
+    "grid": "#6a3dff",
+    "hazard": "#ff3d7f",
+    "primary": "#b98cff",
+    "secondary": "#4de8ff",
+    "sky_bottom": "#140a2a",
+    "sky_top": "#010005"
+  },
+  "schema_version": 1,
+  "unlock_stars": 900
+}

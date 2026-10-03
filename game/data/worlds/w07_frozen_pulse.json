@@ -1,0 +1,121 @@
+{
+  "ambient_particles": "snow",
+  "boss": {
+    "duration": 80,
+    "forms": {
+      "hop": 0.5,
+      "surge": 0.5
+    },
+    "hazards": {
+      "pulse": 0.8,
+      "slider": 0.2
+    },
+    "name": "Glacier Metronome",
+    "pattern": "rhythm_gauntlet"
+  },
+  "boss_level": 52,
+  "challenge": {
+    "hazards": {
+      "barrier": 0.6,
+      "pulse": 0.4
+    },
+    "hop_time": 0.18,
+    "name": "Whiteout",
+    "pattern": "fast_field",
+    "speed_bonus": 0.12
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.7,
+        "slider": 0.3
+      },
+      "hop_time": 0.19,
+      "intro": "ice",
+      "start": 1
+    },
+    {
+      "end": 25,
+      "forms": {
+        "hop": 0.6,
+        "surge": 0.4
+      },
+      "hazards": {
+        "barrier": 0.3,
+        "pulse": 0.7
+      },
+      "hop_time": 0.17,
+      "intro": "beat_lock",
+      "start": 14
+    },
+    {
+      "end": 39,
+      "forms": {
+        "hop": 0.5,
+        "phase": 0.5
+      },
+      "hazards": {
+        "barrier": 0.3,
+        "phase_gate": 0.3,
+        "pulse": 0.4
+      },
+      "hop_time": 0.17,
+      "intro": "phase_pulse",
+      "start": 27
+    },
+    {
+      "end": 51,
+      "forms": {
+        "dash": 0.5,
+        "hop": 0.5
+      },
+      "hazards": {
+        "barrier": 0.2,
+        "breakable": 0.35,
+        "slider": 0.45
+      },
+      "hop_time": 0.17,
+      "intro": "dash_slider",
+      "start": 40
+    }
+  ],
+  "hazard_material": "ice",
+  "id": "frozen_pulse",
+  "index": 7,
+  "lanes": 2,
+  "levels": 52,
+  "lighting": {
+    "ambient": "#3a6a9a",
+    "ambient_energy": 0.8,
+    "fog_density": 0.022,
+    "glow": 1.1,
+    "sun_color": "#e0f4ff",
+    "sun_energy": 1.0
+  },
+  "music": {
+    "boss_track": "frozen_pulse_boss",
+    "bpm": 136,
+    "root_midi": 64,
+    "scale": "lydian",
+    "track": "frozen_pulse"
+  },
+  "name": "Frozen Pulse",
+  "palette": {
+    "accent": "#ffffff",
+    "floor": "#0a1a2e",
+    "fog": "#12304d",
+    "grid": "#9fdcff",
+    "hazard": "#7a5cff",
+    "primary": "#cff6ff",
+    "secondary": "#6fa8ff",
+    "sky_bottom": "#1d4466",
+    "sky_top": "#06111f"
+  },
+  "schema_version": 1,
+  "unlock_stars": 640
+}

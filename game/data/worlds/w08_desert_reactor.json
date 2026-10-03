@@ -1,0 +1,119 @@
+{
+  "ambient_particles": "sand",
+  "boss": {
+    "duration": 85,
+    "hazards": {
+      "barrier": 0.5,
+      "pulse": 0.2,
+      "slider": 0.3
+    },
+    "name": "Reactor Core",
+    "pattern": "fast_field",
+    "speed_bonus": 0.18
+  },
+  "boss_level": 52,
+  "challenge": {
+    "hazards": {
+      "barrier": 0.7,
+      "slider": 0.3
+    },
+    "name": "Sandstorm Sprint",
+    "pattern": "escape",
+    "speed_ramp": 0.35
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.7,
+        "slider": 0.3
+      },
+      "intro": "speed_ramp",
+      "speed_ramp": 0.25,
+      "start": 1
+    },
+    {
+      "current": 0.2,
+      "end": 25,
+      "forms": {
+        "hop": 0.5,
+        "surge": 0.5
+      },
+      "hazards": {
+        "barrier": 0.5,
+        "pulse": 0.5
+      },
+      "intro": "surge_current",
+      "start": 14
+    },
+    {
+      "cluster": 0.4,
+      "end": 39,
+      "forms": {
+        "dash": 0.5,
+        "phase": 0.5
+      },
+      "hazards": {
+        "breakable": 0.5,
+        "phase_gate": 0.5
+      },
+      "intro": "chain_phase",
+      "start": 27
+    },
+    {
+      "current": 0.1,
+      "end": 51,
+      "forms": {
+        "dash": 0.25,
+        "hop": 0.5,
+        "surge": 0.25
+      },
+      "hazards": {
+        "barrier": 0.35,
+        "breakable": 0.2,
+        "pulse": 0.2,
+        "slider": 0.25
+      },
+      "intro": "reactor_mix",
+      "start": 40
+    }
+  ],
+  "hazard_material": "sandstone",
+  "id": "desert_reactor",
+  "index": 8,
+  "lanes": 3,
+  "levels": 52,
+  "lighting": {
+    "ambient": "#6a3a14",
+    "ambient_energy": 0.7,
+    "fog_density": 0.024,
+    "glow": 0.9,
+    "sun_color": "#ffd9a0",
+    "sun_energy": 1.1
+  },
+  "music": {
+    "boss_track": "desert_reactor_boss",
+    "bpm": 130,
+    "root_midi": 53,
+    "scale": "harmonic_minor",
+    "track": "desert_reactor"
+  },
+  "name": "Desert Reactor",
+  "palette": {
+    "accent": "#7af0ff",
+    "floor": "#1e0f05",
+    "fog": "#3a1c08",
+    "grid": "#ffb03d",
+    "hazard": "#ff3d3d",
+    "primary": "#ffd27a",
+    "secondary": "#ff7a3d",
+    "sky_bottom": "#5a2e0e",
+    "sky_top": "#140904"
+  },
+  "schema_version": 1,
+  "unlock_stars": 770
+}

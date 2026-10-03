@@ -1,0 +1,141 @@
+{
+  "ambient_particles": "sprinkles",
+  "boss": {
+    "duration": 110,
+    "forms": {
+      "dash": 0.2,
+      "hop": 0.4,
+      "phase": 0.2,
+      "surge": 0.2
+    },
+    "hazards": {
+      "barrier": 0.3,
+      "breakable": 0.15,
+      "phase_gate": 0.15,
+      "pulse": 0.15,
+      "slider": 0.25
+    },
+    "name": "Sugar Singularity",
+    "pattern": "survival"
+  },
+  "boss_level": 52,
+  "challenge": {
+    "hazards": {
+      "barrier": 0.5,
+      "slider": 0.5
+    },
+    "name": "Sugar High",
+    "pattern": "fast_field",
+    "speed_bonus": 0.15
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "hop": 0.5,
+        "phase": 0.25,
+        "surge": 0.25
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "phase_gate": 0.15,
+        "pulse": 0.15,
+        "slider": 0.3
+      },
+      "intro": "sugar_rush",
+      "start": 1
+    },
+    {
+      "end": 25,
+      "forms": {
+        "dash": 0.4,
+        "hop": 0.6
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "breakable": 0.3,
+        "slider": 0.3
+      },
+      "intro": "combo_master",
+      "magnet": 0.1,
+      "spark_bonus": 0.4,
+      "start": 14
+    },
+    {
+      "current": 0.1,
+      "end": 39,
+      "forms": {
+        "dash": 0.2,
+        "hop": 0.4,
+        "phase": 0.2,
+        "surge": 0.2
+      },
+      "hazards": {
+        "barrier": 0.3,
+        "breakable": 0.15,
+        "phase_gate": 0.2,
+        "pulse": 0.15,
+        "slider": 0.2
+      },
+      "intro": "endgame_mix",
+      "portal": 0.1,
+      "start": 27
+    },
+    {
+      "current": 0.1,
+      "end": 51,
+      "forms": {
+        "dash": 0.2,
+        "hop": 0.4,
+        "phase": 0.2,
+        "surge": 0.2
+      },
+      "hazards": {
+        "barrier": 0.3,
+        "breakable": 0.15,
+        "phase_gate": 0.15,
+        "pulse": 0.15,
+        "slider": 0.25
+      },
+      "intro": "final_gauntlet",
+      "portal": 0.1,
+      "speed_ramp": 0.15,
+      "start": 40
+    }
+  ],
+  "hazard_material": "candy",
+  "id": "candy_reactor",
+  "index": 10,
+  "lanes": 3,
+  "levels": 52,
+  "lighting": {
+    "ambient": "#6a2a6a",
+    "ambient_energy": 0.8,
+    "fog_density": 0.018,
+    "glow": 1.1,
+    "sun_color": "#ffd0f0",
+    "sun_energy": 0.9
+  },
+  "music": {
+    "boss_track": "candy_reactor_boss",
+    "bpm": 146,
+    "root_midi": 60,
+    "scale": "major",
+    "track": "candy_reactor"
+  },
+  "name": "Candy Reactor",
+  "palette": {
+    "accent": "#fff27a",
+    "floor": "#2a0a2e",
+    "fog": "#4a1240",
+    "grid": "#ff6ad5",
+    "hazard": "#ff4d4d",
+    "primary": "#ff8ad8",
+    "secondary": "#8af5ff",
+    "sky_bottom": "#7a1f5c",
+    "sky_top": "#24082a"
+  },
+  "schema_version": 1,
+  "unlock_stars": 1030
+}

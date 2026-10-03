@@ -1,0 +1,113 @@
+{
+  "ambient_particles": "dust",
+  "boss": {
+    "duration": 60,
+    "hazards": {
+      "barrier": 0.1,
+      "pulse": 0.35,
+      "slider": 0.55
+    },
+    "name": "The Turbine",
+    "pattern": "rotor_gauntlet"
+  },
+  "boss_level": 52,
+  "challenge": {
+    "hazards": {
+      "barrier": 1
+    },
+    "name": "Overclock Run",
+    "pattern": "fast_field",
+    "speed_bonus": 0.15
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forgiving_until": 3,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 1
+      },
+      "intro": "hop",
+      "start": 1,
+      "tutorial_until": 5
+    },
+    {
+      "end": 25,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 1
+      },
+      "intro": "shield",
+      "prism": 0.35,
+      "shield": 0.12,
+      "start": 14
+    },
+    {
+      "end": 39,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.55,
+        "slider": 0.45
+      },
+      "intro": "slider",
+      "prism": 0.3,
+      "start": 27
+    },
+    {
+      "end": 51,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "pulse": 0.35,
+        "slider": 0.25
+      },
+      "intro": "pulse",
+      "magnet": 0.08,
+      "prism": 0.3,
+      "start": 40
+    }
+  ],
+  "hazard_material": "glass",
+  "id": "neon_core",
+  "index": 1,
+  "lanes": 2,
+  "levels": 52,
+  "lighting": {
+    "ambient": "#1a2a66",
+    "ambient_energy": 0.6,
+    "fog_density": 0.018,
+    "glow": 0.9,
+    "sun_color": "#9fc4ff",
+    "sun_energy": 0.6
+  },
+  "music": {
+    "boss_track": "neon_core_boss",
+    "bpm": 118,
+    "root_midi": 57,
+    "scale": "minor_pentatonic",
+    "track": "neon_core"
+  },
+  "name": "Neon Core",
+  "palette": {
+    "accent": "#ffe45c",
+    "floor": "#0b1538",
+    "fog": "#0a1236",
+    "grid": "#2a5cff",
+    "hazard": "#ff4d6d",
+    "primary": "#3df5ff",
+    "secondary": "#ff3dcb",
+    "sky_bottom": "#0d1a4a",
+    "sky_top": "#05081a"
+  },
+  "schema_version": 1,
+  "unlock_stars": 0
+}

@@ -1,0 +1,120 @@
+{
+  "ambient_particles": "puffs",
+  "boss": {
+    "cluster": 0.6,
+    "duration": 70,
+    "forms": {
+      "dash": 0.7,
+      "hop": 0.3
+    },
+    "hazards": {
+      "breakable": 0.8,
+      "pulse": 0.2
+    },
+    "name": "Press Line",
+    "pattern": "chain_smasher"
+  },
+  "boss_level": 52,
+  "challenge": {
+    "cluster": 0.5,
+    "forms": {
+      "dash": 1
+    },
+    "hazards": {
+      "breakable": 1
+    },
+    "name": "Conveyor Crush",
+    "pattern": "fast_field",
+    "speed_bonus": 0.12
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "dash": 1
+      },
+      "hazards": {
+        "breakable": 1
+      },
+      "intro": "dash",
+      "start": 1
+    },
+    {
+      "cluster": 0.5,
+      "end": 25,
+      "forms": {
+        "dash": 1
+      },
+      "hazards": {
+        "breakable": 1
+      },
+      "intro": "chain",
+      "start": 14
+    },
+    {
+      "cluster": 0.3,
+      "end": 39,
+      "forms": {
+        "dash": 0.5,
+        "hop": 0.5
+      },
+      "hazards": {
+        "barrier": 0.5,
+        "breakable": 0.5
+      },
+      "intro": "dash_hop",
+      "prism": 0.2,
+      "start": 27
+    },
+    {
+      "cluster": 0.35,
+      "end": 51,
+      "forms": {
+        "dash": 0.6,
+        "hop": 0.4
+      },
+      "hazards": {
+        "breakable": 0.6,
+        "pulse": 0.4
+      },
+      "intro": "dash_pulse",
+      "shield": 0.06,
+      "start": 40
+    }
+  ],
+  "hazard_material": "porcelain",
+  "id": "cloud_factory",
+  "index": 4,
+  "lanes": 2,
+  "levels": 52,
+  "lighting": {
+    "ambient": "#c8d8ff",
+    "ambient_energy": 0.9,
+    "fog_density": 0.012,
+    "glow": 0.6,
+    "sun_color": "#fff4e0",
+    "sun_energy": 1.2
+  },
+  "music": {
+    "boss_track": "cloud_factory_boss",
+    "bpm": 112,
+    "root_midi": 60,
+    "scale": "major_pentatonic",
+    "track": "cloud_factory"
+  },
+  "name": "Cloud Factory",
+  "palette": {
+    "accent": "#ffd36e",
+    "floor": "#8fa8e8",
+    "fog": "#a9c2f0",
+    "grid": "#ffffff",
+    "hazard": "#4d5bff",
+    "primary": "#ffffff",
+    "secondary": "#ff9ec7",
+    "sky_bottom": "#c7dcff",
+    "sky_top": "#6e8bd8"
+  },
+  "schema_version": 1,
+  "unlock_stars": 300
+}

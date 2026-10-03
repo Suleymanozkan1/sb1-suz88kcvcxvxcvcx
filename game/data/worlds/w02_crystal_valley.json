@@ -1,0 +1,120 @@
+{
+  "ambient_particles": "glitter",
+  "boss": {
+    "duration": 65,
+    "forms": {
+      "hop": 0.5,
+      "phase": 0.5
+    },
+    "hazards": {
+      "phase_gate": 0.6,
+      "slider": 0.4
+    },
+    "name": "Prism Cascade",
+    "pattern": "color_cascade"
+  },
+  "boss_level": 52,
+  "challenge": {
+    "forms": {
+      "phase": 1
+    },
+    "hazards": {
+      "phase_gate": 1
+    },
+    "name": "Prism Storm",
+    "pattern": "fast_field",
+    "speed_bonus": 0.15
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "phase": 1
+      },
+      "hazards": {
+        "phase_gate": 1
+      },
+      "intro": "phase",
+      "start": 1
+    },
+    {
+      "end": 25,
+      "forms": {
+        "hop": 0.5,
+        "phase": 0.5
+      },
+      "hazards": {
+        "barrier": 0.7,
+        "phase_gate": 0.3
+      },
+      "intro": "form_gate",
+      "prism": 0.25,
+      "start": 14
+    },
+    {
+      "end": 39,
+      "forms": {
+        "hop": 0.5,
+        "phase": 0.5
+      },
+      "hazards": {
+        "barrier": 0.2,
+        "pulse": 0.3,
+        "slider": 0.5
+      },
+      "intro": "color_moving",
+      "prism": 0.3,
+      "start": 27
+    },
+    {
+      "end": 51,
+      "forms": {
+        "hop": 0.6,
+        "phase": 0.4
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "phase_gate": 0.35,
+        "slider": 0.25
+      },
+      "intro": "phase_hop_mix",
+      "shield": 0.06,
+      "start": 40
+    }
+  ],
+  "hazard_material": "crystal",
+  "id": "crystal_valley",
+  "index": 2,
+  "lanes": 2,
+  "levels": 52,
+  "lighting": {
+    "ambient": "#3a1f7a",
+    "ambient_energy": 0.7,
+    "fog_density": 0.016,
+    "glow": 1.0,
+    "sun_color": "#e0c8ff",
+    "sun_energy": 0.7
+  },
+  "music": {
+    "boss_track": "crystal_valley_boss",
+    "bpm": 124,
+    "root_midi": 62,
+    "scale": "dorian",
+    "track": "crystal_valley"
+  },
+  "name": "Crystal Valley",
+  "palette": {
+    "accent": "#ffffff",
+    "floor": "#160a36",
+    "fog": "#1c0d44",
+    "grid": "#8a5cff",
+    "hazard": "#b48cff",
+    "primary": "#9af7ff",
+    "secondary": "#ff7af2",
+    "sky_bottom": "#2b1460",
+    "sky_top": "#0e0624"
+  },
+  "schema_version": 1,
+  "unlock_stars": 90
+}

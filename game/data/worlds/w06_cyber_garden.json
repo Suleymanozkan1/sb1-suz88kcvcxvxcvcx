@@ -1,0 +1,126 @@
+{
+  "ambient_particles": "spores",
+  "boss": {
+    "duration": 75,
+    "form_segment": 3,
+    "forms": {
+      "dash": 0.3,
+      "hop": 0.4,
+      "phase": 0.3
+    },
+    "hazards": {
+      "barrier": 0.4,
+      "breakable": 0.3,
+      "phase_gate": 0.3
+    },
+    "name": "Bloom Grid",
+    "pattern": "pattern_memory"
+  },
+  "boss_level": 52,
+  "challenge": {
+    "hazards": {
+      "barrier": 0.6,
+      "slider": 0.4
+    },
+    "name": "Bloom Rush",
+    "pattern": "fast_field",
+    "speed_bonus": 0.15
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.7,
+        "slider": 0.3
+      },
+      "intro": "overdrive",
+      "magnet": 0.15,
+      "spark_bonus": 0.5,
+      "start": 1
+    },
+    {
+      "current": 0.15,
+      "end": 25,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.6,
+        "pulse": 0.4
+      },
+      "intro": "reaction_chain",
+      "portal": 0.15,
+      "start": 14
+    },
+    {
+      "end": 39,
+      "forms": {
+        "dash": 0.2,
+        "hop": 0.4,
+        "phase": 0.2,
+        "surge": 0.2
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "breakable": 0.2,
+        "phase_gate": 0.2,
+        "pulse": 0.2
+      },
+      "intro": "four_forms",
+      "start": 27
+    },
+    {
+      "end": 51,
+      "forms": {
+        "dash": 0.3,
+        "hop": 0.7
+      },
+      "hazards": {
+        "barrier": 0.5,
+        "breakable": 0.2,
+        "slider": 0.3
+      },
+      "intro": "risk_prisms",
+      "prism": 0.6,
+      "start": 40
+    }
+  ],
+  "hazard_material": "circuit",
+  "id": "cyber_garden",
+  "index": 6,
+  "lanes": 3,
+  "levels": 52,
+  "lighting": {
+    "ambient": "#1a4a2a",
+    "ambient_energy": 0.7,
+    "fog_density": 0.02,
+    "glow": 1.0,
+    "sun_color": "#c8ffb0",
+    "sun_energy": 0.7
+  },
+  "music": {
+    "boss_track": "cyber_garden_boss",
+    "bpm": 122,
+    "root_midi": 55,
+    "scale": "mixolydian",
+    "track": "cyber_garden"
+  },
+  "name": "Cyber Garden",
+  "palette": {
+    "accent": "#fffa6b",
+    "floor": "#04170c",
+    "fog": "#06200f",
+    "grid": "#3dff7a",
+    "hazard": "#ff8a3d",
+    "primary": "#7cff4d",
+    "secondary": "#ff4de1",
+    "sky_bottom": "#0a3020",
+    "sky_top": "#020d07"
+  },
+  "schema_version": 1,
+  "unlock_stars": 520
+}
