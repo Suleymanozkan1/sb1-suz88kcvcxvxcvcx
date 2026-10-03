@@ -5,8 +5,8 @@ extends RefCounted
 const INDEX_PATH: String = "res://data/worlds/index.json"
 
 var worlds: Array[Dictionary] = []
-var _by_id: Dictionary = {}
 var errors: PackedStringArray = PackedStringArray()
+var _by_id: Dictionary = {}
 
 
 static func load_default() -> WorldCatalog:

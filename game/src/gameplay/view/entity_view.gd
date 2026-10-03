@@ -59,7 +59,9 @@ func _part(i: int, mesh: Mesh, material: Material, pos: Vector3, shadows: bool) 
 	mi.rotation = Vector3.ZERO
 	mi.scale = Vector3.ONE
 	mi.visible = true
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.cast_shadow = (
+		GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	)
 	return mi
 
 
@@ -80,7 +82,9 @@ func configure(index: int, type: int, lvl: SimLevel, kit: ViewKit) -> void:
 			for l: int in lanes:
 				if (lvl.e_mask[index] & (1 << l)) != 0:
 					var x: float = SimConst.lane_x(l, lanes)
-					var body: MeshInstance3D = _part(n * 2, kit.block_mesh, kit.hazard_material, Vector3(x, h * 0.5, 0.0), true)
+					var body: MeshInstance3D = _part(
+						n * 2, kit.block_mesh, kit.hazard_material, Vector3(x, h * 0.5, 0.0), true
+					)
 					if n == 0:
 						_body = body
 					_part(n * 2 + 1, kit.blob_mesh, kit.blob_material, Vector3(x, 0.006, 0.0), false)
@@ -89,7 +93,9 @@ func configure(index: int, type: int, lvl: SimLevel, kit: ViewKit) -> void:
 			var from_lane: int = int(lvl.e_p0[index])
 			var to_lane: int = int(lvl.e_p1[index])
 			_part(0, kit.track_mesh(lanes, from_lane, to_lane), kit.track_material, Vector3.ZERO, false)
-			_body = _part(1, kit.slider_mesh, kit.hazard_material, Vector3(lvl.slider_x(index, 0.0), h * 0.41, 0.0), true)
+			_body = _part(
+				1, kit.slider_mesh, kit.hazard_material, Vector3(lvl.slider_x(index, 0.0), h * 0.41, 0.0), true
+			)
 			_shadow = _part(2, kit.blob_mesh, kit.blob_material, Vector3(lvl.slider_x(index, 0.0), 0.006, 0.0), false)
 		SimConst.EntityType.PULSE_GATE:
 			var k: int = 0
@@ -110,24 +116,52 @@ func configure(index: int, type: int, lvl: SimLevel, kit: ViewKit) -> void:
 			_part(1, kit.blob_mesh, kit.blob_material, Vector3(lane_x, 0.006, 0.0), false)
 		SimConst.EntityType.PHASE_GATE:
 			_part(0, kit.arch_mesh(lanes), kit.structure_material, Vector3.ZERO, true)
-			_membrane = _part(1, kit.membrane_mesh(lanes), kit.phase_material(lvl.e_color[index]), Vector3(0.0, ViewKit.ARCH_HEIGHT * 0.48, 0.0), false)
+			_membrane = _part(
+				1,
+				kit.membrane_mesh(lanes),
+				kit.phase_material(lvl.e_color[index]),
+				Vector3(0.0, ViewKit.ARCH_HEIGHT * 0.48, 0.0),
+				false
+			)
 		SimConst.EntityType.FORM_GATE:
 			var form: int = int(lvl.e_p0[index])
 			_part(0, kit.arch_mesh(lanes), kit.structure_material, Vector3.ZERO, true)
-			_membrane = _part(1, kit.membrane_mesh(lanes), kit.form_material(form), Vector3(0.0, ViewKit.ARCH_HEIGHT * 0.48, 0.0), false)
-			_body = _part(2, kit.form_icon_mesh(form), kit.form_icon_material(form), Vector3(0.0, ViewKit.ARCH_HEIGHT + 0.42, 0.0), false)
+			_membrane = _part(
+				1,
+				kit.membrane_mesh(lanes),
+				kit.form_material(form),
+				Vector3(0.0, ViewKit.ARCH_HEIGHT * 0.48, 0.0),
+				false
+			)
+			_body = _part(
+				2,
+				kit.form_icon_mesh(form),
+				kit.form_icon_material(form),
+				Vector3(0.0, ViewKit.ARCH_HEIGHT + 0.42, 0.0),
+				false
+			)
 		SimConst.EntityType.PORTAL:
-			_part(0, kit.portal_ring_mesh, kit.structure_material, Vector3(lane_x, 0.62, 0.0), true).rotation_degrees = Vector3(90, 0, 0)
+			_part(0, kit.portal_ring_mesh, kit.structure_material, Vector3(lane_x, 0.62, 0.0), true).rotation_degrees = Vector3(
+				90, 0, 0
+			)
 			_membrane = _part(1, kit.disc_mesh, kit.portal_material, Vector3(lane_x, 0.62, 0.0), false)
 			_membrane.scale = Vector3.ONE * 1.05
-			_part(2, kit.floor_disc_mesh, kit.exit_material, Vector3(SimConst.lane_x(int(lvl.e_p0[index]), lanes), 0.02, -0.4), false)
+			_part(
+				2,
+				kit.floor_disc_mesh,
+				kit.exit_material,
+				Vector3(SimConst.lane_x(int(lvl.e_p0[index]), lanes), 0.02, -0.4),
+				false
+			)
 		SimConst.EntityType.CURRENT:
 			var from_l: int = 0
 			for l3: int in lanes:
 				if (lvl.e_mask[index] & (1 << l3)) != 0:
 					from_l = l3
 			var to_l: int = int(lvl.e_p0[index])
-			var mi: MeshInstance3D = _part(0, kit.chevron_mesh(lanes, from_l, to_l), kit.chevron_material, Vector3.ZERO, false)
+			var mi: MeshInstance3D = _part(
+				0, kit.chevron_mesh(lanes, from_l, to_l), kit.chevron_material, Vector3.ZERO, false
+			)
 			mi.set_instance_shader_parameter("ripple", 0.0)
 			mi.scale = Vector3(1.0 if to_l > from_l else -1.0, 1.0, 1.0)
 		SimConst.EntityType.SHIELD:

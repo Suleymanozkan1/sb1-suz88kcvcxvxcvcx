@@ -25,7 +25,12 @@ func set_value(v: bool, animate: bool = false) -> void:
 		if _tween != null:
 			_tween.kill()
 		_tween = create_tween()
-		_tween.tween_method(_set_knob, _knob_t, 1.0 if v else 0.0, UiTokens.RELEASE_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		(
+			_tween
+			. tween_method(_set_knob, _knob_t, 1.0 if v else 0.0, UiTokens.RELEASE_TIME)
+			. set_trans(Tween.TRANS_BACK)
+			. set_ease(Tween.EASE_OUT)
+		)
 	else:
 		_set_knob(1.0 if v else 0.0)
 
@@ -37,7 +42,11 @@ func _set_knob(t: float) -> void:
 
 func _gui_input(event: InputEvent) -> void:
 	var pressed: bool = (
-		(event is InputEventMouseButton and (event as InputEventMouseButton).pressed and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT)
+		(
+			event is InputEventMouseButton
+			and (event as InputEventMouseButton).pressed
+			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT
+		)
 		or (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed)
 		or (event.is_action_pressed("ui_accept"))
 	)

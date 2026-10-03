@@ -3,12 +3,12 @@ extends RefCounted
 ## Reusable node pool (prewarm / acquire / release) to avoid instantiate/free
 ## churn during gameplay. Released nodes are hidden and parked, never freed.
 
+var created_count: int = 0
 var _factory: Callable
 var _parent: Node
 var _free: Array[Node] = []
 var _active: Array[Node] = []
 var _reset_method: StringName = &"pool_reset"
-var created_count: int = 0
 
 
 func _init(factory: Callable, parent: Node, prewarm: int = 0) -> void:

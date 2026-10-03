@@ -24,6 +24,7 @@ var _double: UiButton
 var _next: UiButton
 var _seq_tween: Tween
 
+
 func build() -> void:
 	is_overlay = true
 	add_scrim(0.6)
@@ -71,6 +72,7 @@ func build() -> void:
 	row.add_child(home)
 	_actions.add_child(row)
 
+
 ## payload: {"result": RunResult, "best": int, "new_best": bool,
 ##           "reward": RewardBundle, "can_double": bool, "has_next": bool}
 func enter(payload: Dictionary) -> void:
@@ -80,7 +82,11 @@ func enter(payload: Dictionary) -> void:
 	_grade.text = tr(GRADE_KEYS[clampi(result.grade, 0, 4)])
 	_score.text = "0"
 	var best: int = int(payload.get("best", 0))
-	_best.text = tr("result.new_best") if bool(payload.get("new_best", false)) else (tr("result.best") + "  " + UiKit.format_int(best))
+	_best.text = (
+		tr("result.new_best")
+		if bool(payload.get("new_best", false))
+		else (tr("result.best") + "  " + UiKit.format_int(best))
+	)
 	for star: IconGlyph in _stars:
 		star.icon = &"star"
 		star.color = Palette.SLATE
@@ -93,8 +99,12 @@ func enter(payload: Dictionary) -> void:
 	if reward != null:
 		for item: Dictionary in reward.items:
 			var t: StringName = item["type"] as StringName
-			var icon_name: StringName = {&"coins": &"coin", &"gems": &"gem", &"xp": &"progress"}.get(t, &"star") as StringName
-			var color: Color = Palette.ACCENT if t == &"coins" else (Palette.SECONDARY if t == &"gems" else UiTokens.TEXT)
+			var icon_name: StringName = (
+				{&"coins": &"coin", &"gems": &"gem", &"xp": &"progress"}.get(t, &"star") as StringName
+			)
+			var color: Color = (
+				Palette.ACCENT if t == &"coins" else (Palette.SECONDARY if t == &"gems" else UiTokens.TEXT)
+			)
 			if t in [&"coins", &"gems", &"xp"]:
 				var chip: HBoxContainer = UiKit.stat_chip(icon_name, "0", color)
 				_rewards.add_child(chip)
@@ -104,6 +114,7 @@ func enter(payload: Dictionary) -> void:
 	_next.visible = bool(payload.get("has_next", true))
 	_actions.modulate.a = 0.0
 	_play_sequence(result, reward_labels, reward_values)
+
 
 func _play_sequence(result: RunResult, labels: Array[Label], values: Array[int]) -> void:
 	if _seq_tween != null:
@@ -116,17 +127,40 @@ func _play_sequence(result: RunResult, labels: Array[Label], values: Array[int])
 		_seq_tween.tween_callback(_land_star.bind(i, earned))
 		if earned:
 			star.pivot_offset = Vector2(STAR_SIZE, STAR_SIZE) * 0.5
-			_seq_tween.tween_property(star, "scale", Vector2(1.25, 1.25), 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			_seq_tween.tween_property(star, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			_seq_tween.tween_property(star, "scale", Vector2(1.25, 1.25), 0.08).set_trans(Tween.TRANS_QUAD).set_ease(
+				Tween.EASE_OUT
+			)
+			_seq_tween.tween_property(star, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_BACK).set_ease(
+				Tween.EASE_OUT
+			)
 		else:
 			_seq_tween.tween_interval(UiTokens.STAR_INTERVAL)
-	_seq_tween.tween_method(func(v: float) -> void: _score.text = UiKit.format_int(int(v)), 0.0, float(result.score), UiTokens.COUNT_UP_TIME).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	(
+		_seq_tween
+		. tween_method(
+			func(v: float) -> void: _score.text = UiKit.format_int(int(v)),
+			0.0,
+			float(result.score),
+			UiTokens.COUNT_UP_TIME
+		)
+		. set_trans(Tween.TRANS_CUBIC)
+		. set_ease(Tween.EASE_OUT)
+	)
 	for k: int in labels.size():
 		var label: Label = labels[k]
 		var target: float = float(values[k])
-		_seq_tween.parallel().tween_method(func(v: float) -> void: label.text = UiKit.format_int(int(v)), 0.0, target, UiTokens.COUNT_UP_TIME).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		(
+			_seq_tween
+			. parallel()
+			. tween_method(
+				func(v: float) -> void: label.text = UiKit.format_int(int(v)), 0.0, target, UiTokens.COUNT_UP_TIME
+			)
+			. set_trans(Tween.TRANS_CUBIC)
+			. set_ease(Tween.EASE_OUT)
+		)
 	_seq_tween.tween_property(_actions, "modulate:a", 1.0, 0.2)
 	_seq_tween.tween_callback(func() -> void: _next.grab_focus())
+
 
 func _land_star(index: int, earned: bool) -> void:
 	var star: IconGlyph = _stars[index]
@@ -135,10 +169,17 @@ func _land_star(index: int, earned: bool) -> void:
 		star.color = Palette.ACCENT
 		star_landed.emit(index)
 
+
 ## Skip the sequence on tap (respect the player's time).
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed and _seq_tween != null and _seq_tween.is_running():
+	if (
+		event is InputEventScreenTouch
+		and (event as InputEventScreenTouch).pressed
+		and _seq_tween != null
+		and _seq_tween.is_running()
+	):
 		_seq_tween.custom_step(10.0)
+
 
 func handle_back() -> bool:
 	home_requested.emit()

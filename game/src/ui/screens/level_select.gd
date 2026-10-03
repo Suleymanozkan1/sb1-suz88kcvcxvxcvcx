@@ -60,9 +60,11 @@ func _tile(l: Dictionary) -> Control:
 	b.custom_minimum_size = Vector2(TILE, TILE)
 	b.disabled = not unlocked
 	var id: String = str(l.get("id", ""))
-	b.pressed.connect(func() -> void:
-		UiKit.play_feedback(&"ui_click")
-		level_selected.emit(id))
+	b.pressed.connect(
+		func() -> void:
+			UiKit.play_feedback(&"ui_click")
+			level_selected.emit(id)
+	)
 	var col: VBoxContainer = UiKit.vbox(UiTokens.UNIT)
 	col.set_anchors_preset(Control.PRESET_FULL_RECT)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -87,7 +89,9 @@ func _tile(l: Dictionary) -> Control:
 	stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var earned: int = int(l.get("stars", 0))
 	for i: int in 3:
-		var s: IconGlyph = UiKit.icon(&"star_filled" if i < earned else &"star", 18, Palette.ACCENT if i < earned else Palette.SLATE)
+		var s: IconGlyph = UiKit.icon(
+			&"star_filled" if i < earned else &"star", 18, Palette.ACCENT if i < earned else Palette.SLATE
+		)
 		s.stroke_units = 1.6
 		stars.add_child(s)
 	col.add_child(stars)

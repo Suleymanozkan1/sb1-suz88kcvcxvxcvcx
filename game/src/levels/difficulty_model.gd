@@ -102,7 +102,9 @@ func build_spec(number: int) -> LevelSpec:
 	elif local == boss_level:
 		spec.kind = "boss"
 	spec.chapter_phase = "high_pressure" if spec.is_special() else chapter_phase(chapter, local)
-	var phase_cfg: Dictionary = (curve.get("chapter_phases", {}) as Dictionary).get(spec.chapter_phase, {}) as Dictionary
+	var phase_cfg: Dictionary = (
+		(curve.get("chapter_phases", {}) as Dictionary).get(spec.chapter_phase, {}) as Dictionary
+	)
 	var wave: float = float(phase_cfg.get("wave", 0.0))
 	spec.intensity = clampf(t + wave * 0.03, 0.0, 1.0)
 

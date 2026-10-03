@@ -15,7 +15,6 @@ var _prism_slot: Dictionary = {}
 var _hidden: Dictionary = {}
 var _base_pos: Dictionary = {}
 
-
 var _built: bool = false
 
 
@@ -90,9 +89,13 @@ func _fill(mm: MultiMesh, list: Array[int], lvl: SimLevel, slots: Dictionary) ->
 func hide_entity(index: int) -> void:
 	_hidden[index] = true
 	if _spark_slot.has(index):
-		_spark_mm.multimesh.set_instance_transform(int(_spark_slot[index]), Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO))
+		_spark_mm.multimesh.set_instance_transform(
+			int(_spark_slot[index]), Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO)
+		)
 	elif _prism_slot.has(index):
-		_prism_mm.multimesh.set_instance_transform(int(_prism_slot[index]), Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO))
+		_prism_mm.multimesh.set_instance_transform(
+			int(_prism_slot[index]), Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO)
+		)
 
 
 func position_of(index: int) -> Vector3:

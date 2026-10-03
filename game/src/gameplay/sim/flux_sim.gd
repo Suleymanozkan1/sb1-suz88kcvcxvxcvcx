@@ -592,7 +592,10 @@ func _check_hazard(i: int, type: int, ed: float, t: float) -> void:
 			return
 		if invuln > 0.0:
 			return
-		_collide(i, SimConst.FailReason.WRONG_PHASE if type == SimConst.EntityType.PHASE_GATE else SimConst.FailReason.COLLISION)
+		_collide(
+			i,
+			SimConst.FailReason.WRONG_PHASE if type == SimConst.EntityType.PHASE_GATE else SimConst.FailReason.COLLISION
+		)
 		return
 	if (ent_flags[i] & FLAG_RESOLVED) == 0 and _crossed(ed):
 		ent_flags[i] |= FLAG_RESOLVED

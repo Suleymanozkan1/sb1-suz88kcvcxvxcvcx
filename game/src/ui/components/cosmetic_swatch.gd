@@ -48,7 +48,14 @@ func _draw() -> void:
 		"particle":
 			for k2: int in 7:
 				var ang: float = TAU * float(k2) / 7.0
-				draw_circle(c + Vector2(cos(ang), sin(ang)) * r * 0.85, 4.0 + float(k2 % 3), a if k2 % 2 == 0 else b, true, -1.0, true)
+				draw_circle(
+					c + Vector2(cos(ang), sin(ang)) * r * 0.85,
+					4.0 + float(k2 % 3),
+					a if k2 % 2 == 0 else b,
+					true,
+					-1.0,
+					true
+				)
 		"background":
 			var top: Color = _c("sky_top", a)
 			var bottom: Color = _c("sky_bottom", b)
@@ -58,13 +65,21 @@ func _draw() -> void:
 		"theme":
 			draw_rect(Rect2(c - Vector2(r, r * 0.5), Vector2(r * 2, r * 0.3)), a)
 			draw_rect(Rect2(c - Vector2(r, 0), Vector2(r * 1.3, r * 0.3)), b)
-			draw_rect(Rect2(c + Vector2(-r, r * 0.45), Vector2(r * 0.9, r * 0.3)), Palette.with_alpha(Palette.BONE, 0.5 * dim))
+			draw_rect(
+				Rect2(c + Vector2(-r, r * 0.45), Vector2(r * 0.9, r * 0.3)), Palette.with_alpha(Palette.BONE, 0.5 * dim)
+			)
 		"effect":
 			draw_arc(c, r, 0.0, TAU, 48, a, 3.0, true)
 			draw_arc(c, r * 0.6, 0.0, TAU, 40, b, 2.0, true)
 			for k3: int in 8:
 				var ang2: float = TAU * float(k3) / 8.0
-				draw_line(c + Vector2(cos(ang2), sin(ang2)) * r * 1.1, c + Vector2(cos(ang2), sin(ang2)) * r * 1.35, a, 2.0, true)
+				draw_line(
+					c + Vector2(cos(ang2), sin(ang2)) * r * 1.1,
+					c + Vector2(cos(ang2), sin(ang2)) * r * 1.35,
+					a,
+					2.0,
+					true
+				)
 		"badge":
 			var hex: PackedVector2Array = PackedVector2Array()
 			for k4: int in 7:

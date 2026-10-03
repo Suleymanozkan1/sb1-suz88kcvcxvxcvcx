@@ -141,18 +141,35 @@ static func rib(profile: String) -> ArrayMesh:
 				var p1: Vector3 = Vector3(cos(b) * radius, cy + sin(b) * radius, 0.0)
 				var mid: Vector3 = (p0 + p1) * 0.5
 				var ang: float = atan2(p1.y - p0.y, p1.x - p0.x)
-				_append_chamfered_box(st, Vector3(p0.distance_to(p1) + t, t, t), CHAMFER_RATIO, Transform3D(Basis(Vector3.BACK, ang), mid))
+				_append_chamfered_box(
+					st, Vector3(p0.distance_to(p1) + t, t, t), CHAMFER_RATIO, Transform3D(Basis(Vector3.BACK, ang), mid)
+				)
 		"monolith":
 			for side: float in [-1.0, 1.0]:
-				_append_chamfered_box(st, Vector3(0.55, RIB_HEIGHT * 1.15, 1.1), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(side * (RIB_SPAN + 0.3), RIB_HEIGHT * 0.575, 0.0)))
+				_append_chamfered_box(
+					st,
+					Vector3(0.55, RIB_HEIGHT * 1.15, 1.1),
+					CHAMFER_RATIO,
+					Transform3D(Basis.IDENTITY, Vector3(side * (RIB_SPAN + 0.3), RIB_HEIGHT * 0.575, 0.0))
+				)
 		"lattice":
 			for dz: float in [-0.35, 0.35]:
 				_pillars(st, RIB_HEIGHT, t * 0.6, dz)
-				_append_chamfered_box(st, Vector3(RIB_SPAN * 2.0 + t, t * 0.6, t * 0.6), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(0, RIB_HEIGHT, dz)))
+				_append_chamfered_box(
+					st,
+					Vector3(RIB_SPAN * 2.0 + t, t * 0.6, t * 0.6),
+					CHAMFER_RATIO,
+					Transform3D(Basis.IDENTITY, Vector3(0, RIB_HEIGHT, dz))
+				)
 			for side2: float in [-1.0, 1.0]:
 				# Diagonal brace inside each pillar pair (structural, not ornamental).
 				var brace: Basis = Basis(Vector3.BACK, side2 * 0.32)
-				_append_chamfered_box(st, Vector3(t * 0.45, RIB_HEIGHT * 0.92, t * 0.45), CHAMFER_RATIO, Transform3D(brace, Vector3(side2 * (RIB_SPAN - 0.55), RIB_HEIGHT * 0.5, 0.0)))
+				_append_chamfered_box(
+					st,
+					Vector3(t * 0.45, RIB_HEIGHT * 0.92, t * 0.45),
+					CHAMFER_RATIO,
+					Transform3D(brace, Vector3(side2 * (RIB_SPAN - 0.55), RIB_HEIGHT * 0.5, 0.0))
+				)
 		"facet":
 			# Crystal clusters: hexagonal prisms with pyramid tips, a tall central
 			# crystal flanked by two shorter ones leaning outwards (fixed rule).
@@ -163,7 +180,12 @@ static func rib(profile: String) -> ArrayMesh:
 				_crystal(st, Vector3(base_x + side3 * 0.38, 0.0, -0.2), 0.2, RIB_HEIGHT * 0.45, side3 * 0.3)
 		_:
 			_pillars(st, RIB_HEIGHT, t)
-			_append_chamfered_box(st, Vector3(RIB_SPAN * 2.0 + t, t, t), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(0, RIB_HEIGHT, 0)))
+			_append_chamfered_box(
+				st,
+				Vector3(RIB_SPAN * 2.0 + t, t, t),
+				CHAMFER_RATIO,
+				Transform3D(Basis.IDENTITY, Vector3(0, RIB_HEIGHT, 0))
+			)
 	st.index()
 	var mesh: ArrayMesh = st.commit()
 	_cache[key] = mesh
@@ -191,8 +213,18 @@ static func _crystal(st: SurfaceTool, base: Vector3, radius: float, height: floa
 
 static func _pillars(st: SurfaceTool, height: float, t: float, dz: float = 0.0) -> void:
 	for side: float in [-1.0, 1.0]:
-		_append_chamfered_box(st, Vector3(t, height, t), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(side * RIB_SPAN, height * 0.5, dz)))
-		_append_chamfered_box(st, Vector3(t * 2.2, 0.08, t * 2.2), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(side * RIB_SPAN, 0.04, dz)))
+		_append_chamfered_box(
+			st,
+			Vector3(t, height, t),
+			CHAMFER_RATIO,
+			Transform3D(Basis.IDENTITY, Vector3(side * RIB_SPAN, height * 0.5, dz))
+		)
+		_append_chamfered_box(
+			st,
+			Vector3(t * 2.2, 0.08, t * 2.2),
+			CHAMFER_RATIO,
+			Transform3D(Basis.IDENTITY, Vector3(side * RIB_SPAN, 0.04, dz))
+		)
 
 
 ## Far-background story silhouette for a world (flat, fog-tinted, no detail noise).
@@ -210,7 +242,9 @@ static func silhouette(kind: String) -> ArrayMesh:
 			for b: int in 6:
 				var a: float = TAU * float(b) / 6.0
 				var dir: Vector3 = Vector3(cos(a), sin(a), 0)
-				_append_chamfered_box(st, Vector3(19.0, 3.6, 1.0), 0.12, Transform3D(Basis(Vector3.BACK, a), hub + dir * 12.5))
+				_append_chamfered_box(
+					st, Vector3(19.0, 3.6, 1.0), 0.12, Transform3D(Basis(Vector3.BACK, a), hub + dir * 12.5)
+				)
 			_append_chamfered_box(st, Vector3(7, 7, 2.4), 0.25, Transform3D(Basis.IDENTITY, hub))
 			var blades: ArrayMesh = st.commit()
 			var ring_st: SurfaceTool = SurfaceTool.new()
@@ -226,7 +260,15 @@ static func silhouette(kind: String) -> ArrayMesh:
 			return blades
 		"ridge", "glacier":
 			# Mountain range: triangular prisms with rule-based widths/heights.
-			var peaks: Array[Vector3] = [Vector3(-64, 20, 26), Vector3(-40, 32, 30), Vector3(-18, 24, 24), Vector3(4, 42, 34), Vector3(28, 28, 26), Vector3(50, 36, 30), Vector3(70, 18, 22)]
+			var peaks: Array[Vector3] = [
+				Vector3(-64, 20, 26),
+				Vector3(-40, 32, 30),
+				Vector3(-18, 24, 24),
+				Vector3(4, 42, 34),
+				Vector3(28, 28, 26),
+				Vector3(50, 36, 30),
+				Vector3(70, 18, 22)
+			]
 			var sharp: float = 0.5 if kind == "ridge" else 0.62
 			for p: Vector3 in peaks:
 				var pm: PrismMesh = PrismMesh.new()
@@ -238,7 +280,12 @@ static func silhouette(kind: String) -> ArrayMesh:
 			var xs: Array[float] = [-48.0, -30.0, -14.0, 14.0, 32.0, 50.0]
 			var width: float = 5.0 if kind == "chimneys" else (7.0 if kind == "towers" else 2.2)
 			for n: int in xs.size():
-				_append_chamfered_box(st, Vector3(width, heights[n], width), 0.15, Transform3D(Basis.IDENTITY, Vector3(xs[n], heights[n] * 0.5, 0.0)))
+				_append_chamfered_box(
+					st,
+					Vector3(width, heights[n], width),
+					0.15,
+					Transform3D(Basis.IDENTITY, Vector3(xs[n], heights[n] * 0.5, 0.0))
+				)
 		"dome", "reactor", "canopy":
 			var dome: SphereMesh = SphereMesh.new()
 			dome.radius = 30.0
@@ -251,13 +298,17 @@ static func silhouette(kind: String) -> ArrayMesh:
 				var torus: TorusMesh = TorusMesh.new()
 				torus.inner_radius = 34.0
 				torus.outer_radius = 36.0
-				st.append_from(torus, 0, Transform3D(Basis(Vector3.RIGHT, PI * 0.5).scaled(Vector3(1, 1, 0.3)), Vector3(0, 18, 0)))
+				st.append_from(
+					torus, 0, Transform3D(Basis(Vector3.RIGHT, PI * 0.5).scaled(Vector3(1, 1, 0.3)), Vector3(0, 18, 0))
+				)
 		_:
 			var ring: TorusMesh = TorusMesh.new()
 			ring.inner_radius = 44.0
 			ring.outer_radius = 46.0
 			ring.rings = 48
-			st.append_from(ring, 0, Transform3D(Basis(Vector3.RIGHT, PI * 0.5).scaled(Vector3(1, 1, 0.25)), Vector3(0, 12, 0)))
+			st.append_from(
+				ring, 0, Transform3D(Basis(Vector3.RIGHT, PI * 0.5).scaled(Vector3(1, 1, 0.25)), Vector3(0, 12, 0))
+			)
 	var mesh: ArrayMesh = st.commit()
 	_cache[key] = mesh
 	return mesh

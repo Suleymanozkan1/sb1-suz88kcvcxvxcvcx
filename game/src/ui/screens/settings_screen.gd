@@ -39,32 +39,76 @@ func build() -> void:
 	var body: VBoxContainer = UiKit.vbox(UiTokens.u(3))
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(body)
-	body.add_child(_section(tr("settings.audio"), [
-		_toggle_row(&"sound", "sound", tr("settings.sound")),
-		_slider_row(&"sound", "sfx_volume", tr("settings.sfx_volume")),
-		_toggle_row(&"music", "music", tr("settings.music")),
-		_slider_row(&"music", "music_volume", tr("settings.music_volume")),
-	]))
-	body.add_child(_section(tr("settings.feel"), [
-		_toggle_row(&"haptics", "haptics", tr("settings.haptics")),
-		_toggle_row(&"accessibility", "reduce_motion", tr("settings.reduce_motion")),
-		_toggle_row(&"accessibility", "colorblind", tr("settings.colorblind")),
-	]))
+	(
+		body
+		. add_child(
+			_section(
+				tr("settings.audio"),
+				[
+					_toggle_row(&"sound", "sound", tr("settings.sound")),
+					_slider_row(&"sound", "sfx_volume", tr("settings.sfx_volume")),
+					_toggle_row(&"music", "music", tr("settings.music")),
+					_slider_row(&"music", "music_volume", tr("settings.music_volume")),
+				]
+			)
+		)
+	)
+	(
+		body
+		. add_child(
+			_section(
+				tr("settings.feel"),
+				[
+					_toggle_row(&"haptics", "haptics", tr("settings.haptics")),
+					_toggle_row(&"accessibility", "reduce_motion", tr("settings.reduce_motion")),
+					_toggle_row(&"accessibility", "colorblind", tr("settings.colorblind")),
+				]
+			)
+		)
+	)
 	_quality = UiSegmented.new()
-	_quality.setup(QUALITY_IDS, PackedStringArray([tr("settings.q.auto"), tr("settings.q.low"), tr("settings.q.medium"), tr("settings.q.high"), tr("settings.q.ultra")]), "auto")
+	_quality.setup(
+		QUALITY_IDS,
+		PackedStringArray(
+			[
+				tr("settings.q.auto"),
+				tr("settings.q.low"),
+				tr("settings.q.medium"),
+				tr("settings.q.high"),
+				tr("settings.q.ultra")
+			]
+		),
+		"auto"
+	)
 	_quality.selected.connect(func(id: String) -> void: setting_changed.emit("quality", id))
-	body.add_child(_section(tr("settings.display"), [
-		_labelled(&"quality", tr("settings.quality"), _quality),
-		_toggle_row(&"battery", "battery_saver", tr("settings.battery_saver")),
-	]))
+	(
+		body
+		. add_child(
+			_section(
+				tr("settings.display"),
+				[
+					_labelled(&"quality", tr("settings.quality"), _quality),
+					_toggle_row(&"battery", "battery_saver", tr("settings.battery_saver")),
+				]
+			)
+		)
+	)
 	_language = UiSegmented.new()
 	_language.setup(LANG_IDS, PackedStringArray([tr("settings.lang.auto"), "English", "Türkçe"]), "auto")
 	_language.selected.connect(func(id: String) -> void: setting_changed.emit("language", id))
 	body.add_child(_section(tr("settings.language"), [_language]))
-	body.add_child(_section(tr("settings.privacy"), [
-		_toggle_row(&"notifications", "notifications", tr("settings.notifications")),
-		_toggle_row(&"info", "analytics", tr("settings.analytics")),
-	]))
+	(
+		body
+		. add_child(
+			_section(
+				tr("settings.privacy"),
+				[
+					_toggle_row(&"notifications", "notifications", tr("settings.notifications")),
+					_toggle_row(&"info", "analytics", tr("settings.analytics")),
+				]
+			)
+		)
+	)
 	var restore: UiButton = UiKit.button(tr("settings.restore"), UiKit.ButtonRole.SECONDARY, &"restore")
 	restore.pressed.connect(func() -> void: restore_requested.emit())
 	_restore_status = UiKit.text("", &"caption", UiTokens.TEXT_MUTED)

@@ -14,7 +14,10 @@ signal back_requested
 const TILE: int = 152
 const COLUMNS: int = 4
 const RARITY_KEYS: Dictionary = {
-	"common": "rarity.common", "rare": "rarity.rare", "epic": "rarity.epic", "legendary": "rarity.legendary",
+	"common": "rarity.common",
+	"rare": "rarity.rare",
+	"epic": "rarity.epic",
+	"legendary": "rarity.legendary",
 }
 
 var mode: StringName = &"shop"
@@ -185,15 +188,19 @@ func _tile(it: Dictionary) -> Control:
 	b.theme_type_variation = &"ChoiceButton"
 	b.custom_minimum_size = Vector2(TILE, TILE)
 	if id == _selected:
-		var sb: StyleBoxFlat = (UiTheme.get_theme().get_stylebox("normal", &"ChoiceButton") as StyleBoxFlat).duplicate() as StyleBoxFlat
+		var sb: StyleBoxFlat = (
+			(UiTheme.get_theme().get_stylebox("normal", &"ChoiceButton") as StyleBoxFlat).duplicate() as StyleBoxFlat
+		)
 		sb.border_color = Palette.PRIMARY
 		sb.set_border_width_all(UiTokens.STROKE)
 		b.add_theme_stylebox_override("normal", sb)
 		b.add_theme_stylebox_override("hover", sb)
-	b.pressed.connect(func() -> void:
-		UiKit.play_feedback(&"ui_click")
-		_selected = id
-		_refresh())
+	b.pressed.connect(
+		func() -> void:
+			UiKit.play_feedback(&"ui_click")
+			_selected = id
+			_refresh()
+	)
 	var swatch: CosmeticSwatch = CosmeticSwatch.new()
 	swatch.setup(str(it.get("category", "")), it.get("params", {}) as Dictionary, bool(it.get("owned", false)))
 	swatch.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -242,7 +249,11 @@ func _update_detail() -> void:
 	if str(it.get("category", "")) == "core_skin":
 		var p: Dictionary = it.get("params", {}) as Dictionary
 		_preview_core.apply_skin(
-			int(p.get("style", 0)), _color(p, "color_a", Palette.PRIMARY), _color(p, "color_b", Palette.SECONDARY), _color(p, "rim", Color.WHITE), float(p.get("anim_speed", 1.0))
+			int(p.get("style", 0)),
+			_color(p, "color_a", Palette.PRIMARY),
+			_color(p, "color_b", Palette.SECONDARY),
+			_color(p, "rim", Color.WHITE),
+			float(p.get("anim_speed", 1.0))
 		)
 		_preview_holder.visible = true
 	else:
@@ -278,7 +289,10 @@ func _build_packs() -> void:
 		info.add_child(desc)
 		row.add_child(info)
 		var owned: bool = bool(p.get("owned", false))
-		var b: UiButton = UiKit.button(tr("shop.owned") if owned else (tr("shop.view_store") if store_ok else tr("shop.store_unavailable")), UiKit.ButtonRole.SECONDARY)
+		var b: UiButton = UiKit.button(
+			tr("shop.owned") if owned else (tr("shop.view_store") if store_ok else tr("shop.store_unavailable")),
+			UiKit.ButtonRole.SECONDARY
+		)
 		b.disabled = owned or not store_ok
 		var pid: String = str(p.get("id", ""))
 		b.pressed.connect(func() -> void: pack_requested.emit(pid))

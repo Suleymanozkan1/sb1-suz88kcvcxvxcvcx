@@ -80,9 +80,9 @@ func _run_file(path: String) -> void:
 		test.current_test = "%s::%s" % [path.get_file(), method_name]
 		_total += 1
 		var t0: int = Time.get_ticks_usec()
-		test.before_each()
+		await test.before_each()
 		await test.call(method_name)
-		test.after_each()
+		await test.after_each()
 		var ms: float = float(Time.get_ticks_usec() - t0) / 1000.0
 		_assertions += test.assertions
 		if test.failures.is_empty():

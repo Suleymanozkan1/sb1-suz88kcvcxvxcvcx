@@ -1,0 +1,332 @@
+class_name Presenters
+extends RefCounted
+## Builds screen payloads from real system state. Screens stay dumb views and
+## every number they show comes from here — nothing is invented for display.
+
+const CATEGORY_ORDER: PackedStringArray = [
+	"core_skin",
+	"trail",
+	"particle",
+	"effect",
+	"background",
+	"theme",
+	"frame",
+	"avatar",
+	"badge",
+]
+const MODE_ORDER: Array[StringName] = [
+	&"classic",
+	&"endless",
+	&"time_attack",
+	&"daily",
+	&"perfect_run",
+	&"zen",
+	&"hard",
+	&"boss_rush",
+]
+
+
+static func t(key: String) -> String:
+	return TranslationServer.translate(key)
+
+
+static func main_menu(s: AppServices) -> Dictionary:
+	var p: PlayerProfile = s.profile
+	var need: int = maxi(1, s.progression.xp_for_next(p.player_level))
+	var next_id: String = s.progression.next_level_to_play()
+	var loc: Dictionary = WorldCatalog.parse_level_id(next_id)
+	var world: Dictionary = s.catalog.world_at(int(loc.get("world", 1)))
+	var hint: Dictionary = s.progression.next_unlock_hint()
+	var unlock: Dictionary = {}
+	if not hint.is_empty():
+		unlock = {
+			"title": _hint_title(s, hint),
+			"progress": int(hint.get("progress", 0)),
+			"target": int(hint.get("target", 1))
+		}
+	var daily: Dictionary = s.daily.status()
+	var claimable: int = s.missions.claimable_count()
+	var badge: String = ""
+	if not bool(daily.get("completed", false)):
+		badge = t("menu.daily_new")
+	elif claimable > 0:
+		badge = str(claimable)
+	return {
+		"coins": s.economy.balance(EconomyService.COINS),
+		"gems": s.economy.balance(EconomyService.GEMS),
+		"player_level": p.player_level,
+		"xp_progress": float(p.xp) / float(need),
+		"next_level_label":
+		t("menu.next_level").format({"world": str(world.get("name", "")), "n": int(loc.get("local", 1))}),
+		"unlock": unlock,
+		"daily_badge": badge,
+	}
+
+
+static func _hint_title(s: AppServices, hint: Dictionary) -> String:
+	match str(hint.get("type", "")):
+		"world":
+			var w: Dictionary = s.catalog.world(str(hint.get("id", "")))
+			return t("menu.hint.world").format({"name": str(w.get("name", ""))})
+		"level":
+			return t("menu.hint.level")
+		"player_level":
+			return t("menu.hint.player_level").format({"n": int(hint.get("target", 0))})
+	return ""
+
+
+static func worlds(s: AppServices) -> Dictionary:
+	var rows: Array = []
+	for w: Variant in s.progression.progress_summary().get("worlds", []) as Array:
+		var row: Dictionary = (w as Dictionary).duplicate()
+		var world: Dictionary = s.catalog.world(str(row.get("id", "")))
+		var art: Dictionary = world.get("art", {}) as Dictionary
+		row["name"] = str(world.get("name", row.get("id", "")))
+		row["story"] = str(art.get("story", ""))
+		row["sink"] = Color(str(art.get("sink", "#46e6f0")))
+		if not bool(row.get("unlocked", false)):
+			row["requirement"] = t("worlds.requirement").format(
+				{
+					"stars": s.progression.stars_needed_for(str(row.get("id", ""))),
+					"prev": str(s.catalog.world_at(maxi(1, int(row.get("index", 1)) - 1)).get("name", ""))
+				}
+			)
+		rows.append(row)
+	return {"worlds": rows}
+
+
+static func level_grid(s: AppServices, world_id: String) -> Dictionary:
+	var world: Dictionary = s.catalog.world(world_id)
+	var index: int = int(world.get("index", 1))
+	var count: int = s.catalog.levels_in(index)
+	var levels: Array = []
+	var stars: int = 0
+	for local: int in range(1, count + 1):
+		var id: String = WorldCatalog.level_id(index, local)
+		var r: Dictionary = s.profile.level_result(id)
+		stars += int(r.get("stars", 0))
+		var kind: String = "boss" if local == count else ("challenge" if local == count / 2 else "normal")
+		levels.append(
+			{
+				"id": id,
+				"local": local,
+				"stars": int(r.get("stars", 0)),
+				"unlocked": s.progression.is_level_unlocked(id),
+				"cleared": s.profile.is_cleared(id),
+				"kind": kind,
+				"perfect": bool(r.get("perfect", false))
+			}
+		)
+	return {
+		"world_name": str(world.get("name", "")),
+		"summary": t("levels.summary").format({"stars": stars, "max": count * 3}),
+		"levels": levels
+	}
+
+
+static func modes(s: AppServices) -> Dictionary:
+	var progress: Dictionary = s.mode_progress()
+	var bests: Dictionary = s.profile.flags.get(RunController.MODE_BEST_FLAG, {}) as Dictionary
+	var rows: Array = []
+	for id: StringName in MODE_ORDER:
+		if not s.modes.has(id):
+			continue
+		var m: Dictionary = s.modes.mode(id)
+		var req: Dictionary = s.modes.requirement(id)
+		var best: String = ""
+		if bests.has(String(id)):
+			var v: int = int(bests[String(id)])
+			best = (
+				(UiKit.format_int(v) + " m")
+				if str(m.get("best_metric", "score")) == "distance"
+				else UiKit.format_int(v)
+			)
+		rows.append(
+			{
+				"id": String(id),
+				"name": t(str(m.get("name_key", ""))),
+				"desc": t(str(m.get("desc_key", ""))),
+				"best": best,
+				"unlocked": s.modes.is_unlocked(id, progress),
+				"requirement": t(str(req["key"])).format(req["args"] as Dictionary)
+			}
+		)
+	return {"modes": rows}
+
+
+static func daily(s: AppServices) -> Dictionary:
+	var status: Dictionary = s.daily.status()
+	var level: Dictionary = s.daily.today_level()
+	var world: Dictionary = s.catalog.world(str(level.get("world", "")))
+	var rank: Dictionary = s.daily.rank_text_local(int(status.get("best_score", 0)))
+	var missions: Dictionary = {}
+	for kind: String in ["daily", "weekly"]:
+		var list: Array = []
+		for m: Dictionary in s.missions.active(kind):
+			list.append(m)
+		missions[kind] = list
+	return {
+		"date_label": t("daily.date").format({"date": str(status.get("date_key", ""))}),
+		"world_name": str(world.get("name", "")),
+		"status": status,
+		"rank": rank,
+		"missions": missions,
+		"reset": {"daily": s.missions.time_left_seconds("daily"), "weekly": s.missions.time_left_seconds("weekly")},
+	}
+
+
+static func progress(s: AppServices, tab: String, board: Dictionary) -> Dictionary:
+	var p: PlayerProfile = s.profile
+	var summary: Dictionary = s.progression.progress_summary()
+	var worlds_rows: Array = []
+	var perfect_count: int = 0
+	for w: Variant in summary.get("worlds", []) as Array:
+		var row: Dictionary = (w as Dictionary).duplicate()
+		row["name"] = str(s.catalog.world(str(row.get("id", ""))).get("name", ""))
+		worlds_rows.append(row)
+	var achievements: Array = []
+	for a: Dictionary in s.achievements.list(false):
+		var id: String = str(a.get("id", ""))
+		var prog: Dictionary = s.achievements.progress(id)
+		achievements.append(
+			{
+				"name": t(str(a.get("name_key", id))),
+				"desc": t(str(a.get("desc_key", ""))),
+				"value": int(prog.get("value", 0)),
+				"target": int(prog.get("target", 1)),
+				"unlocked": bool(prog.get("unlocked", false)),
+				"reward": a.get("reward", {})
+			}
+		)
+	# In-progress goals first, earned ones after (stable within each group).
+	var open: Array = achievements.filter(func(a: Dictionary) -> bool: return not bool(a["unlocked"]))
+	var earned: Array = achievements.filter(func(a: Dictionary) -> bool: return bool(a["unlocked"]))
+	achievements = open + earned
+	for id2: Variant in p.levels.keys():
+		if bool((p.levels[id2] as Dictionary).get("perfect", false)):
+			perfect_count += 1
+	return {
+		"player_level": p.player_level,
+		"xp": p.xp,
+		"xp_next": s.progression.xp_for_next(p.player_level),
+		"stars": s.progression.total_stars(),
+		"max_stars": s.progression.max_stars(),
+		"perfects": perfect_count,
+		"cleared": p.stat("unique_levels_cleared"),
+		"worlds": worlds_rows,
+		"stats": p.stats,
+		"achievements": achievements,
+		"achievements_unlocked": s.achievements.unlocked_count(),
+		"achievements_total": s.achievements.total_count(),
+		"board_ids": board_ids(s),
+		"board": board,
+		"tab": tab,
+	}
+
+
+## Daily / classic all-time / endless weekly boards shown on the Progress screen.
+static func board_ids(s: AppServices) -> PackedStringArray:
+	return PackedStringArray(
+		[
+			LeaderboardService.daily_board(s.clock.date_key()),
+			LeaderboardService.alltime_board("classic"),
+			LeaderboardService.weekly_board(s.clock.week_key(), "endless"),
+		]
+	)
+
+
+## Normalises a backend fetch into the screen's board shape (own entry flagged).
+static func board_view(s: AppServices, fetched: Dictionary) -> Dictionary:
+	var entries: Array = []
+	var player: Dictionary = fetched.get("player", {}) as Dictionary
+	for e: Variant in fetched.get("entries", []) as Array:
+		var row: Dictionary = (e as Dictionary).duplicate()
+		row["is_player"] = (
+			bool(row.get("is_player", false))
+			or (not player.is_empty() and int(row.get("rank", -1)) == int(player.get("rank", -2)))
+		)
+		entries.append(row)
+	return {"entries": entries, "remote": bool(fetched.get("remote", false)), "online": s.network.online}
+
+
+static func cosmetics(s: AppServices, mode: StringName) -> Dictionary:
+	var categories: Array = []
+	for c: String in CATEGORY_ORDER:
+		if s.cosmetics_catalog.categories().has(c) and not (mode == &"shop" and c == "badge"):
+			categories.append({"id": c, "label": t("cos.category." + c)})
+	var items: Array = []
+	for c2: Dictionary in categories:
+		for item: Dictionary in s.cosmetics_catalog.in_category(str(c2["id"])):
+			var id: String = str(item.get("id", ""))
+			var status: Dictionary = s.cosmetics.unlock_status(id)
+			var price: Dictionary = status.get("price", {}) as Dictionary
+			var affordable: bool = true
+			for cur: Variant in price.keys():
+				affordable = affordable and s.economy.can_afford(StringName(str(cur)), int(price[cur]))
+			(
+				items
+				. append(
+					{
+						"id": id,
+						"category": str(item.get("category", "")),
+						"name": t(str(item.get("name_key", id))),
+						"rarity": str(item.get("rarity", "common")),
+						"owned": bool(status.get("owned", false)),
+						"equipped": s.cosmetics.equipped(str(item.get("category", ""))) == id,
+						"price": price,
+						"affordable": affordable,
+						"requirement": _requirement(status),
+						"params": s.cosmetics_catalog.typed_params(id),
+					}
+				)
+			)
+	var packs: Array = []
+	for listing: Dictionary in s.store.listings():
+		var ids: Array = listing.get("items", []) as Array
+		packs.append(
+			{
+				"id": str(listing.get("id", "")),
+				"name": t(str(listing.get("name_key", ""))),
+				"items_label": t("shop.pack_items").format({"n": ids.size()}),
+				"available": s.store.is_available() and not s.store.owns(str(listing.get("id", "")))
+			}
+		)
+	return {
+		"mode": String(mode),
+		"coins": s.economy.balance(EconomyService.COINS),
+		"gems": s.economy.balance(EconomyService.GEMS),
+		"categories": categories,
+		"items": items,
+		"packs": packs,
+		"store_available": s.store.is_available()
+	}
+
+
+static func _requirement(status: Dictionary) -> String:
+	if bool(status.get("owned", false)):
+		return ""
+	var type: String = str(status.get("type", ""))
+	match type:
+		"coins", "gems", "default":
+			return ""
+		"premium":
+			return t("shop.req.premium")
+	return t("shop.req." + type).format({"n": int(status.get("target", 0)), "progress": int(status.get("progress", 0))})
+
+
+static func settings(s: AppServices, restore_status: String) -> Dictionary:
+	return {
+		"settings": s.settings.snapshot(),
+		"version": AppInfo.version(),
+		"licenses": licenses_text(),
+		"restore_status": restore_status
+	}
+
+
+## Human-readable licence list from assets/LICENSES.json (fonts, audio, icons, engine).
+static func licenses_text() -> String:
+	var lines: PackedStringArray = PackedStringArray(["Godot Engine — MIT License"])
+	for e: Variant in JsonIO.read_dict("res://assets/LICENSES.json").get("entries", []) as Array:
+		var entry: Dictionary = e as Dictionary
+		lines.append("%s — %s" % [str(entry.get("name", entry.get("path", ""))), str(entry.get("license", ""))])
+	return "\n".join(lines)

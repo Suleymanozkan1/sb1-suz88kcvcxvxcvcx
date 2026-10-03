@@ -10,8 +10,15 @@ signal back_requested
 
 const TABS: PackedStringArray = ["overview", "achievements", "leaderboard"]
 const STAT_ROWS: PackedStringArray = [
-	"levels_cleared", "perfects", "sparks_collected", "max_combo", "near_misses",
-	"shatters", "bosses_cleared", "daily_completed", "time_played_seconds",
+	"levels_cleared",
+	"perfects",
+	"sparks_collected",
+	"max_combo",
+	"near_misses",
+	"shatters",
+	"bosses_cleared",
+	"daily_completed",
+	"time_played_seconds",
 ]
 
 var _tabs: UiSegmented
@@ -43,7 +50,11 @@ func build() -> void:
 	header.back_pressed.connect(func() -> void: back_requested.emit())
 	col.add_child(header)
 	_tabs = UiSegmented.new()
-	_tabs.setup(TABS, PackedStringArray([tr("progress.overview"), tr("progress.achievements"), tr("progress.leaderboard")]), "overview")
+	_tabs.setup(
+		TABS,
+		PackedStringArray([tr("progress.overview"), tr("progress.achievements"), tr("progress.leaderboard")]),
+		"overview"
+	)
 	_tabs.selected.connect(_show_tab)
 	col.add_child(_tabs)
 	var stack: Control = Control.new()
@@ -126,7 +137,9 @@ func _world_row(w: Dictionary) -> HBoxContainer:
 	index.custom_minimum_size = Vector2(UiTokens.u(4), 0)
 	index.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	h.add_child(index)
-	var name_label: Label = UiKit.text(str(w.get("name", "")), &"body", UiTokens.TEXT if unlocked else UiTokens.TEXT_MUTED)
+	var name_label: Label = UiKit.text(
+		str(w.get("name", "")), &"body", UiTokens.TEXT if unlocked else UiTokens.TEXT_MUTED
+	)
 	name_label.custom_minimum_size = Vector2(UiTokens.u(26), 0)
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	name_label.clip_text = true
@@ -139,7 +152,9 @@ func _world_row(w: Dictionary) -> HBoxContainer:
 	meter.max_value = maxf(1.0, float(w.get("max", 156)))
 	meter.value = float(w.get("stars", 0))
 	h.add_child(meter)
-	var value: Label = UiKit.text("%d" % int(w.get("stars", 0)), &"caption", Palette.ACCENT if unlocked else UiTokens.TEXT_MUTED)
+	var value: Label = UiKit.text(
+		"%d" % int(w.get("stars", 0)), &"caption", Palette.ACCENT if unlocked else UiTokens.TEXT_MUTED
+	)
 	value.custom_minimum_size = Vector2(UiTokens.u(6), 0)
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -188,7 +203,9 @@ func _achievement_row(a: Dictionary) -> PanelContainer:
 		meter.max_value = float(target)
 		meter.value = float(value)
 		meter_row.add_child(meter)
-		meter_row.add_child(UiKit.text("%s / %s" % [UiKit.format_int(value), UiKit.format_int(target)], &"caption", UiTokens.TEXT_MUTED))
+		meter_row.add_child(
+			UiKit.text("%s / %s" % [UiKit.format_int(value), UiKit.format_int(target)], &"caption", UiTokens.TEXT_MUTED)
+		)
 		info.add_child(meter_row)
 	info.add_child(DailyScreen._reward_row(a.get("reward", {}) as Dictionary))
 	h.add_child(info)
@@ -205,12 +222,17 @@ func _achievement_row(a: Dictionary) -> PanelContainer:
 func _build_leaderboard() -> VBoxContainer:
 	var v: VBoxContainer = UiKit.vbox(UiTokens.UNIT)
 	_boards = UiSegmented.new()
-	_boards.setup(PackedStringArray(["daily", "classic", "endless"]),
-		PackedStringArray([tr("lb.daily"), tr("lb.classic"), tr("lb.endless")]), "daily")
-	_boards.selected.connect(func(id: String) -> void:
-		var index: int = _boards.options.find(id)
-		if index >= 0 and index < _board_ids.size():
-			board_requested.emit(_board_ids[index]))
+	_boards.setup(
+		PackedStringArray(["daily", "classic", "endless"]),
+		PackedStringArray([tr("lb.daily"), tr("lb.classic"), tr("lb.endless")]),
+		"daily"
+	)
+	_boards.selected.connect(
+		func(id: String) -> void:
+			var index: int = _boards.options.find(id)
+			if index >= 0 and index < _board_ids.size():
+				board_requested.emit(_board_ids[index])
+	)
 	v.add_child(_boards)
 	_board_note = UiKit.text("", &"body", UiTokens.TEXT_MUTED)
 	_board_note.add_theme_font_size_override("font_size", UiTokens.CAPTION[0] + 2)
@@ -277,11 +299,22 @@ func enter(payload: Dictionary) -> void:
 	_xp_label.text = "%s / %s XP" % [UiKit.format_int(xp), UiKit.format_int(xp_next)]
 	for c: Node in _totals.get_children():
 		c.queue_free()
-	_totals.add_child(_total_tile(&"star_filled", Palette.ACCENT,
-		"%s" % UiKit.format_int(int(payload.get("stars", 0))),
-		tr("progress.stars_of").format({"max": UiKit.format_int(int(payload.get("max_stars", 0)))})))
-	_totals.add_child(_total_tile(&"check", Palette.SUCCESS, UiKit.format_int(int(payload.get("cleared", 0))), tr("progress.cleared")))
-	_totals.add_child(_total_tile(&"target", Palette.PRIMARY, UiKit.format_int(int(payload.get("perfects", 0))), tr("progress.perfects")))
+	_totals.add_child(
+		_total_tile(
+			&"star_filled",
+			Palette.ACCENT,
+			"%s" % UiKit.format_int(int(payload.get("stars", 0))),
+			tr("progress.stars_of").format({"max": UiKit.format_int(int(payload.get("max_stars", 0)))})
+		)
+	)
+	_totals.add_child(
+		_total_tile(&"check", Palette.SUCCESS, UiKit.format_int(int(payload.get("cleared", 0))), tr("progress.cleared"))
+	)
+	_totals.add_child(
+		_total_tile(
+			&"target", Palette.PRIMARY, UiKit.format_int(int(payload.get("perfects", 0))), tr("progress.perfects")
+		)
+	)
 	for c2: Node in _worlds.get_children():
 		c2.queue_free()
 	for raw: Variant in payload.get("worlds", []) as Array:
@@ -294,12 +327,15 @@ func enter(payload: Dictionary) -> void:
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_stats.add_child(label)
 		var value: int = int(stats.get(key, 0))
-		var shown: String = DailyScreen.format_duration(value) if key == "time_played_seconds" else UiKit.format_int(value)
+		var shown: String = (
+			DailyScreen.format_duration(value) if key == "time_played_seconds" else UiKit.format_int(value)
+		)
 		var value_label: Label = UiKit.text(shown, &"body")
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		_stats.add_child(value_label)
-	_ach_summary.text = tr("progress.achievements_count").format({
-		"n": int(payload.get("achievements_unlocked", 0)), "total": int(payload.get("achievements_total", 0))})
+	_ach_summary.text = tr("progress.achievements_count").format(
+		{"n": int(payload.get("achievements_unlocked", 0)), "total": int(payload.get("achievements_total", 0))}
+	)
 	for c4: Node in _ach_list.get_children():
 		c4.queue_free()
 	for raw2: Variant in payload.get("achievements", []) as Array:

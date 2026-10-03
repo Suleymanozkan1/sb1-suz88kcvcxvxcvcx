@@ -61,17 +61,20 @@ func _initialize() -> void:
 			for w: Dictionary in report.warnings:
 				print("%s: warning [%s] %s" % [id, w["code"], w["message"]])
 		worst_window = minf(worst_window, float(report.stats.get("min_window", INF)))
-		rows.append({"id": id, "ok": report.ok(), "errors": report.errors, "warnings": report.warnings, "stats": report.stats})
+		rows.append(
+			{"id": id, "ok": report.ok(), "errors": report.errors, "warnings": report.warnings, "stats": report.stats}
+		)
 	var secs: float = float(Time.get_ticks_msec() - started) / 1000.0
 	print(
-		"validated %d levels in %.1fs: %d failed, %d with warnings, worst tap window %.0f ms"
-		% [checked, secs, failed, warned, worst_window * 1000.0]
+		(
+			"validated %d levels in %.1fs: %d failed, %d with warnings, worst tap window %.0f ms"
+			% [checked, secs, failed, warned, worst_window * 1000.0]
+		)
 	)
 	if not code_counts.is_empty():
 		print("error codes: ", code_counts)
 	if not report_path.is_empty():
 		JsonIO.write_json(
-			report_path,
-			{"checked": checked, "failed": failed, "warned": warned, "codes": code_counts, "levels": rows}
+			report_path, {"checked": checked, "failed": failed, "warned": warned, "codes": code_counts, "levels": rows}
 		)
 	quit(1 if failed > 0 else 0)

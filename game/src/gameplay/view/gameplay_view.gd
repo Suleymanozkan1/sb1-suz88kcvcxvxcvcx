@@ -49,6 +49,10 @@ var post_layer: CanvasLayer
 ## Quality / accessibility toggles.
 var post_fx_enabled: bool = true
 var reduce_motion: bool = false
+var _core_skin: Dictionary = {}
+var _trail_skin: Dictionary = {}
+var _trail_head: Color = Palette.PRIMARY
+var _trail_tail: Color = Palette.PRIMARY.darkened(0.5)
 
 var _floor: MeshInstance3D
 var _floor_mat: ShaderMaterial
@@ -232,8 +236,27 @@ func _apply_environment() -> void:
 
 
 func _apply_core_skin_defaults() -> void:
-	core_view.apply_skin(0, Palette.PRIMARY, Palette.PRIMARY.darkened(0.35), Color.WHITE)
-	trail.set_colors(Palette.PRIMARY, Palette.with_alpha(Palette.PRIMARY.darkened(0.5), 0.0))
+	apply_cosmetics(_core_skin, _trail_skin)
+
+
+## Equipped cosmetics (never gameplay): core skin {"style","color_a","color_b",
+## "rim","anim_speed"} and trail {"style","head","tail"}. In the HOP form the
+## trail wears the cosmetic colours; other forms tint it with their gameplay
+## colour because there the colour carries information (ART_DIRECTION §3).
+func apply_cosmetics(core_skin: Dictionary, trail_skin: Dictionary) -> void:
+	_ensure_built()
+	_core_skin = core_skin
+	_trail_skin = trail_skin
+	core_view.apply_skin(
+		int(core_skin.get("style", 0)),
+		core_skin.get("color_a", Palette.PRIMARY) as Color,
+		core_skin.get("color_b", Palette.PRIMARY.darkened(0.35)) as Color,
+		core_skin.get("rim", Color.WHITE) as Color,
+		float(core_skin.get("anim_speed", 1.0))
+	)
+	trail.set_style(int(trail_skin.get("style", 0)))
+	_trail_head = trail_skin.get("head", Palette.PRIMARY) as Color
+	_trail_tail = trail_skin.get("tail", Palette.PRIMARY.darkened(0.5)) as Color
 
 
 ## Builds visuals for the session's current level.
@@ -309,8 +332,11 @@ func _update_frame(delta: float) -> void:
 	core_view.set_form(sim.form, sim.phase, sim.heavy)
 	core_view.set_direction_hint(sim.form == SimConst.Form.HOP and lvl.lane_count > 2, sim.hop_dir)
 	core_view.update_visuals(delta, sim)
-	var form_color: Color = Palette.form_color(sim.form, sim.phase, sim.heavy)
-	trail.set_colors(form_color, Palette.with_alpha(form_color.darkened(0.5), 0.0))
+	if sim.form == SimConst.Form.HOP:
+		trail.set_colors(_trail_head, Palette.with_alpha(_trail_tail, 0.0))
+	else:
+		var form_color: Color = Palette.form_color(sim.form, sim.phase, sim.heavy)
+		trail.set_colors(form_color, Palette.with_alpha(form_color.darkened(0.5), 0.0))
 	trail.width = 0.12 + clampf(float(sim.combo) / 40.0, 0.0, 1.0) * 0.06 + (0.05 if sim.overdrive_timer > 0.0 else 0.0)
 	if core_view.visible:
 		trail.push_point(core_pos + Vector3(0.0, -0.02, 0.16))

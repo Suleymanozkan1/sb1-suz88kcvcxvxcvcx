@@ -94,7 +94,7 @@ func _labelled_value(caption: String, value: Label) -> VBoxContainer:
 
 func _streak_card() -> VBoxContainer:
 	var section: VBoxContainer = UiKit.vbox(UiTokens.UNIT)
-	section.add_child(UiKit.text(tr("daily.streak"), &"caption", UiTokens.TEXT_MUTED))
+	section.add_child(UiKit.text(tr("daily.streak_title"), &"caption", UiTokens.TEXT_MUTED))
 	var card: PanelContainer = UiKit.card()
 	var v: VBoxContainer = UiKit.vbox(UiTokens.GUTTER)
 	card.add_child(v)
@@ -156,7 +156,8 @@ func enter(payload: Dictionary) -> void:
 	var rank: Dictionary = payload.get("rank", {}) as Dictionary
 	_rank.text = (
 		tr("daily.rank_of").format({"rank": int(rank.get("rank", 0)), "of": int(rank.get("of", 0))})
-		if int(rank.get("of", 0)) > 0 else "—"
+		if int(rank.get("of", 0)) > 0
+		else "—"
 	)
 	_play.text = tr("daily.play_again") if bool(status.get("completed", false)) else tr("daily.play")
 	var streak: int = int(status.get("streak", 0))

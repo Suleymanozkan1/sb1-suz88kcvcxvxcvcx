@@ -97,7 +97,7 @@ func rebuild(camera: Camera3D) -> void:
 		var p: Vector3 = _points[idx]
 		var next_idx: int = (idx - 1 + max_points) % max_points if i < visible - 1 else idx
 		var prev_idx: int = (idx + 1) % max_points if i > 0 else idx
-		var dir: Vector3 = (_points[prev_idx] - _points[next_idx])
+		var dir: Vector3 = _points[prev_idx] - _points[next_idx]
 		if dir.length_squared() < 0.000001:
 			dir = Vector3.FORWARD
 		var to_cam: Vector3 = cam_pos - p

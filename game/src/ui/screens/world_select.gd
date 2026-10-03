@@ -49,9 +49,11 @@ func _world_card(w: Dictionary) -> Control:
 	button.custom_minimum_size = Vector2(0, UiTokens.u(15))
 	button.disabled = not unlocked
 	var id: String = str(w.get("id", ""))
-	button.pressed.connect(func() -> void:
-		UiKit.play_feedback(&"ui_click")
-		world_selected.emit(id))
+	button.pressed.connect(
+		func() -> void:
+			UiKit.play_feedback(&"ui_click")
+			world_selected.emit(id)
+	)
 	var row: HBoxContainer = UiKit.hbox(UiTokens.GUTTER)
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -65,9 +67,13 @@ func _world_card(w: Dictionary) -> Control:
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.alignment = BoxContainer.ALIGNMENT_CENTER
 	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	info.add_child(UiKit.text(tr("worlds.index").format({"n": "%02d" % int(w.get("index", 1))}), &"caption", UiTokens.TEXT_MUTED))
+	info.add_child(
+		UiKit.text(tr("worlds.index").format({"n": "%02d" % int(w.get("index", 1))}), &"caption", UiTokens.TEXT_MUTED)
+	)
 	info.add_child(UiKit.text(str(w.get("name", "")), &"h3", UiTokens.TEXT if unlocked else UiTokens.TEXT_MUTED))
-	var sub: Label = UiKit.text(str(w.get("story", "")) if unlocked else str(w.get("requirement", "")), &"body", UiTokens.TEXT_MUTED)
+	var sub: Label = UiKit.text(
+		str(w.get("story", "")) if unlocked else str(w.get("requirement", "")), &"body", UiTokens.TEXT_MUTED
+	)
 	sub.add_theme_font_size_override("font_size", UiTokens.CAPTION[0] + 2)
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(sub)

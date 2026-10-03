@@ -41,15 +41,18 @@ class CaptureLogger:
 		var reporter: ErrorReporter = owner_ref.get_ref() as ErrorReporter
 		if reporter == null:
 			return
-		reporter.enqueue(
-			{
-				"function": function,
-				"file": file,
-				"line": line,
-				"code": code,
-				"message": rationale,
-				"error_type": error_type,
-			}
+		(
+			reporter
+			. enqueue(
+				{
+					"function": function,
+					"file": file,
+					"line": line,
+					"code": code,
+					"message": rationale,
+					"error_type": error_type,
+				}
+			)
 		)
 
 	func _log_message(_message: String, _error: bool) -> void:

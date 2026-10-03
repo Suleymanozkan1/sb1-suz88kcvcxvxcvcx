@@ -7,7 +7,7 @@ extends UiScreen
 signal pause_requested
 
 const FORM_HINT_TIME: float = 1.6
-const FORM_KEYS: Array[String] = ["hud.form.hop", "hud.form.phase", "hud.form.dash", "hud.form.surge"]
+const FORM_KEYS: Array[String] = ["form.hop.hint", "form.phase.hint", "form.dash.hint", "form.surge.hint"]
 const FORM_ICONS: Array[StringName] = [&"form_orb", &"form_prism", &"form_comet", &"form_surge"]
 const TUTORIAL_HINT_LEAD: int = 40
 
@@ -153,7 +153,11 @@ func _process(delta: float) -> void:
 		_last_form = sim.form
 	if _form_hint_left > 0.0:
 		_form_hint_left -= delta
-		_form_hint.modulate.a = clampf(_form_hint_left / 0.3, 0.0, 1.0) if _form_hint_left < 0.3 else minf(1.0, _form_hint.modulate.a + delta * 6.0)
+		_form_hint.modulate.a = (
+			clampf(_form_hint_left / 0.3, 0.0, 1.0)
+			if _form_hint_left < 0.3
+			else minf(1.0, _form_hint.modulate.a + delta * 6.0)
+		)
 	_update_tap_hint()
 
 

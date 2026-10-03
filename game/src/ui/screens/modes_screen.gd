@@ -57,16 +57,19 @@ func _mode_card(m: Dictionary) -> Control:
 	button.theme_type_variation = &"ChoiceButton"
 	button.custom_minimum_size = Vector2(0, UiTokens.u(13))
 	button.disabled = not unlocked
-	button.pressed.connect(func() -> void:
-		UiKit.play_feedback(&"ui_click")
-		mode_selected.emit(id))
+	button.pressed.connect(
+		func() -> void:
+			UiKit.play_feedback(&"ui_click")
+			mode_selected.emit(id)
+	)
 	var row: HBoxContainer = UiKit.hbox(UiTokens.GUTTER)
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(row)
 	row.add_child(UiKit.spacer(false, UiTokens.UNIT))
-	var glyph: IconGlyph = UiKit.icon(MODE_ICONS.get(id, &"play") as StringName, 32,
-		Palette.PRIMARY if unlocked else UiTokens.TEXT_MUTED)
+	var glyph: IconGlyph = UiKit.icon(
+		MODE_ICONS.get(id, &"play") as StringName, 32, Palette.PRIMARY if unlocked else UiTokens.TEXT_MUTED
+	)
 	glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(glyph)
 	var info: VBoxContainer = UiKit.vbox(UiTokens.UNIT / 2)
@@ -74,7 +77,9 @@ func _mode_card(m: Dictionary) -> Control:
 	info.alignment = BoxContainer.ALIGNMENT_CENTER
 	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info.add_child(UiKit.text(str(m.get("name", "")), &"h3", UiTokens.TEXT if unlocked else UiTokens.TEXT_MUTED))
-	var desc: Label = UiKit.text(str(m.get("desc", "")) if unlocked else str(m.get("requirement", "")), &"body", UiTokens.TEXT_MUTED)
+	var desc: Label = UiKit.text(
+		str(m.get("desc", "")) if unlocked else str(m.get("requirement", "")), &"body", UiTokens.TEXT_MUTED
+	)
 	desc.add_theme_font_size_override("font_size", UiTokens.CAPTION[0] + 2)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(desc)

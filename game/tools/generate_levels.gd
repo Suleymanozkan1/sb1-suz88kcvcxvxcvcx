@@ -55,21 +55,23 @@ func _initialize() -> void:
 				printerr("WRITE FAILED %s: %s" % [path, error_string(err)])
 		manifest.append(spec.id)
 		print(
-			"%s n=%d %s/%s %s dur=%.1fs slots=%d ents=%d taps=%d win=%.3f att=%d (%d ms)"
-			% [
-				spec.id,
-				n,
-				spec.tier,
-				spec.kind,
-				spec.chapter_phase,
-				float(level["duration"]),
-				int((level["spawn"] as Dictionary)["slots"]),
-				(level["entities"] as Array).size(),
-				((level["solution"] as Dictionary)["taps"] as Array).size(),
-				float(level["min_tap_window"]),
-				int((level["generator"] as Dictionary)["attempt"]),
-				ms,
-			]
+			(
+				"%s n=%d %s/%s %s dur=%.1fs slots=%d ents=%d taps=%d win=%.3f att=%d (%d ms)"
+				% [
+					spec.id,
+					n,
+					spec.tier,
+					spec.kind,
+					spec.chapter_phase,
+					float(level["duration"]),
+					int((level["spawn"] as Dictionary)["slots"]),
+					(level["entities"] as Array).size(),
+					((level["solution"] as Dictionary)["taps"] as Array).size(),
+					float(level["min_tap_window"]),
+					int((level["generator"] as Dictionary)["attempt"]),
+					ms,
+				]
+			)
 		)
 	var secs: float = float(Time.get_ticks_msec() - started) / 1000.0
 	print("generated %d levels in %.1fs, failures=%d mismatches=%d" % [manifest.size(), secs, failures, mismatches])

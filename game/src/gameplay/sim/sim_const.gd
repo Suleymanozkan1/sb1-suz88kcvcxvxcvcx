@@ -5,55 +5,6 @@ extends RefCounted
 ## Every gameplay rule number lives here (or in level data) so that the sim, the
 ## generator, the validator, the replay verifier and the view agree exactly.
 
-## Fixed simulation rate. Inputs are applied on tick boundaries.
-const TICK_RATE: int = 60
-const DT: float = 1.0 / 60.0
-
-## Geometry (world units).
-const LANE_WIDTH: float = 1.6
-const CORE_RADIUS: float = 0.3
-const BLOCK_HALF_WIDTH: float = 0.58
-const HAZARD_HALF_DEPTH: float = 0.22
-const GATE_HALF_DEPTH: float = 0.12
-const SPARK_COLLECT_RADIUS: float = 0.6
-const SPARK_COLLECT_DEPTH: float = 0.55
-const MAGNET_COLLECT_RADIUS: float = 2.0
-const PICKUP_RADIUS: float = 0.7
-const NEAR_MISS_MARGIN: float = 0.34
-const PORTAL_CAPTURE_HALF_WIDTH: float = 0.55
-## How far ahead/behind the core the sim inspects entities (units).
-const ENTITY_REACH: float = 1.2
-
-## Movement.
-const HOP_TIME: float = 0.13
-const HOP_MIN_TIME_FRACTION: float = 0.55
-const DASH_TIME: float = 0.34
-const DASH_COOLDOWN: float = 0.8
-const DASH_SPEED_FACTOR: float = 1.6
-const SURGE_HEAVY_FACTOR: float = 1.4
-const SURGE_LIGHT_FACTOR: float = 0.72
-const SURGE_ACCEL: float = 9.0
-const DEFAULT_ACCEL: float = 80.0
-const HIT_INVULN_TIME: float = 0.6
-const MAGNET_TIME: float = 4.0
-const OVERDRIVE_TIME: float = 3.0
-const MAX_CHARGES: int = 8
-const MAX_SHIELDS: int = 1
-const CHAIN_DISTANCE: float = 2.6
-
-## Scoring.
-const SCORE_SPARK: int = 10
-const SCORE_PRISM: int = 50
-const SCORE_NEAR_MISS: int = 25
-const SCORE_SHATTER: int = 30
-const SCORE_CHAIN_LINK: int = 15
-const SCORE_GATE_PASS: int = 20
-const SCORE_CLEAR_BONUS: int = 100
-const COMBO_STEP: int = 5
-const COMBO_MULT_STEP: float = 0.5
-const COMBO_MULT_MAX: float = 4.0
-const OVERDRIVE_MULT: float = 2.0
-
 enum EntityType {
 	BARRIER = 0,
 	PHASE_GATE = 1,
@@ -109,6 +60,55 @@ enum EventType {
 	COMBO_STEP = 22,
 	ZEN_BUMP = 23,
 }
+
+## Fixed simulation rate. Inputs are applied on tick boundaries.
+const TICK_RATE: int = 60
+const DT: float = 1.0 / 60.0
+
+## Geometry (world units).
+const LANE_WIDTH: float = 1.6
+const CORE_RADIUS: float = 0.3
+const BLOCK_HALF_WIDTH: float = 0.58
+const HAZARD_HALF_DEPTH: float = 0.22
+const GATE_HALF_DEPTH: float = 0.12
+const SPARK_COLLECT_RADIUS: float = 0.6
+const SPARK_COLLECT_DEPTH: float = 0.55
+const MAGNET_COLLECT_RADIUS: float = 2.0
+const PICKUP_RADIUS: float = 0.7
+const NEAR_MISS_MARGIN: float = 0.34
+const PORTAL_CAPTURE_HALF_WIDTH: float = 0.55
+## How far ahead/behind the core the sim inspects entities (units).
+const ENTITY_REACH: float = 1.2
+
+## Movement.
+const HOP_TIME: float = 0.13
+const HOP_MIN_TIME_FRACTION: float = 0.55
+const DASH_TIME: float = 0.34
+const DASH_COOLDOWN: float = 0.8
+const DASH_SPEED_FACTOR: float = 1.6
+const SURGE_HEAVY_FACTOR: float = 1.4
+const SURGE_LIGHT_FACTOR: float = 0.72
+const SURGE_ACCEL: float = 9.0
+const DEFAULT_ACCEL: float = 80.0
+const HIT_INVULN_TIME: float = 0.6
+const MAGNET_TIME: float = 4.0
+const OVERDRIVE_TIME: float = 3.0
+const MAX_CHARGES: int = 8
+const MAX_SHIELDS: int = 1
+const CHAIN_DISTANCE: float = 2.6
+
+## Scoring.
+const SCORE_SPARK: int = 10
+const SCORE_PRISM: int = 50
+const SCORE_NEAR_MISS: int = 25
+const SCORE_SHATTER: int = 30
+const SCORE_CHAIN_LINK: int = 15
+const SCORE_GATE_PASS: int = 20
+const SCORE_CLEAR_BONUS: int = 100
+const COMBO_STEP: int = 5
+const COMBO_MULT_STEP: float = 0.5
+const COMBO_MULT_MAX: float = 4.0
+const OVERDRIVE_MULT: float = 2.0
 
 const ENTITY_NAMES: Dictionary = {
 	"barrier": EntityType.BARRIER,

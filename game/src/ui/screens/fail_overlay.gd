@@ -11,6 +11,8 @@ signal home_requested
 const TIP_KEYS: Dictionary = {
 	SimConst.FailReason.WRONG_PHASE: "fail.tip.phase",
 	SimConst.FailReason.OBJECTIVE: "fail.tip.objective",
+	SimConst.FailReason.MISSED_SPARK: "fail.tip.missed",
+	SimConst.FailReason.TIME_UP: "fail.tip.time",
 }
 
 var _score: Label

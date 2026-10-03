@@ -22,7 +22,9 @@ const GENERATOR_VERSION: int = 1
 
 ## Codes from [LevelValidator] that make the generator retry with the next
 ## deterministic attempt (fairness is proven, not assumed).
-const RETRY_CODES: PackedStringArray = ["impossible_level", "unfair_window", "dead_end", "unreachable_state", "spawn_collision"]
+const RETRY_CODES: PackedStringArray = [
+	"impossible_level", "unfair_window", "dead_end", "unreachable_state", "spawn_collision"
+]
 
 var spec: LevelSpec
 var errors: PackedStringArray = PackedStringArray()
@@ -190,8 +192,9 @@ func _finalize(data: Dictionary, check: Dictionary) -> Dictionary:
 			objective["target"] = maxi(1, int(floor(float(lvl.spark_total) * spec.objective_fraction)))
 		"shatter":
 			objective["target"] = maxi(1, int(floor(float(int(check["shatters"])) * spec.objective_fraction)))
-	if (spec.objective_type == "collect" and lvl.spark_total == 0) or (
-		spec.objective_type == "shatter" and int(check["shatters"]) == 0
+	if (
+		(spec.objective_type == "collect" and lvl.spark_total == 0)
+		or (spec.objective_type == "shatter" and int(check["shatters"]) == 0)
 	):
 		objective = {"type": "reach_end", "target": 0}
 	data["objective"] = objective

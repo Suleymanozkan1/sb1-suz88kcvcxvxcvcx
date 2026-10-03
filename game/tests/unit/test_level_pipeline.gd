@@ -36,7 +36,11 @@ func test_committed_data_matches_generator() -> void:
 		var gen: Dictionary = LevelGenerator.new().generate(spec)
 		# JSON stores every number as float; compare after the same round trip.
 		var round_trip: Variant = JSON.parse_string(JsonIO.canonical(gen))
-		assert_eq(JsonIO.canonical(repo.load_level(spec.id)), JsonIO.canonical(round_trip), "data == generator for %s" % spec.id)
+		assert_eq(
+			JsonIO.canonical(repo.load_level(spec.id)),
+			JsonIO.canonical(round_trip),
+			"data == generator for %s" % spec.id
+		)
 
 
 func test_seed_changes_level() -> void:
@@ -153,17 +157,36 @@ func test_validator_detects_missing_asset() -> void:
 
 func test_validator_detects_dead_end_current() -> void:
 	var lvl: Dictionary = {
-		"id": "x", "number": 1, "world": "molten_grid", "kind": "normal", "tier": "early", "difficulty": 0.1,
-		"seed": 1, "lanes": 2, "speed": 9.0, "length": 60.0, "start_form": "hop", "start_lane": 0,
-		"entities": [
+		"id": "x",
+		"number": 1,
+		"world": "molten_grid",
+		"kind": "normal",
+		"tier": "early",
+		"difficulty": 0.1,
+		"seed": 1,
+		"lanes": 2,
+		"speed": 9.0,
+		"length": 60.0,
+		"start_form": "hop",
+		"start_lane": 0,
+		"entities":
+		[
 			{"t": "current", "d": 20.0, "lanes": [0], "to": 1},
 			{"t": "barrier", "d": 21.2, "lanes": [1]},
 			{"t": "spark", "d": 30.0, "lane": 0},
 		],
-		"objective": {"type": "reach_end", "target": 0}, "mechanics": ["hop", "current", "spark"],
-		"score_target": 10, "perfect_target": 1, "combo_target": 1, "environment": "molten_grid",
-		"music": "molten_grid", "visual_theme": "molten_grid", "unlock": {}, "spawn": {},
-		"modifiers": {"hop_time": 0.13, "speed_ramp": 0.0}, "solution": {"taps": [140]},
+		"objective": {"type": "reach_end", "target": 0},
+		"mechanics": ["hop", "current", "spark"],
+		"score_target": 10,
+		"perfect_target": 1,
+		"combo_target": 1,
+		"environment": "molten_grid",
+		"music": "molten_grid",
+		"visual_theme": "molten_grid",
+		"unlock": {},
+		"spawn": {},
+		"modifiers": {"hop_time": 0.13, "speed_ramp": 0.0},
+		"solution": {"taps": [140]},
 	}
 	var codes: PackedStringArray = _codes(lvl)
 	assert_true(codes.has("dead_end") or codes.has("impossible_level"), "trap detected: %s" % str(codes))

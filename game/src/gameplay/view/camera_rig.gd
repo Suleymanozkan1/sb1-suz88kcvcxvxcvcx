@@ -68,11 +68,12 @@ func follow(core_pos: Vector3, delta: float) -> void:
 	var offset: Vector3 = BASE_OFFSET + Vector3(0.0, 6.0 * r, 9.0 * r)
 	var target: Vector3 = Vector3(_lateral, 0.0, core_pos.z)
 	var shake: float = trauma * trauma * MAX_SHAKE * shake_scale
-	var shake_v: Vector3 = Vector3(
-		sin(_noise_t * 47.0) + sin(_noise_t * 31.0) * 0.5,
-		cos(_noise_t * 53.0) + sin(_noise_t * 23.0) * 0.5,
-		0.0
-	) * shake
+	var shake_v: Vector3 = (
+		Vector3(
+			sin(_noise_t * 47.0) + sin(_noise_t * 31.0) * 0.5, cos(_noise_t * 53.0) + sin(_noise_t * 23.0) * 0.5, 0.0
+		)
+		* shake
+	)
 	global_position = target + offset + _impulse * shake_scale + shake_v
 	camera.look_at(Vector3(_lateral * 0.6, LOOK_HEIGHT, core_pos.z - LOOK_AHEAD) + shake_v * 0.5, Vector3.UP)
 	camera.rotate_object_local(Vector3.FORWARD, deg_to_rad(-_impulse.x * 3.0 * shake_scale))

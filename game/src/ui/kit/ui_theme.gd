@@ -12,7 +12,9 @@ static func get_theme() -> Theme:
 	return _theme
 
 
-static func _box(bg: Color, border: Color = Color(0, 0, 0, 0), border_width: int = 0, radius: int = UiTokens.RADIUS) -> StyleBoxFlat:
+static func _box(
+	bg: Color, border: Color = Color(0, 0, 0, 0), border_width: int = 0, radius: int = UiTokens.RADIUS
+) -> StyleBoxFlat:
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
 	sb.bg_color = bg
 	sb.border_color = border
@@ -35,7 +37,13 @@ static func _build() -> Theme:
 	var clear: Color = Color(0, 0, 0, 0)
 	var button_font: Font = UiFonts.tracked(UiTokens.BUTTON[1], UiTokens.TRACK_BUTTON)
 	_button_variant(
-		t, "PrimaryButton", _box(Palette.PRIMARY), _box(Palette.PRIMARY.darkened(0.18)), _box(Palette.SLATE), UiTokens.TEXT_ON_PRIMARY, button_font
+		t,
+		"PrimaryButton",
+		_box(Palette.PRIMARY),
+		_box(Palette.PRIMARY.darkened(0.18)),
+		_box(Palette.SLATE),
+		UiTokens.TEXT_ON_PRIMARY,
+		button_font
 	)
 	_button_variant(
 		t,
@@ -115,7 +123,15 @@ static func _build() -> Theme:
 	return t
 
 
-static func _button_variant(t: Theme, name: String, normal: StyleBoxFlat, pressed: StyleBoxFlat, disabled: StyleBoxFlat, font_color: Color, font: Font) -> void:
+static func _button_variant(
+	t: Theme,
+	name: String,
+	normal: StyleBoxFlat,
+	pressed: StyleBoxFlat,
+	disabled: StyleBoxFlat,
+	font_color: Color,
+	font: Font
+) -> void:
 	t.set_type_variation(name, "Button")
 	t.set_stylebox("normal", name, normal)
 	t.set_stylebox("hover", name, normal)

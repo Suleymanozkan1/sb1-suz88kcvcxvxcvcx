@@ -3,7 +3,7 @@ extends RefCounted
 ## Table-driven application state machine.
 ##
 ## Every screen/flow change goes through [method transition_to], which rejects
-## transitions not listed in [constant TRANSITIONS] (logged, never silent).
+## transitions not listed in [method _build_transitions] (logged, never silent).
 
 signal state_changed(from: State, to: State, payload: Dictionary)
 signal transition_rejected(from: State, to: State)
@@ -41,7 +41,7 @@ const MENU_STATES: Array[State] = [
 ]
 
 ## Allowed transitions: from -> [to...]. Menu screens can reach each other.
-static var TRANSITIONS: Dictionary = _build_transitions()
+static var _transitions: Dictionary = _build_transitions()
 
 var current: State = State.BOOT
 var previous: State = State.BOOT
@@ -57,6 +57,7 @@ static func _build_transitions() -> Dictionary:
 		targets.erase(s)
 		targets.append(State.COUNTDOWN)
 		targets.append(State.ENDLESS)
+		targets.append(State.REWARD)
 		t[s] = targets
 	t[State.COUNTDOWN] = [State.PLAYING, State.MAIN_MENU, State.LEVEL_SELECT]
 	t[State.ENDLESS] = [State.COUNTDOWN, State.MAIN_MENU]
@@ -64,7 +65,11 @@ static func _build_transitions() -> Dictionary:
 	t[State.PAUSED] = [State.PLAYING, State.COUNTDOWN, State.MAIN_MENU, State.LEVEL_SELECT, State.SETTINGS]
 	t[State.FAILED] = [State.COUNTDOWN, State.PLAYING, State.MAIN_MENU, State.LEVEL_SELECT, State.REWARD, State.DAILY]
 	t[State.COMPLETE] = [State.REWARD, State.COUNTDOWN, State.MAIN_MENU, State.LEVEL_SELECT]
-	t[State.REWARD] = [State.COUNTDOWN, State.MAIN_MENU, State.LEVEL_SELECT, State.WORLD_SELECT, State.DAILY]
+	var after_reward: Array = MENU_STATES.duplicate()
+	after_reward.append(State.COUNTDOWN)
+	after_reward.append(State.COMPLETE)
+	after_reward.append(State.FAILED)
+	t[State.REWARD] = after_reward
 	return t
 
 
@@ -73,7 +78,7 @@ static func state_name(state: State) -> String:
 
 
 func can_transition(to: State) -> bool:
-	var allowed: Array = TRANSITIONS.get(current, []) as Array
+	var allowed: Array = _transitions.get(current, []) as Array
 	return allowed.has(to)
 
 

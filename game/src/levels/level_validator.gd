@@ -244,7 +244,15 @@ func _check_entities(data: Dictionary, r: Report) -> void:
 		if SimConst.is_hazard(tid):
 			first_hazard = minf(first_hazard, d)
 			blocking.append(e)
-		elif tid in [SimConst.EntityType.SPARK, SimConst.EntityType.PRISM, SimConst.EntityType.SHIELD, SimConst.EntityType.MAGNET]:
+		elif (
+			tid
+			in [
+				SimConst.EntityType.SPARK,
+				SimConst.EntityType.PRISM,
+				SimConst.EntityType.SHIELD,
+				SimConst.EntityType.MAGNET
+			]
+		):
 			collectibles.append(e)
 	if first_hazard < MIN_FIRST_HAZARD_D:
 		r.error("spawn_collision", "first hazard at d=%.2f gives no reaction time" % first_hazard)
@@ -442,7 +450,10 @@ func _check_windows(data: Dictionary, r: Report) -> void:
 		if window < min_required:
 			r.error(
 				"unfair_window",
-				"tap %d at tick %d has %.0f ms window (< %.0f ms)" % [i, taps[i], window * 1000.0, min_required * 1000.0]
+				(
+					"tap %d at tick %d has %.0f ms window (< %.0f ms)"
+					% [i, taps[i], window * 1000.0, min_required * 1000.0]
+				)
 			)
 	r.stats["min_window"] = worst
 

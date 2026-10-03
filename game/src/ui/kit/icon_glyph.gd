@@ -26,11 +26,48 @@ var _offset: Vector2 = Vector2.ZERO
 
 static func names() -> PackedStringArray:
 	return [
-		"play", "pause", "retry", "home", "settings", "shop", "collection", "daily", "progress",
-		"trophy", "star", "star_filled", "coin", "gem", "lock", "check", "close", "back", "chevron_right",
-		"sound", "music", "haptics", "language", "quality", "battery", "info", "restore", "leaderboard",
-		"plus", "form_orb", "form_prism", "form_comet", "form_surge", "shield", "magnet", "target",
-		"combo", "notifications", "accessibility", "endless", "zen", "timer",
+		"play",
+		"pause",
+		"retry",
+		"home",
+		"settings",
+		"shop",
+		"collection",
+		"daily",
+		"progress",
+		"trophy",
+		"star",
+		"star_filled",
+		"coin",
+		"gem",
+		"lock",
+		"check",
+		"close",
+		"back",
+		"chevron_right",
+		"sound",
+		"music",
+		"haptics",
+		"language",
+		"quality",
+		"battery",
+		"info",
+		"restore",
+		"leaderboard",
+		"plus",
+		"form_orb",
+		"form_prism",
+		"form_comet",
+		"form_surge",
+		"shield",
+		"magnet",
+		"target",
+		"combo",
+		"notifications",
+		"accessibility",
+		"endless",
+		"zen",
+		"timer",
 	]
 
 
@@ -112,7 +149,17 @@ func _draw() -> void:
 		&"chevron_right":
 			_line([Vector2(9, 5), Vector2(16, 12), Vector2(9, 19)])
 		&"sound":
-			_poly([Vector2(4, 9.5), Vector2(8, 9.5), Vector2(12.5, 5.5), Vector2(12.5, 18.5), Vector2(8, 14.5), Vector2(4, 14.5)], true)
+			_poly(
+				[
+					Vector2(4, 9.5),
+					Vector2(8, 9.5),
+					Vector2(12.5, 5.5),
+					Vector2(12.5, 18.5),
+					Vector2(8, 14.5),
+					Vector2(4, 14.5)
+				],
+				true
+			)
 			_arc(Vector2(13, 12), 4.0, -PI * 0.3, PI * 0.3)
 			_arc(Vector2(13, 12), 7.0, -PI * 0.3, PI * 0.3)
 		&"music":
@@ -183,10 +230,22 @@ func _draw() -> void:
 			_circle(Vector2(12, 12), 4.0)
 			_dot(Vector2(12, 12), 1.4)
 		&"combo":
-			_poly([Vector2(13, 3), Vector2(7, 13), Vector2(12, 13), Vector2(10, 21), Vector2(17, 10), Vector2(12, 10)], true)
+			_poly(
+				[Vector2(13, 3), Vector2(7, 13), Vector2(12, 13), Vector2(10, 21), Vector2(17, 10), Vector2(12, 10)],
+				true
+			)
 		&"notifications":
 			_arc(Vector2(12, 11), 5.5, PI, TAU)
-			_line([Vector2(6.5, 11), Vector2(6.5, 16), Vector2(5, 17.5), Vector2(19, 17.5), Vector2(17.5, 16), Vector2(17.5, 11)])
+			_line(
+				[
+					Vector2(6.5, 11),
+					Vector2(6.5, 16),
+					Vector2(5, 17.5),
+					Vector2(19, 17.5),
+					Vector2(17.5, 16),
+					Vector2(17.5, 11)
+				]
+			)
 			_line([Vector2(10.5, 20), Vector2(13.5, 20)])
 		&"accessibility":
 			_circle(Vector2(12, 5.5), 1.8)

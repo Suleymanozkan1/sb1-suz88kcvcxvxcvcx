@@ -32,6 +32,8 @@ const STRUCTURE_PRESETS: Dictionary = {
 ## Hazards use a bolder chamfer (same family) so blocks read as machined parts.
 const HAZARD_CHAMFER: float = 0.16
 
+static var _soft_dot: GradientTexture2D
+
 var theme: WorldTheme
 var block_mesh: ArrayMesh
 var slider_mesh: ArrayMesh
@@ -73,8 +75,12 @@ func _init(world_theme: WorldTheme) -> void:
 	theme = world_theme
 	var bw: float = SimConst.BLOCK_HALF_WIDTH * 2.0
 	block_mesh = MeshFactory.chamfered_box(Vector3(bw, BLOCK_HEIGHT, SimConst.HAZARD_HALF_DEPTH * 2.0), HAZARD_CHAMFER)
-	slider_mesh = MeshFactory.chamfered_box(Vector3(bw, BLOCK_HEIGHT * 0.82, SimConst.HAZARD_HALF_DEPTH * 2.3), HAZARD_CHAMFER)
-	glass_mesh = MeshFactory.chamfered_box(Vector3(bw * 0.97, BLOCK_HEIGHT * 0.95, SimConst.HAZARD_HALF_DEPTH * 1.9), HAZARD_CHAMFER)
+	slider_mesh = MeshFactory.chamfered_box(
+		Vector3(bw, BLOCK_HEIGHT * 0.82, SimConst.HAZARD_HALF_DEPTH * 2.3), HAZARD_CHAMFER
+	)
+	glass_mesh = MeshFactory.chamfered_box(
+		Vector3(bw * 0.97, BLOCK_HEIGHT * 0.95, SimConst.HAZARD_HALF_DEPTH * 1.9), HAZARD_CHAMFER
+	)
 	shutter_mesh = MeshFactory.chamfered_box(Vector3(bw, BLOCK_HEIGHT, SHUTTER_THICKNESS), HAZARD_CHAMFER)
 	post_mesh = MeshFactory.chamfered_box(Vector3(POST_WIDTH, BLOCK_HEIGHT * 1.25, 0.2))
 	lamp_mesh = MeshFactory.chamfered_box(Vector3(0.1, 0.08, 0.1), 0.2)
@@ -179,9 +185,6 @@ func _membrane(color: Color, radial: bool, density: float) -> ShaderMaterial:
 	return m
 
 
-static var _soft_dot: GradientTexture2D
-
-
 ## Shared soft round mask for motes and particles.
 static func soft_dot_texture() -> GradientTexture2D:
 	if _soft_dot == null:
@@ -216,8 +219,16 @@ func arch_mesh(lanes: int) -> ArrayMesh:
 	var st: SurfaceTool = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for side: float in [-1.0, 1.0]:
-		st.append_from(MeshFactory.chamfered_box(Vector3(ARCH_POST, ARCH_HEIGHT, ARCH_POST)), 0, Transform3D(Basis.IDENTITY, Vector3(side * half, ARCH_HEIGHT * 0.5, 0)))
-	st.append_from(MeshFactory.chamfered_box(Vector3(half * 2.0 + ARCH_POST, ARCH_POST, ARCH_POST)), 0, Transform3D(Basis.IDENTITY, Vector3(0, ARCH_HEIGHT, 0)))
+		st.append_from(
+			MeshFactory.chamfered_box(Vector3(ARCH_POST, ARCH_HEIGHT, ARCH_POST)),
+			0,
+			Transform3D(Basis.IDENTITY, Vector3(side * half, ARCH_HEIGHT * 0.5, 0))
+		)
+	st.append_from(
+		MeshFactory.chamfered_box(Vector3(half * 2.0 + ARCH_POST, ARCH_POST, ARCH_POST)),
+		0,
+		Transform3D(Basis.IDENTITY, Vector3(0, ARCH_HEIGHT, 0))
+	)
 	var mesh: ArrayMesh = st.commit()
 	_arch_meshes[lanes] = mesh
 	return mesh

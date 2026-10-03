@@ -102,7 +102,10 @@ func _prune(nodes: Array) -> Array[SearchNode]:
 	var reps: Array[SearchNode] = []
 	var seen: Dictionary = {}
 	for n: SearchNode in typed:
-		var k: int = ((n.sim.lane * 4 + n.sim.phase * 2 + (1 if n.sim.heavy else 0)) * 1000 + int(n.sim.speed * 2.0)) * 100000 + int(n.sim.d * DISTANCE_BANDS_PER_M)
+		var k: int = (
+			((n.sim.lane * 4 + n.sim.phase * 2 + (1 if n.sim.heavy else 0)) * 1000 + int(n.sim.speed * 2.0)) * 100000
+			+ int(n.sim.d * DISTANCE_BANDS_PER_M)
+		)
 		if not seen.has(k):
 			seen[k] = true
 			reps.append(n)

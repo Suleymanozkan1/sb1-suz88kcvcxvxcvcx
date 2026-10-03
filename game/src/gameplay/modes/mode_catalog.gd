@@ -128,8 +128,12 @@ func score_reward(mode_id: StringName, score: int) -> Dictionary:
 	if str(mode(mode_id).get("rewards", "none")) != "score_based":
 		return {}
 	var k: float = float(maxi(0, score)) / 1000.0
-	var coins: int = mini(int(score_rewards.get("max_coins", 0)), int(floor(k * float(score_rewards.get("coins_per_1000_score", 0)))))
-	var xp: int = mini(int(score_rewards.get("max_xp", 0)), int(floor(k * float(score_rewards.get("xp_per_1000_score", 0)))))
+	var coins: int = mini(
+		int(score_rewards.get("max_coins", 0)), int(floor(k * float(score_rewards.get("coins_per_1000_score", 0))))
+	)
+	var xp: int = mini(
+		int(score_rewards.get("max_xp", 0)), int(floor(k * float(score_rewards.get("xp_per_1000_score", 0))))
+	)
 	var out: Dictionary = {}
 	if coins > 0:
 		out["coins"] = coins

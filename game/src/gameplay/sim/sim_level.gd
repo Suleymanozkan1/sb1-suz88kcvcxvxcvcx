@@ -106,9 +106,7 @@ static func _entity_less(a: Dictionary, b: Dictionary) -> bool:
 	var db: float = float(b.get("d", 0.0))
 	if da != db:
 		return da < db
-	return SimConst.entity_type_from_name(str(a.get("t", ""))) < SimConst.entity_type_from_name(
-		str(b.get("t", ""))
-	)
+	return SimConst.entity_type_from_name(str(a.get("t", ""))) < SimConst.entity_type_from_name(str(b.get("t", "")))
 
 
 func _append_one(ent: Dictionary) -> void:

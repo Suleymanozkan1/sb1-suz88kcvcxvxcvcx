@@ -18,6 +18,8 @@ const ITEM_ICONS: Dictionary = {
 	"badge": [&"trophy", Palette.ACCENT],
 }
 
+var reduce_motion: bool = false
+
 var _eyebrow: Label
 var _title: Label
 var _subtitle: Label
@@ -26,7 +28,6 @@ var _preview: CosmeticSwatch
 var _continue: UiButton
 var _seq_tween: Tween
 
-var reduce_motion: bool = false
 
 func build() -> void:
 	is_overlay = true
@@ -58,6 +59,7 @@ func build() -> void:
 	_continue = UiKit.button(tr("ui.continue"), UiKit.ButtonRole.PRIMARY, &"check")
 	_continue.pressed.connect(func() -> void: continue_requested.emit())
 	col.add_child(_continue)
+
 
 ## payload: {"eyebrow", "title", "subtitle", "bundle": RewardBundle,
 ##           "cosmetic": {"category", "params"} (optional)}
@@ -91,7 +93,7 @@ func enter(payload: Dictionary) -> void:
 			var value: Label = UiKit.text("+0", &"reward")
 			value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			cell.add_child(value)
-			var cap: Label = UiKit.text(tr("reward." + type), &"caption", UiTokens.TEXT_MUTED)
+			var cap: Label = UiKit.text(tr("reward.label." + type), &"caption", UiTokens.TEXT_MUTED)
 			cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			cell.add_child(cap)
 			_items.add_child(cell)
@@ -100,6 +102,7 @@ func enter(payload: Dictionary) -> void:
 			cells.append(cell)
 	_animate(cells, labels, targets)
 	_continue.grab_focus.call_deferred()
+
 
 func _animate(cells: Array[Control], labels: Array[Label], targets: Array[int]) -> void:
 	if _seq_tween != null:
@@ -115,17 +118,31 @@ func _animate(cells: Array[Control], labels: Array[Label], targets: Array[int]) 
 		var target: int = targets[i]
 		cell.modulate.a = 0.0
 		var index: int = i
-		_seq_tween.tween_callback(func() -> void:
-			cell.modulate.a = 1.0
-			cell.pivot_offset = cell.size * 0.5
-			cell.scale = Vector2(0.8, 0.8)
-			var pop: Tween = cell.create_tween()
-			pop.tween_property(cell, "scale", Vector2(1.06, 1.06), 0.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-			pop.tween_property(cell, "scale", Vector2.ONE, 0.1)
-			item_landed.emit(index))
-		_seq_tween.tween_method(func(v: float) -> void: label.text = "+" + UiKit.format_int(int(round(v))),
-			0.0, float(target), UiTokens.COUNT_UP_TIME * 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		_seq_tween.tween_callback(
+			func() -> void:
+				cell.modulate.a = 1.0
+				cell.pivot_offset = cell.size * 0.5
+				cell.scale = Vector2(0.8, 0.8)
+				var pop: Tween = cell.create_tween()
+				pop.tween_property(cell, "scale", Vector2(1.06, 1.06), 0.12).set_trans(Tween.TRANS_CUBIC).set_ease(
+					Tween.EASE_OUT
+				)
+				pop.tween_property(cell, "scale", Vector2.ONE, 0.1)
+				item_landed.emit(index)
+		)
+		(
+			_seq_tween
+			. tween_method(
+				func(v: float) -> void: label.text = "+" + UiKit.format_int(int(round(v))),
+				0.0,
+				float(target),
+				UiTokens.COUNT_UP_TIME * 0.6
+			)
+			. set_trans(Tween.TRANS_CUBIC)
+			. set_ease(Tween.EASE_OUT)
+		)
 		_seq_tween.tween_interval(UiTokens.STAR_INTERVAL)
+
 
 func handle_back() -> bool:
 	continue_requested.emit()

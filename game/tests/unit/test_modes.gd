@@ -2,7 +2,9 @@ extends TestCase
 ## Game modes: data, modifiers, unlocks, score rewards, strict perfect rule and
 ## the deterministic endless stream.
 
-const REQUIRED: PackedStringArray = ["classic", "endless", "time_attack", "daily", "perfect_run", "zen", "hard", "boss_rush"]
+const REQUIRED: PackedStringArray = [
+	"classic", "endless", "time_attack", "daily", "perfect_run", "zen", "hard", "boss_rush"
+]
 
 
 func _catalog() -> ModeCatalog:
@@ -58,8 +60,9 @@ func test_endless_seed_is_weekly_and_deterministic() -> void:
 
 
 func test_strict_rule_fails_on_missed_spark() -> void:
-	var data: Dictionary = {"id": "t", "lanes": 2, "speed": 8.0, "length": 40.0,
-		"entities": [{"t": "spark", "d": 20.0, "lane": 1}]}
+	var data: Dictionary = {
+		"id": "t", "lanes": 2, "speed": 8.0, "length": 40.0, "entities": [{"t": "spark", "d": 20.0, "lane": 1}]
+	}
 	var relaxed: FluxSim = FluxSim.new(SimLevel.from_dict(data))
 	var strict: FluxSim = FluxSim.new(SimLevel.from_dict(data))
 	strict.strict = true

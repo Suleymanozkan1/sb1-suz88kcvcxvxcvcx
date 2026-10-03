@@ -5,16 +5,41 @@ extends Node3D
 ## Mobile and Compatibility renderers look identical.
 
 const PRESETS: Dictionary = {
+	"collect":
+	{"amount": 6, "life": 0.28, "vel": Vector2(1.2, 2.4), "size": 0.06, "gravity": 0.0, "pool": 8, "energy": true},
 	# information
-	"collect": {"amount": 6, "life": 0.28, "vel": Vector2(1.2, 2.4), "size": 0.06, "gravity": 0.0, "pool": 8, "energy": true},
-	"prism": {"amount": 10, "life": 0.4, "vel": Vector2(1.6, 3.0), "size": 0.08, "gravity": 0.0, "pool": 3, "energy": true},
-	"streak": {"amount": 5, "life": 0.22, "vel": Vector2(0.4, 0.8), "size": 0.05, "gravity": 0.0, "pool": 3, "energy": true, "line": true},
+	"prism":
+	{"amount": 10, "life": 0.4, "vel": Vector2(1.6, 3.0), "size": 0.08, "gravity": 0.0, "pool": 3, "energy": true},
+	"streak":
+	{
+		"amount": 5,
+		"life": 0.22,
+		"vel": Vector2(0.4, 0.8),
+		"size": 0.05,
+		"gravity": 0.0,
+		"pool": 3,
+		"energy": true,
+		"line": true
+	},
 	# impact (matter: lit debris, never glowing)
-	"shatter": {"amount": 12, "life": 0.8, "vel": Vector2(2.5, 5.0), "size": 0.13, "gravity": -12.0, "pool": 4, "debris": true},
-	"shield": {"amount": 10, "life": 0.45, "vel": Vector2(2.0, 3.6), "size": 0.07, "gravity": 0.0, "pool": 2, "energy": true},
-	"fail": {"amount": 28, "life": 0.8, "vel": Vector2(2.5, 6.0), "size": 0.08, "gravity": -2.0, "pool": 2, "energy": true},
-	# reward
-	"perfect": {"amount": 30, "life": 1.3, "vel": Vector2(1.5, 3.2), "size": 0.07, "gravity": 1.6, "pool": 1, "energy": true, "rise": true},
+	"shatter":
+	{"amount": 12, "life": 0.8, "vel": Vector2(2.5, 5.0), "size": 0.13, "gravity": -12.0, "pool": 4, "debris": true},
+	"shield":
+	{"amount": 10, "life": 0.45, "vel": Vector2(2.0, 3.6), "size": 0.07, "gravity": 0.0, "pool": 2, "energy": true},
+	"fail":
+	{"amount": 28, "life": 0.8, "vel": Vector2(2.5, 6.0), "size": 0.08, "gravity": -2.0, "pool": 2, "energy": true},
+	"perfect":
+	{
+		# reward
+		"amount": 30,
+		"life": 1.3,
+		"vel": Vector2(1.5, 3.2),
+		"size": 0.07,
+		"gravity": 1.6,
+		"pool": 1,
+		"energy": true,
+		"rise": true
+	},
 }
 const RING_POOL: int = 4
 const RING_LIFE: float = 0.32

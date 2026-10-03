@@ -74,8 +74,18 @@ func _on_up() -> void:
 	if _tween != null:
 		_tween.kill()
 	_tween = create_tween()
-	_tween.tween_property(self, "scale", Vector2(1.02, 1.02), UiTokens.RELEASE_TIME * 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_tween.tween_property(self, "scale", Vector2.ONE, UiTokens.RELEASE_TIME * 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	(
+		_tween
+		. tween_property(self, "scale", Vector2(1.02, 1.02), UiTokens.RELEASE_TIME * 0.45)
+		. set_trans(Tween.TRANS_QUAD)
+		. set_ease(Tween.EASE_OUT)
+	)
+	(
+		_tween
+		. tween_property(self, "scale", Vector2.ONE, UiTokens.RELEASE_TIME * 0.55)
+		. set_trans(Tween.TRANS_SINE)
+		. set_ease(Tween.EASE_IN_OUT)
+	)
 
 
 func _on_pressed() -> void:

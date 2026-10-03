@@ -35,7 +35,10 @@ func select(option_id: String, notify: bool) -> void:
 		b.add_theme_color_override("font_hover_color", color)
 		b.add_theme_color_override("font_pressed_color", color)
 		if is_sel:
-			var sb: StyleBoxFlat = (UiTheme.get_theme().get_stylebox("normal", &"ChoiceButton") as StyleBoxFlat).duplicate() as StyleBoxFlat
+			var sb: StyleBoxFlat = (
+				(UiTheme.get_theme().get_stylebox("normal", &"ChoiceButton") as StyleBoxFlat).duplicate()
+				as StyleBoxFlat
+			)
 			sb.border_color = Palette.PRIMARY
 			sb.set_border_width_all(UiTokens.STROKE)
 			b.add_theme_stylebox_override("normal", sb)

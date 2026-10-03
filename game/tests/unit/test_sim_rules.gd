@@ -135,7 +135,9 @@ func test_slider_position_is_deterministic_polynomial() -> void:
 
 
 func test_pulse_gate_open_closed_cycle() -> void:
-	var lvl: SimLevel = _level([{"t": "pulse_gate", "d": 30.0, "lanes": [0], "period": 1.0, "open": 0.5, "offset": 0.0}])
+	var lvl: SimLevel = _level(
+		[{"t": "pulse_gate", "d": 30.0, "lanes": [0], "period": 1.0, "open": 0.5, "offset": 0.0}]
+	)
 	assert_false(lvl.pulse_closed(0, 0.1))
 	assert_true(lvl.pulse_closed(0, 0.6))
 
