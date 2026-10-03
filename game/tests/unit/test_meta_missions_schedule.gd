@@ -183,6 +183,46 @@ func test_shipped_config_never_offers_locked_content_to_new_players() -> void:
 				assert_false(gated.has(m["template"]), "day %d offered gated %s" % [i, m["template"]])
 
 
+func test_daily_cap_keeps_weekly_targets_reachable() -> void:
+	var config: Dictionary = {
+		"daily_count": 1,
+		"weekly_count": 2,
+		"daily_templates": [_template("d", "runs_played", [5])],
+		"weekly_templates": [
+			_template("dailies", "daily_completed", [3, 5], {"daily_cap": 1}),
+			_template("w", "levels_cleared", [30]),
+		],
+	}
+	# Days left in the ISO week, today included: Mon 7 ... Sun 1.
+	for week: int in 4:
+		for weekday: int in 7:
+			var days_left: int = 7 - weekday
+			_clock.set_fixed_unix(MONDAY + (week * 7 + weekday) * DAY + (week % 2) * 23 * 3600)
+			var dailies: Dictionary = {}
+			for m: Dictionary in _missions_for_new_player(config).active("weekly"):
+				if m["template"] == "dailies":
+					dailies = m
+			if days_left < 3:
+				assert_true(dailies.is_empty(), "weekday %d: unreachable template not offered" % weekday)
+				continue
+			assert_false(dailies.is_empty(), "weekday %d: reachable template offered" % weekday)
+			assert_le(float(dailies["target"]), float(days_left), "weekday %d target reachable" % weekday)
+			if int(dailies["target"]) == 3:
+				assert_eq(int((dailies["reward"] as Dictionary)["coins"]), 100, "reward matches the lower target")
+
+
+func test_shipped_weekly_dailies_are_always_reachable() -> void:
+	for i: int in 28:
+		_clock.set_fixed_unix(MONDAY + i * DAY)
+		var days_left: int = 7 - i % 7
+		var veteran_profile: PlayerProfile = PlayerProfile.create_new(NOW)
+		veteran_profile.stats["unique_levels_cleared"] = 520
+		var service: MissionService = MissionService.new(veteran_profile, EventBus.new(), _clock, _rewards.grant)
+		for m: Dictionary in service.active("weekly"):
+			if m["stat"] == "daily_completed":
+				assert_le(float(m["target"]), float(days_left), "day %d: %s" % [i, m["id"]])
+
+
 func test_reward_scales_with_target_index() -> void:
 	var targets: Array[int] = [5, 10, 20]
 	var config: Dictionary = _single_config("runs_played", 5)
@@ -210,6 +250,7 @@ func test_invalid_config_is_safe_and_reported() -> void:
 			_template("no_targets", "runs_played", []),
 			_template("bad_reward", "runs_played", [5], {"reward": {"coins": "lots"}}),
 			_template("unknown", "flux_capacity", [5]),
+			_template("bad_cap", "runs_played", [5], {"daily_cap": 0}),
 			_template("ok", "runs_played", [5]),
 			_template("ok", "taps", [50]),
 		],
@@ -227,6 +268,7 @@ func test_invalid_config_is_safe_and_reported() -> void:
 		"targets must be a non-empty array",
 		"reward coins",
 		"unknown stat 'flux_capacity'",
+		"daily_cap must be a positive integer",
 		"duplicate id 'ok'",
 		"weekly_templates must be an array",
 	]:

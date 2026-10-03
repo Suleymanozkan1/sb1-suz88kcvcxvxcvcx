@@ -1,11 +1,11 @@
 extends TestCase
 ## Translation parts of the meta module (achievements + missions): every key
-## referenced by data exists in English and Turkish, with matching placeholders.
+## referenced by data exists in English and Turkish, with matching format tokens.
 
 const EN_PATH: String = "res://data/i18n/parts/meta.en.json"
 const TR_PATH: String = "res://data/i18n/parts/meta.tr.json"
 const KEY_PATTERN: String = "^(ach|mis)(\\.[a-z0-9_]+)+$"
-const PLACEHOLDER_PATTERN: String = "\\{[a-z_]+\\}"
+const TOKEN_PATTERN: String = "\\{[a-z_]+\\}"
 ## Letters that only appear in real Turkish text.
 const TURKISH_LETTERS: String = "çğıöşüÇĞİÖŞÜ"
 
@@ -33,8 +33,8 @@ func _referenced_keys() -> PackedStringArray:
 	return keys
 
 
-func _placeholders(text: String) -> PackedStringArray:
-	var regex: RegEx = RegEx.create_from_string(PLACEHOLDER_PATTERN)
+func _format_tokens(text: String) -> PackedStringArray:
+	var regex: RegEx = RegEx.create_from_string(TOKEN_PATTERN)
 	var out: PackedStringArray = PackedStringArray()
 	for m: RegExMatch in regex.search_all(text):
 		out.append(m.get_string())
@@ -68,11 +68,11 @@ func test_every_data_key_is_translated() -> void:
 		assert_true(tr_text.has(key), "turkish missing %s" % key)
 
 
-func test_placeholders_match_between_languages() -> void:
+func test_format_tokens_match_between_languages() -> void:
 	var en: Dictionary = _en()
 	var tr_text: Dictionary = _tr()
 	for key: Variant in en:
-		assert_eq(_placeholders(str(tr_text.get(key, ""))), _placeholders(str(en[key])), "placeholders of %s" % key)
+		assert_eq(_format_tokens(str(tr_text.get(key, ""))), _format_tokens(str(en[key])), "format tokens of %s" % key)
 
 
 func test_turkish_is_a_real_translation() -> void:
