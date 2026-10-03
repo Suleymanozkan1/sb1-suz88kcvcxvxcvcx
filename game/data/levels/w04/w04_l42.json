@@ -2,9 +2,9 @@
 	"beat_seconds": 0.5357,
 	"chapter": "D",
 	"chapter_phase": "introduction",
-	"combo_target": 42,
+	"combo_target": 40,
 	"difficulty": 0.35,
-	"duration": 19.58,
+	"duration": 20.0,
 	"entities": [
 		{
 			"d": 22.41,
@@ -166,7 +166,10 @@
 			"lanes": [
 				1
 			],
-			"t": "barrier"
+			"offset": 0.1256,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 55.77,
@@ -184,16 +187,19 @@
 			"t": "spark"
 		},
 		{
-			"d": 59.24,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 67.86,
+			"d": 66.99,
 			"lanes": [
 				1
 			],
-			"t": "barrier"
+			"offset": 0.8011,
+			"open": 0.5,
+			"period": 1.0714,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 62.44,
+			"lane": 0,
+			"t": "spark"
 		},
 		{
 			"d": 63.6,
@@ -206,282 +212,285 @@
 			"t": "spark"
 		},
 		{
-			"d": 65.9,
+			"d": 72.84,
+			"lanes": [
+				0
+			],
+			"offset": 0.0856,
+			"open": 0.5,
+			"period": 1.0714,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 68.21,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 73.69,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 68.98,
+			"d": 69.37,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 70.13,
+			"d": 70.9,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 79.26,
+			"lanes": [
+				0
+			],
+			"offset": 0.0289,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 75.13,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 77.44,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 85.86,
+			"lanes": [
+				0
+			],
+			"offset": 0.5144,
+			"open": 0.5,
+			"period": 1.0714,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 81.55,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 92.46,
+			"lanes": [
+				1
+			],
+			"offset": 0.2278,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 87.06,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 88.21,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 90.14,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 71.8,
-			"lane": 1,
+			"d": 91.29,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 79.77,
+			"d": 99.11,
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.8311,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
 		},
 		{
-			"d": 74.88,
+			"d": 94.75,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 97.96,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 76.03,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 77.19,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 85.9,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 80.9,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 83.21,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 84.37,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 92.53,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 98.38,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 93.73,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 94.88,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 96.03,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 97.19,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 103.7,
+			"d": 103.6,
 			"form": "dash",
 			"t": "form_gate"
 		},
 		{
-			"d": 99.5,
+			"d": 100.27,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 100.65,
+			"d": 101.42,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 101.8,
+			"d": 109.95,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 105.91,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 109.21,
+			"d": 107.06,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 116.13,
 			"lane": 1,
 			"t": "breakable"
 		},
 		{
-			"d": 109.21,
+			"d": 116.13,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 111.16,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 112.32,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 113.47,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 114.73,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 125.3,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 119.75,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 120.91,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 122.06,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 123.22,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 131.23,
+			"lane": 1,
+			"t": "breakable"
+		},
+		{
+			"d": 131.23,
 			"lane": 0,
 			"t": "breakable"
 		},
 		{
-			"d": 104.88,
+			"d": 126.42,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 106.04,
+			"d": 127.58,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 107.19,
+			"d": 128.73,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 117.91,
+			"d": 130.07,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 141.1,
 			"lanes": [
 				0
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 110.48,
+			"d": 132.53,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 111.68,
+			"d": 133.73,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 113.98,
+			"d": 134.88,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 115.14,
+			"d": 137.19,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 116.29,
+			"d": 139.5,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 123.78,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
+			"d": 146.43,
+			"form": "hop",
+			"t": "form_gate"
 		},
 		{
-			"d": 119.11,
+			"d": 142.32,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 120.27,
+			"d": 143.47,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 121.42,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 130.61,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 124.88,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 126.04,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 127.19,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 128.34,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 129.5,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 136.92,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 131.81,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 134.11,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 135.27,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 143.23,
-			"lane": 1,
-			"t": "breakable"
-		},
-		{
-			"d": 143.23,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 138.09,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 141.71,
+			"d": 144.63,
 			"lane": 1,
 			"t": "spark"
 		}
@@ -496,15 +505,16 @@
 	"intro_mechanic": "dash_pulse",
 	"kind": "normal",
 	"lanes": 2,
-	"length": 155.23,
+	"length": 158.43,
 	"local_index": 42,
 	"mechanics": [
 		"dash",
 		"form_gate",
 		"hop",
+		"pulse",
 		"spark"
 	],
-	"min_tap_window": 0.5,
+	"min_tap_window": 0.517,
 	"modifiers": {
 		"hop_time": 0.13,
 		"ramp_distance": 150.36,
@@ -516,19 +526,21 @@
 		"target": 2,
 		"type": "shatter"
 	},
-	"perfect_target": 66,
+	"perfect_target": 64,
 	"schema_version": 1,
 	"score_target": 2640,
 	"seed": 4081733336,
 	"solution": {
-		"max_combo": 70,
+		"max_combo": 68,
 		"score": 4310,
-		"sparks": 66,
+		"sparks": 64,
 		"taps": [
 			155,
-			540,
-			820,
-			1074
+			533,
+			683,
+			735,
+			874,
+			980
 		]
 	},
 	"spawn": {

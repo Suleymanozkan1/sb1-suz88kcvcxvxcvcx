@@ -17,6 +17,7 @@ var _level_label: Label
 var _coins: Label
 var _gems: Label
 var _player_level: Label
+var _emblem: ProfileEmblem
 var _xp: ProgressBar
 var _unlock_title: Label
 var _unlock_meter: ProgressBar
@@ -32,7 +33,9 @@ func build() -> void:
 	add_child(shade)
 	# Ink falls off behind the top bar and the bottom controls so the live run
 	# behind the menu never competes with text (visual priority: UI > decor).
-	add_child(_edge_fade(true, 0.22))
+	# The title sits on ink: overhead structure passing in the attract run
+	# must never cross the wordmark.
+	add_child(_edge_fade(true, 0.34, 0.6))
 	add_child(_edge_fade(false, 0.46))
 	var root: SafeAreaContainer = make_safe_root()
 	var col: VBoxContainer = UiKit.vbox(UiTokens.GUTTER)
@@ -75,10 +78,13 @@ func build() -> void:
 	col.add_child(_tab_bar())
 
 
-func _edge_fade(top: bool, fraction: float) -> TextureRect:
+## [param hold]: share of the fade that stays (almost) opaque before it eases out.
+func _edge_fade(top: bool, fraction: float, hold: float = 0.0) -> TextureRect:
 	var g: Gradient = Gradient.new()
 	g.set_color(0, Palette.with_alpha(Palette.INK, 0.92))
 	g.set_color(1, Palette.with_alpha(Palette.INK, 0.0))
+	if hold > 0.0:
+		g.add_point(hold, Palette.with_alpha(Palette.INK, 0.86))
 	var tex: GradientTexture2D = GradientTexture2D.new()
 	tex.gradient = g
 	tex.fill_from = Vector2(0.5, 0.0 if top else 1.0)
@@ -99,6 +105,9 @@ func _edge_fade(top: bool, fraction: float) -> TextureRect:
 func _top_bar() -> HBoxContainer:
 	var bar: HBoxContainer = UiKit.hbox()
 	var level_box: HBoxContainer = UiKit.hbox(UiTokens.UNIT)
+	_emblem = ProfileEmblem.new()
+	_emblem.custom_minimum_size = Vector2(56, 56)
+	level_box.add_child(_emblem)
 	var badge: PanelContainer = UiKit.card(&"RaisedCard")
 	badge.custom_minimum_size = Vector2(56, 56)
 	_player_level = UiKit.text("1", &"h3")
@@ -170,6 +179,7 @@ func enter(payload: Dictionary) -> void:
 	_coins.text = UiKit.format_int(int(payload.get("coins", 0)))
 	_gems.text = UiKit.format_int(int(payload.get("gems", 0)))
 	_player_level.text = str(int(payload.get("player_level", 1)))
+	_emblem.setup(payload.get("emblem", {}) as Dictionary)
 	_xp.value = clampf(float(payload.get("xp_progress", 0.0)), 0.0, 1.0)
 	_level_label.text = str(payload.get("next_level_label", ""))
 	var unlock: Dictionary = payload.get("unlock", {}) as Dictionary

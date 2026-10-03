@@ -100,6 +100,17 @@ func _ensure_built() -> void:
 		_ring_age.append(-1.0)
 
 
+## Particle size multiplier for [param presets] (a cosmetic particle style);
+## clamped to 0.5..2.0 like the catalog range.
+func set_size_scale(presets: PackedStringArray, mult: float) -> void:
+	_ensure_built()
+	var m: float = clampf(mult, 0.5, 2.0)
+	for name: String in presets:
+		for p: CPUParticles3D in _pools.get(name, []) as Array[CPUParticles3D]:
+			p.scale_amount_min = m
+			p.scale_amount_max = m
+
+
 func set_amount_scale(value: float) -> void:
 	_ensure_built()
 	amount_scale = clampf(value, 0.1, 1.5)

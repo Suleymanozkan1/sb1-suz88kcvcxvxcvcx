@@ -26,6 +26,7 @@ var _tabs: UiSegmented
 var _grid: GridContainer
 var _detail_name: Label
 var _detail_info: Label
+var _detail_effect: Label
 var _action: UiButton
 var _packs: VBoxContainer
 var _preview_swatch: CosmeticSwatch
@@ -63,6 +64,10 @@ func build() -> void:
 	_detail_info = UiKit.text("", &"caption", UiTokens.TEXT_MUTED)
 	_detail_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(_detail_info)
+	# What the item actually changes, stated before any purchase.
+	_detail_effect = UiKit.text("", &"caption", UiTokens.TEXT_MUTED)
+	_detail_effect.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.add_child(_detail_effect)
 	detail.add_child(info)
 	_action = UiKit.button("", UiKit.ButtonRole.PRIMARY)
 	_action.custom_minimum_size = Vector2(UiTokens.u(22), UiTokens.BUTTON_HEIGHT)
@@ -217,7 +222,9 @@ func _update_detail() -> void:
 	if it.is_empty():
 		_detail_name.text = tr("shop.empty") if mode == &"shop" else ""
 		_detail_info.text = ""
+		_detail_effect.text = ""
 		return
+	_detail_effect.text = tr("shop.affects." + str(it.get("category", "")))
 	_detail_name.text = str(it.get("name", ""))
 	var rarity: String = tr(str(RARITY_KEYS.get(str(it.get("rarity", "common")), "rarity.common")))
 	var owned: bool = bool(it.get("owned", false))

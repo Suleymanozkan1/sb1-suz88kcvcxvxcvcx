@@ -217,3 +217,46 @@ func test_volume_sliders_meet_touch_target() -> void:
 	assert_gt(float(sliders.size()), 0.0)
 	for n: Node in sliders:
 		assert_ge((n as HSlider).custom_minimum_size.y, float(UiTokens.MIN_TOUCH), "slider height")
+
+
+func test_theme_cosmetic_recolours_the_ui_and_default_restores_it() -> void:
+	var t: Theme = UiTheme.get_theme()
+	var params: Dictionary = _app.cosmetics.theme_params("theme_ember")
+	assert_true(UiTheme.apply_accent(params), "changed")
+	assert_eq((t.get_stylebox("normal", "PrimaryButton") as StyleBoxFlat).bg_color, params["accent"] as Color)
+	assert_eq((t.get_stylebox("fill", "ProgressBar") as StyleBoxFlat).bg_color, params["accent"] as Color)
+	assert_true(UiTheme.apply_accent({}), "restored")
+	assert_eq((t.get_stylebox("normal", "PrimaryButton") as StyleBoxFlat).bg_color, Palette.PRIMARY)
+	assert_false(UiTheme.apply_accent({}), "no change twice")
+
+
+func test_emblem_shows_the_worn_avatar_frame_and_badge() -> void:
+	assert_true(Presenters.worn(_app, CosmeticCatalog.THEME).is_empty(), "default items override nothing")
+	var em: Dictionary = Presenters.emblem(_app)
+	assert_true(em["badge"] is Dictionary and (em["badge"] as Dictionary).is_empty(), "starter badge stays quiet")
+	var emblem: ProfileEmblem = _keep(ProfileEmblem.new()) as ProfileEmblem
+	emblem.size = Vector2(88, 88)
+	emblem.setup(em)
+	assert_eq(emblem._avatar.category, "avatar")
+	assert_eq(emblem._frame.category, "frame")
+	assert_false(emblem._badge.visible)
+	assert_eq(emblem._avatar.params, em["avatar"] as Dictionary, "the equipped avatar is drawn")
+
+
+func test_shop_says_what_an_item_changes() -> void:
+	var shop: CosmeticsScreen = CosmeticsScreen.new()
+	shop.mode = &"shop"
+	_screen(shop)
+	var payload: Dictionary = Presenters.cosmetics(_app, &"shop")
+	var seen: Dictionary = {}
+	for raw: Variant in payload["items"] as Array:
+		var it: Dictionary = raw as Dictionary
+		if seen.has(it["category"]):
+			continue
+		seen[it["category"]] = true
+		shop.enter(payload)
+		shop._selected = str(it["id"])
+		shop._update_detail()
+		var key: String = "shop.affects." + str(it["category"])
+		assert_eq(shop._detail_effect.text, str(TranslationServer.translate(key)), str(it["id"]))
+		assert_ne(shop._detail_effect.text, key, "translated: %s" % key)

@@ -17,6 +17,9 @@ const SLOT_RETRIES: int = 3
 const CLEAR_AFTER: float = 0.9
 const SPARK_STEP: float = 1.15
 const HAZARD_SPARK_GAP: float = 1.1
+## Hazard types a chapter's "hazards" weights can name (world data is checked
+## against this list: an unknown key would silently place nothing).
+const HAZARD_KINDS: PackedStringArray = ["barrier", "slider", "pulse_gate", "phase_gate", "breakable"]
 const MIN_DASH_GAP_FACTOR: float = 1.3
 const GENERATOR_VERSION: int = 1
 

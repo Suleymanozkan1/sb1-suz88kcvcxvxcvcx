@@ -70,7 +70,28 @@ static func main_menu(s: AppServices) -> Dictionary:
 		t("menu.next_level").format({"world": world_name(world), "n": int(loc.get("local_index", 1))}),
 		"unlock": unlock,
 		"daily_badge": badge,
+		"emblem": emblem(s),
 	}
+
+
+## The equipped avatar, frame and badge (the badge only when one beyond the
+## starter badge is worn, so the default emblem stays quiet).
+static func emblem(s: AppServices) -> Dictionary:
+	return {
+		"avatar": s.cosmetics.avatar_params(),
+		"frame": s.cosmetics.frame_params(),
+		"badge": worn(s, CosmeticCatalog.BADGE),
+	}
+
+
+## Params of the item worn in [param category], or {} while the default item
+## is worn (the art direction's own palette applies, no override).
+static func worn(s: AppServices, category: String) -> Dictionary:
+	var c: CosmeticService = s.cosmetics
+	var id: String = c.equipped(category)
+	if id == c.catalog.default_for(category):
+		return {}
+	return c.catalog.typed_params(id)
 
 
 static func _hint_title(s: AppServices, hint: Dictionary) -> String:
@@ -223,6 +244,7 @@ static func progress(s: AppServices, tab: String, board: Dictionary) -> Dictiona
 		if bool((p.levels[id2] as Dictionary).get("perfect", false)):
 			perfect_count += 1
 	return {
+		"emblem": emblem(s),
 		"player_level": p.player_level,
 		"xp": int(s.progression.xp_progress().get("into_level", 0)),
 		"xp_next": maxi(1, int(s.progression.xp_progress().get("needed", 1))),

@@ -4,7 +4,7 @@
 	"chapter_phase": "introduction",
 	"combo_target": 19,
 	"difficulty": 0.045,
-	"duration": 13.7,
+	"duration": 13.63,
 	"entities": [
 		{
 			"d": 23.55,
@@ -147,7 +147,10 @@
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.1201,
+			"open": 0.5,
+			"period": 2.0339,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 52.07,
@@ -170,63 +173,70 @@
 			"t": "spark"
 		},
 		{
-			"d": 65.36,
+			"d": 64.56,
 			"lanes": [
-				0
+				1
 			],
-			"t": "barrier"
+			"offset": 0.5875,
+			"open": 0.5,
+			"period": 2.0339,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 58.94,
 			"lane": 1,
-			"t": "spark"
+			"t": "magnet"
 		},
 		{
 			"d": 60.17,
 			"lane": 1,
-			"t": "magnet"
-		},
-		{
-			"d": 61.4,
-			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 62.63,
-			"lane": 1,
+			"d": 62.01,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 63.86,
-			"lane": 1,
+			"d": 63.24,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 72.22,
-			"from": 0,
-			"offset": 0.2972,
-			"period": 1.5254,
-			"t": "slider",
-			"to": 1
+			"d": 63.04,
+			"lane": 1,
+			"t": "prism"
 		},
 		{
-			"d": 66.52,
-			"lane": 1,
+			"d": 71.84,
+			"lanes": [
+				1
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 65.7,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 67.75,
-			"lane": 1,
+			"d": 66.93,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 68.98,
-			"lane": 1,
+			"d": 68.16,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 70.21,
-			"lane": 1,
+			"d": 69.39,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 70.62,
+			"lane": 0,
 			"t": "spark"
 		}
 	],
@@ -240,11 +250,13 @@
 	"intro_mechanic": "pulse",
 	"kind": "normal",
 	"lanes": 2,
-	"length": 84.22,
+	"length": 83.84,
 	"local_index": 40,
 	"mechanics": [
 		"hop",
 		"magnet",
+		"prism",
+		"pulse",
 		"slider",
 		"spark"
 	],
@@ -262,14 +274,15 @@
 	},
 	"perfect_target": 32,
 	"schema_version": 1,
-	"score_target": 740,
+	"score_target": 940,
 	"seed": 291583613,
 	"solution": {
-		"max_combo": 32,
-		"score": 1325,
+		"max_combo": 33,
+		"score": 1685,
 		"sparks": 32,
 		"taps": [
-			465
+			465,
+			597
 		]
 	},
 	"spawn": {

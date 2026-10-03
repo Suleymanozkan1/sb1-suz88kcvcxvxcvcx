@@ -31,7 +31,7 @@ validation, the autopilot, the replay verifier and the tests, so "solvable in th
 | Challenge | 469–494 | 28–58 | 140 ms |
 | Endgame | 495–520 | 30–60 | 130 ms |
 
-  Specials override the band: challenge levels (L26) 30–60 s, bosses (L52) 60–120 s.
+  Specials override the band: challenge levels (L26) and bosses (L52) run 60–120 s.
 * **Continuous parameters** interpolate over the campaign with a gentle exponent and a small wave:
   speed 6.5 → 12.0 m/s, slot spacing 7.2 → 4.1 m, change probability 0.35 → 0.78, hazard density
   0.70 → 1.00, spark density 0.90 → 0.60, score-target ratio 0.55 → 0.72.

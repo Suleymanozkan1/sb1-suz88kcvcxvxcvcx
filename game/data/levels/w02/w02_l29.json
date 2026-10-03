@@ -31,11 +31,13 @@
 		},
 		{
 			"d": 28.35,
-			"from": 0,
-			"offset": 0.5394,
+			"lanes": [
+				0
+			],
+			"offset": 0.2894,
+			"open": 0.5,
 			"period": 0.9677,
-			"t": "slider",
-			"to": 1
+			"t": "pulse_gate"
 		},
 		{
 			"d": 23.34,
@@ -59,11 +61,13 @@
 		},
 		{
 			"d": 34.77,
-			"from": 0,
-			"offset": 0.5233,
+			"lanes": [
+				0
+			],
+			"offset": 0.2733,
+			"open": 0.5,
 			"period": 0.9677,
-			"t": "slider",
-			"to": 1
+			"t": "pulse_gate"
 		},
 		{
 			"d": 29.48,
@@ -105,11 +109,13 @@
 		},
 		{
 			"d": 47.75,
-			"from": 1,
-			"offset": 0.9941,
-			"period": 1.4516,
-			"t": "slider",
-			"to": 0
+			"lanes": [
+				1
+			],
+			"offset": 0.2411,
+			"open": 0.5,
+			"period": 0.9677,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 41.98,
@@ -385,6 +391,7 @@
 		"hop",
 		"phase",
 		"prism",
+		"pulse",
 		"slider",
 		"spark"
 	],

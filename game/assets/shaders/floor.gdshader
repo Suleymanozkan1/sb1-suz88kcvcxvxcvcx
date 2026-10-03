@@ -12,6 +12,9 @@ uniform int lane_count = 2;
 uniform float seam_spacing = 4.0;
 uniform float caustics = 0.0;
 uniform vec4 caustic_color : source_color = vec4(0.6, 0.95, 0.9, 1.0);
+// Music beat (0..1, decaying): the lane lips catch a little more light on the
+// beat, so the track breathes with the music without any glow.
+uniform float beat = 0.0;
 
 varying vec3 local_pos;
 
@@ -45,7 +48,7 @@ void fragment() {
 		lip = max(lip, aa_line(x - bx - 0.06, 0.012));
 	}
 	col *= 1.0 - groove * 0.38;
-	col += lip * 0.035;
+	col += lip * (0.035 + beat * 0.05);
 	// Panel seams across the track every seam_spacing units (speed cue).
 	float seam = aa_line(fract(dist / seam_spacing) - 0.5, 0.004 * seam_spacing) * on_track;
 	col *= 1.0 - seam * 0.16;

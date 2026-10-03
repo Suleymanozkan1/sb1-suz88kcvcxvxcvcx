@@ -263,11 +263,13 @@
 		},
 		{
 			"d": 98.17,
-			"from": 1,
-			"offset": 0.5322,
+			"lanes": [
+				1
+			],
+			"offset": 0.2822,
+			"open": 0.5,
 			"period": 0.9677,
-			"t": "slider",
-			"to": 0
+			"t": "pulse_gate"
 		},
 		{
 			"d": 92.42,
@@ -291,11 +293,13 @@
 		},
 		{
 			"d": 104.36,
-			"from": 1,
-			"offset": 0.6711,
+			"lanes": [
+				1
+			],
+			"offset": 0.4211,
+			"open": 0.5,
 			"period": 0.9677,
-			"t": "slider",
-			"to": 0
+			"t": "pulse_gate"
 		},
 		{
 			"d": 99.32,
@@ -358,7 +362,10 @@
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.6483,
+			"open": 0.5,
+			"period": 0.9677,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 118.53,
@@ -381,10 +388,10 @@
 			"t": "spark"
 		},
 		{
-			"d": 131.68,
+			"d": 131.72,
 			"from": 0,
-			"offset": 0.9669,
-			"period": 1.9355,
+			"offset": 0.9444,
+			"period": 1.4516,
 			"t": "slider",
 			"to": 1
 		},
@@ -419,13 +426,14 @@
 	"intro_mechanic": "",
 	"kind": "normal",
 	"lanes": 2,
-	"length": 143.68,
+	"length": 143.72,
 	"local_index": 30,
 	"mechanics": [
 		"form_gate",
 		"hop",
 		"phase",
 		"prism",
+		"pulse",
 		"slider",
 		"spark"
 	],

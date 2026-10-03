@@ -2,9 +2,9 @@
 	"beat_seconds": 0.4688,
 	"chapter": "C",
 	"chapter_phase": "introduction",
-	"combo_target": 26,
+	"combo_target": 27,
 	"difficulty": 0.22,
-	"duration": 15.7,
+	"duration": 16.05,
 	"entities": [
 		{
 			"d": 22.51,
@@ -18,7 +18,10 @@
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.3367,
+			"open": 0.5,
+			"period": 0.9375,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 17.19,
@@ -36,12 +39,26 @@
 			"t": "spark"
 		},
 		{
-			"d": 29.23,
-			"from": 2,
-			"offset": 0.7867,
-			"period": 1.875,
-			"t": "slider",
-			"to": 1
+			"d": 20.72,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 28.65,
+			"lanes": [
+				0
+			],
+			"offset": 0.4122,
+			"open": 0.5,
+			"period": 0.9375,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 28.65,
+			"lanes": [
+				1
+			],
+			"t": "barrier"
 		},
 		{
 			"d": 23.67,
@@ -54,282 +71,262 @@
 			"t": "spark"
 		},
 		{
-			"d": 26.73,
-			"lane": 1,
+			"d": 26.02,
+			"lane": 2,
 			"t": "spark"
 		},
 		{
-			"d": 27.91,
-			"lane": 1,
+			"d": 27.2,
+			"lane": 2,
 			"t": "spark"
 		},
 		{
-			"d": 35.09,
-			"from": 0,
-			"offset": 0.6844,
-			"period": 0.9375,
-			"t": "slider",
-			"to": 1
-		},
-		{
-			"d": 35.09,
-			"lanes": [
-				2
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 30.38,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 31.56,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 32.73,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 33.91,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 41.79,
+			"d": 35.23,
 			"lanes": [
 				0
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 36.27,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 37.44,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 38.62,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 47.63,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 47.63,
-			"lanes": [
-				2
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 42.98,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 45.33,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 46.51,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 54.28,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 54.28,
-			"lanes": [
-				2
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 48.75,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 49.93,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 52.28,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 60.14,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 55.46,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 56.64,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 57.82,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 58.99,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 67.09,
-			"from": 0,
-			"offset": 0.8667,
-			"period": 0.9375,
-			"t": "slider",
-			"to": 1
-		},
-		{
-			"d": 62.53,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 63.7,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 64.88,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 73.88,
-			"from": 1,
-			"offset": 0.8356,
-			"period": 0.9375,
-			"t": "slider",
-			"to": 0
-		},
-		{
-			"d": 68.29,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 69.47,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 71.47,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 72.65,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 72.36,
-			"lane": 1,
-			"t": "prism"
-		},
-		{
-			"d": 80.03,
+			"d": 35.23,
 			"lanes": [
 				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 75.01,
-			"lane": 0,
+			"d": 30.97,
+			"lane": 2,
 			"t": "spark"
 		},
 		{
-			"d": 76.18,
-			"lane": 0,
+			"d": 32.15,
+			"lane": 2,
 			"t": "spark"
 		},
 		{
-			"d": 78.54,
-			"lane": 0,
+			"d": 33.32,
+			"lane": 2,
 			"t": "spark"
 		},
 		{
-			"d": 85.83,
-			"from": 0,
-			"offset": 0.36,
-			"period": 1.4063,
-			"t": "slider",
-			"to": 1
-		},
-		{
-			"d": 81.25,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 82.43,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 83.84,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 84.31,
-			"lane": 0,
-			"t": "prism"
-		},
-		{
-			"d": 92.02,
-			"from": 1,
-			"offset": 0.0489,
-			"period": 1.875,
-			"t": "slider",
-			"to": 2
-		},
-		{
-			"d": 92.02,
+			"d": 41.93,
 			"lanes": [
 				0
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 87.02,
+			"d": 36.38,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 37.56,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 38.74,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 47.77,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 47.77,
+			"lanes": [
+				1
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 43.1,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 45.45,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 46.63,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 54.42,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 54.42,
+			"lanes": [
+				1
+			],
+			"offset": 0.5189,
+			"open": 0.5,
+			"period": 0.9375,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 48.98,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 50.16,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 51.34,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 52.52,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 60.88,
+			"lanes": [
+				2
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 60.88,
+			"from": 0,
+			"offset": 0.3956,
+			"period": 1.875,
+			"t": "slider",
+			"to": 1
+		},
+		{
+			"d": 55.58,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 56.76,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 58.52,
 			"lane": 1,
 			"t": "spark"
+		},
+		{
+			"d": 68.2,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 62.05,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 63.23,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 64.41,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 65.59,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 74.25,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 69.35,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 70.53,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 71.71,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 72.89,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 80.96,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 77.71,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 78.89,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 87.06,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 82.07,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 84.43,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 85.6,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 94.36,
+			"from": 1,
+			"offset": 0.8711,
+			"period": 1.875,
+			"t": "slider",
+			"to": 0
 		},
 		{
 			"d": 88.19,
@@ -337,32 +334,45 @@
 			"t": "spark"
 		},
 		{
-			"d": 89.84,
-			"lane": 2,
+			"d": 89.37,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 98.86,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
+			"d": 90.55,
+			"lane": 1,
+			"t": "spark"
 		},
 		{
-			"d": 98.86,
+			"d": 91.73,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 92.9,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 101.33,
 			"lanes": [
 				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 94.32,
-			"lane": 2,
+			"d": 95.5,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 95.5,
-			"lane": 2,
+			"d": 97.85,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 100.21,
+			"lane": 0,
 			"t": "spark"
 		}
 	],
@@ -376,16 +386,16 @@
 	"intro_mechanic": "slider3",
 	"kind": "normal",
 	"lanes": 3,
-	"length": 110.86,
+	"length": 113.33,
 	"local_index": 27,
 	"mechanics": [
 		"hop",
 		"lanes3",
-		"prism",
+		"pulse",
 		"slider",
 		"spark"
 	],
-	"min_tap_window": 0.55,
+	"min_tap_window": 0.65,
 	"modifiers": {
 		"hop_time": 0.13,
 		"ramp_distance": 113.1,
@@ -397,20 +407,18 @@
 		"target": 0,
 		"type": "reach_end"
 	},
-	"perfect_target": 42,
+	"perfect_target": 45,
 	"schema_version": 1,
-	"score_target": 1600,
+	"score_target": 1210,
 	"seed": 2615562608,
 	"solution": {
-		"max_combo": 44,
-		"score": 2715,
-		"sparks": 42,
+		"max_combo": 45,
+		"score": 2045,
+		"sparks": 45,
 		"taps": [
 			91,
-			219,
-			599,
-			704,
-			755
+			489,
+			770
 		]
 	},
 	"spawn": {

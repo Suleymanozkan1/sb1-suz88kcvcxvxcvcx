@@ -2,16 +2,19 @@
 	"beat_seconds": 0.4688,
 	"chapter": "C",
 	"chapter_phase": "introduction",
-	"combo_target": 34,
+	"combo_target": 32,
 	"difficulty": 0.224,
-	"duration": 17.97,
+	"duration": 18.0,
 	"entities": [
 		{
 			"d": 22.23,
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.39,
+			"open": 0.5,
+			"period": 0.9375,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 17.12,
@@ -24,14 +27,26 @@
 			"t": "spark"
 		},
 		{
+			"d": 19.48,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
 			"d": 20.66,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 29.08,
+			"d": 27.99,
 			"lanes": [
 				1
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 27.99,
+			"lanes": [
+				0
 			],
 			"t": "barrier"
 		},
@@ -46,394 +61,387 @@
 			"t": "spark"
 		},
 		{
-			"d": 26.57,
+			"d": 25.98,
 			"lane": 2,
 			"t": "spark"
 		},
 		{
-			"d": 27.56,
-			"lane": 1,
-			"t": "prism"
-		},
-		{
-			"d": 35.91,
+			"d": 34.56,
 			"lanes": [
 				0
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 35.91,
+			"d": 34.56,
+			"lanes": [
+				1
+			],
+			"offset": 0.5411,
+			"open": 0.5,
+			"period": 0.9375,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 29.17,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 30.35,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 31.53,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 32.71,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 41.61,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 35.66,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 38.02,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 39.2,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 40.38,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 48.8,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 48.8,
+			"from": 1,
+			"offset": 0.0933,
+			"period": 1.4063,
+			"t": "slider",
+			"to": 2
+		},
+		{
+			"d": 42.75,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 43.93,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 46.29,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 47.47,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 55.53,
+			"lanes": [
+				0
+			],
+			"offset": 0.3767,
+			"open": 0.5,
+			"period": 0.9375,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 49.95,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 52.31,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 53.49,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 61.99,
+			"lanes": [
+				2
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 61.99,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 56.68,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 57.86,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 59.63,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 60.81,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 69.22,
+			"lanes": [
+				0
+			],
+			"offset": 0.3144,
+			"open": 0.5,
+			"period": 0.9375,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 63.17,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 65.54,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 66.72,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 67.9,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 76.44,
+			"lanes": [
+				0
+			],
+			"offset": 0.99,
+			"open": 0.5,
+			"period": 1.875,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 70.38,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 71.56,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 72.74,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 73.92,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 83.41,
+			"from": 1,
+			"offset": 0.6207,
+			"period": 1.4063,
+			"t": "slider",
+			"to": 0
+		},
+		{
+			"d": 77.58,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 78.76,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 80.77,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 81.95,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 90.39,
 			"lanes": [
 				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 30.23,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 31.41,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 32.59,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 33.77,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 42.36,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 37.08,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 38.26,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 39.44,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 40.62,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 48.12,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 43.57,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 44.75,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 55.4,
+			"d": 90.39,
 			"lanes": [
 				2
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 55.4,
-			"from": 0,
-			"offset": 0.6444,
-			"period": 0.9375,
-			"t": "slider",
-			"to": 1
-		},
-		{
-			"d": 49.24,
-			"lane": 2,
+			"d": 84.55,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 50.42,
-			"lane": 2,
+			"d": 86.91,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 51.6,
-			"lane": 2,
+			"d": 88.09,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 52.78,
-			"lane": 1,
-			"t": "spark"
+			"d": 96.4,
+			"lanes": [
+				1
+			],
+			"t": "barrier"
 		},
 		{
-			"d": 53.96,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 62.68,
-			"from": 0,
-			"offset": 0.7067,
-			"period": 1.4063,
-			"t": "slider",
-			"to": 1
-		},
-		{
-			"d": 62.68,
+			"d": 96.4,
 			"lanes": [
 				2
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 56.56,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 57.74,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 58.92,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 60.1,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 61.29,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 69.59,
-			"from": 0,
-			"offset": 0.0074,
-			"period": 1.4063,
-			"t": "slider",
-			"to": 1
-		},
-		{
-			"d": 63.88,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 65.06,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 66.24,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 67.43,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 76.28,
-			"from": 0,
-			"offset": 0.5156,
-			"period": 0.9375,
-			"t": "slider",
-			"to": 1
-		},
-		{
-			"d": 71.91,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 73.09,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 74.27,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 82.89,
-			"from": 1,
-			"offset": 0.68,
-			"period": 1.4063,
-			"t": "slider",
-			"to": 0
-		},
-		{
-			"d": 77.46,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 78.64,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 80.53,
+			"d": 91.51,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 81.71,
+			"d": 93.88,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 89.75,
-			"from": 1,
-			"offset": 0.9807,
-			"period": 1.4063,
-			"t": "slider",
-			"to": 0
-		},
-		{
-			"d": 84.08,
+			"d": 95.06,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 85.26,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 86.44,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 87.62,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 96.83,
-			"from": 1,
-			"offset": 0.2696,
-			"period": 1.4063,
-			"t": "slider",
-			"to": 0
-		},
-		{
-			"d": 96.83,
-			"lanes": [
-				2
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 90.92,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 92.11,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 93.29,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 94.47,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 95.65,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 103.16,
+			"d": 102.4,
 			"lanes": [
 				0
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 98.01,
+			"d": 97.54,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 99.19,
+			"d": 98.72,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 100.96,
+			"d": 100.25,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 109.12,
+			"d": 109.41,
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.51,
+			"open": 0.5,
+			"period": 1.875,
+			"t": "pulse_gate"
 		},
 		{
-			"d": 104.27,
+			"d": 104.74,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 105.45,
+			"d": 105.92,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 106.63,
+			"d": 107.1,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 107.81,
+			"d": 108.28,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 115.25,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
+			"d": 115.44,
+			"from": 1,
+			"offset": 0.3067,
+			"period": 1.875,
+			"t": "slider",
+			"to": 2
 		},
 		{
-			"d": 110.29,
+			"d": 110.53,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 111.47,
+			"d": 111.71,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 112.65,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 113.83,
-			"lane": 1,
+			"d": 113.36,
+			"lane": 2,
 			"t": "spark"
 		}
 	],
@@ -447,16 +455,16 @@
 	"intro_mechanic": "slider3",
 	"kind": "normal",
 	"lanes": 3,
-	"length": 127.25,
+	"length": 127.44,
 	"local_index": 29,
 	"mechanics": [
 		"hop",
 		"lanes3",
-		"prism",
+		"pulse",
 		"slider",
 		"spark"
 	],
-	"min_tap_window": 0.633,
+	"min_tap_window": 0.55,
 	"modifiers": {
 		"hop_time": 0.13,
 		"ramp_distance": 126.0,
@@ -468,19 +476,20 @@
 		"target": 0,
 		"type": "reach_end"
 	},
-	"perfect_target": 57,
+	"perfect_target": 54,
 	"schema_version": 1,
-	"score_target": 1770,
+	"score_target": 1630,
 	"seed": 2850449274,
 	"solution": {
-		"max_combo": 57,
-		"score": 2990,
-		"sparks": 57,
+		"max_combo": 54,
+		"score": 2750,
+		"sparks": 54,
 		"taps": [
-			217,
-			438,
-			674,
-			847
+			212,
+			497,
+			676,
+			841,
+			952
 		]
 	},
 	"spawn": {

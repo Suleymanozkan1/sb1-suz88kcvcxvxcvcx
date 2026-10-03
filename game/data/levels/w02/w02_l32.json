@@ -2,7 +2,7 @@
 	"beat_seconds": 0.4839,
 	"chapter": "C",
 	"chapter_phase": "mastery",
-	"combo_target": 40,
+	"combo_target": 39,
 	"difficulty": 0.16,
 	"duration": 20.45,
 	"entities": [
@@ -31,11 +31,13 @@
 		},
 		{
 			"d": 29.51,
-			"from": 1,
-			"offset": 0.3019,
-			"period": 1.4516,
-			"t": "slider",
-			"to": 0
+			"lanes": [
+				1
+			],
+			"offset": 0.7028,
+			"open": 0.5,
+			"period": 0.9677,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 23.55,
@@ -82,11 +84,13 @@
 		},
 		{
 			"d": 41.11,
-			"from": 0,
-			"offset": 0.2456,
-			"period": 1.4516,
-			"t": "slider",
-			"to": 1
+			"lanes": [
+				0
+			],
+			"offset": 0.9342,
+			"open": 0.5,
+			"period": 1.9355,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 36.4,
@@ -160,11 +164,13 @@
 		},
 		{
 			"d": 60.7,
-			"from": 0,
-			"offset": 0.8494,
-			"period": 1.9355,
-			"t": "slider",
-			"to": 1
+			"lanes": [
+				0
+			],
+			"offset": 0.4489,
+			"open": 0.5,
+			"period": 0.9677,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 56.17,
@@ -430,15 +436,13 @@
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.4414,
+			"open": 0.5,
+			"period": 1.9355,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 131.24,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 132.5,
 			"lane": 0,
 			"t": "spark"
 		},
@@ -488,6 +492,7 @@
 		"hop",
 		"phase",
 		"prism",
+		"pulse",
 		"slider",
 		"spark"
 	],
@@ -503,14 +508,14 @@
 		"target": 0,
 		"type": "reach_end"
 	},
-	"perfect_target": 60,
+	"perfect_target": 59,
 	"schema_version": 1,
-	"score_target": 2290,
+	"score_target": 2270,
 	"seed": 543178549,
 	"solution": {
-		"max_combo": 67,
-		"score": 3980,
-		"sparks": 60,
+		"max_combo": 66,
+		"score": 3940,
+		"sparks": 59,
 		"taps": [
 			85,
 			206,

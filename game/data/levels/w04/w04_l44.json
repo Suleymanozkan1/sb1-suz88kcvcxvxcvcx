@@ -2,9 +2,9 @@
 	"beat_seconds": 0.5357,
 	"chapter": "D",
 	"chapter_phase": "mastery",
-	"combo_target": 43,
+	"combo_target": 48,
 	"difficulty": 0.383,
-	"duration": 21.75,
+	"duration": 22.0,
 	"entities": [
 		{
 			"d": 21.89,
@@ -136,10 +136,13 @@
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.74,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
 		},
 		{
-			"d": 54.4,
+			"d": 55.57,
 			"lane": 0,
 			"t": "spark"
 		},
@@ -149,45 +152,54 @@
 			"t": "spark"
 		},
 		{
-			"d": 64.23,
+			"d": 64.93,
 			"lanes": [
-				0
+				1
 			],
-			"t": "barrier"
+			"offset": 0.4056,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 59.84,
 			"lane": 1,
-			"t": "shield"
-		},
-		{
-			"d": 61.01,
-			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 62.19,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 70.66,
+			"d": 70.69,
 			"lanes": [
 				1
 			],
-			"t": "barrier"
+			"offset": 0.1022,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
 		},
 		{
-			"d": 66.6,
-			"lane": 1,
+			"d": 66.16,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 76.57,
+			"d": 67.33,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 68.51,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 75.94,
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.8222,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 71.89,
@@ -195,376 +207,427 @@
 			"t": "spark"
 		},
 		{
-			"d": 74.68,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 81.87,
+			"d": 82.22,
 			"lanes": [
-				1
+				0
 			],
-			"t": "barrier"
+			"offset": 0.4878,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
 		},
 		{
-			"d": 77.77,
+			"d": 77.18,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 86.89,
+			"d": 78.36,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 79.54,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 80.71,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 87.05,
 			"form": "dash",
 			"t": "form_gate"
 		},
 		{
-			"d": 83.06,
-			"lane": 0,
+			"d": 83.36,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 85.42,
-			"lane": 0,
+			"d": 84.53,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 92.6,
-			"lane": 0,
-			"t": "breakable"
-		},
-		{
-			"d": 92.6,
+			"d": 92.51,
 			"lane": 1,
 			"t": "breakable"
 		},
 		{
-			"d": 88.06,
-			"lane": 0,
+			"d": 92.51,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 88.21,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 89.24,
-			"lane": 0,
+			"d": 89.39,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"d": 90.55,
-			"lane": 0,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 101.29,
+			"d": 102.6,
 			"lanes": [
-				1
+				0
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 93.84,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
 			"d": 95.12,
-			"lane": 0,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"d": 96.3,
-			"lane": 0,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"d": 97.47,
-			"lane": 0,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"d": 98.65,
-			"lane": 0,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 106.92,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 102.47,
-			"lane": 0,
+			"d": 99.82,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 103.65,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 104.82,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 112.03,
-			"lane": 0,
-			"t": "breakable"
-		},
-		{
-			"d": 112.03,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 108.06,
-			"lane": 0,
+			"d": 101.0,
+			"lane": 1,
 			"t": "shield"
 		},
 		{
-			"d": 109.23,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 121.71,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 113.31,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 115.7,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 116.88,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 118.05,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 119.23,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 120.41,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 125.79,
-			"form": "hop",
-			"t": "form_gate"
-		},
-		{
-			"d": 122.91,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 131.25,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 127.02,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 128.2,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 136.87,
+			"d": 108.6,
 			"lanes": [
 				0
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 132.46,
+			"d": 103.79,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 104.97,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 106.15,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 107.32,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 113.86,
+			"lane": 1,
+			"t": "breakable"
+		},
+		{
+			"d": 113.86,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 109.82,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 111.0,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 112.25,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 123.42,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 116.22,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 118.64,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 119.82,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 122.17,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 128.91,
+			"lane": 1,
+			"t": "breakable"
+		},
+		{
+			"d": 128.91,
 			"lane": 0,
+			"t": "breakable"
+		},
+		{
+			"d": 124.52,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 125.7,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 127.01,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 139.23,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 131.22,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 132.46,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"d": 133.64,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 135.11,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 143.27,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 141.14,
-			"lane": 0,
+			"d": 134.81,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 149.24,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 144.37,
-			"lane": 0,
+			"d": 135.99,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 145.55,
-			"lane": 0,
+			"d": 144.04,
+			"form": "hop",
+			"t": "form_gate"
+		},
+		{
+			"d": 142.75,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 146.72,
-			"lane": 0,
-			"t": "shield"
-		},
-		{
-			"d": 155.67,
+			"d": 149.35,
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.2211,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 145.25,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 146.43,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 147.6,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 155.72,
+			"lanes": [
+				1
+			],
+			"offset": 0.0078,
+			"open": 0.5,
+			"period": 1.0714,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 150.55,
+			"lane": 1,
+			"t": "spark"
 		},
 		{
 			"d": 153.63,
-			"lane": 1,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 161.12,
+			"d": 161.35,
 			"lanes": [
-				0
+				1
 			],
-			"t": "barrier"
+			"offset": 0.5833,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 156.87,
-			"lane": 1,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 158.04,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 159.22,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 166.35,
+			"d": 166.88,
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.8256,
+			"open": 0.5,
+			"period": 1.0714,
+			"t": "pulse_gate"
 		},
 		{
-			"d": 163.48,
+			"d": 162.45,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 163.63,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 165.25,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 164.66,
+			"d": 172.42,
+			"lanes": [
+				0
+			],
+			"offset": 0.0,
+			"open": 0.5,
+			"period": 2.1429,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 168.04,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 171.06,
+			"d": 169.22,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 178.63,
+			"lanes": [
+				1
+			],
+			"offset": 0.5811,
+			"open": 0.5,
+			"period": 1.0714,
+			"t": "pulse_gate"
+		},
+		{
+			"d": 173.63,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 174.8,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 176.57,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 182.9,
 			"form": "dash",
 			"t": "form_gate"
 		},
 		{
-			"d": 168.63,
-			"lane": 1,
+			"d": 179.8,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 169.8,
-			"lane": 1,
+			"d": 180.98,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 177.4,
-			"lane": 1,
-			"t": "breakable"
-		},
-		{
-			"d": 177.4,
+			"d": 189.03,
 			"lanes": [
-				0
+				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 174.66,
-			"lane": 1,
+			"d": 184.06,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 175.94,
-			"lane": 1,
+			"d": 186.42,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 186.85,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 178.76,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 179.95,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 181.12,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 182.3,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 183.48,
-			"lane": 1,
+			"d": 187.59,
+			"lane": 0,
 			"t": "spark"
 		}
 	],
@@ -578,12 +641,13 @@
 	"intro_mechanic": "",
 	"kind": "normal",
 	"lanes": 2,
-	"length": 198.85,
+	"length": 201.03,
 	"local_index": 44,
 	"mechanics": [
 		"dash",
 		"form_gate",
 		"hop",
+		"pulse",
 		"shield",
 		"spark"
 	],
@@ -599,26 +663,25 @@
 		"target": 0,
 		"type": "reach_end"
 	},
-	"perfect_target": 67,
+	"perfect_target": 75,
 	"schema_version": 1,
-	"score_target": 2780,
+	"score_target": 3180,
 	"seed": 4182399050,
 	"solution": {
-		"max_combo": 72,
-		"score": 4530,
-		"sparks": 67,
+		"max_combo": 80,
+		"score": 5170,
+		"sparks": 75,
 		"taps": [
 			130,
 			368,
-			447,
-			488,
-			526,
+			408,
+			486,
 			600,
-			722,
-			875,
-			916,
-			1001,
-			1152
+			734,
+			824,
+			989,
+			1068,
+			1145
 		]
 	},
 	"spawn": {

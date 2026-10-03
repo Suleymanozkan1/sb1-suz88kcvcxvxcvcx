@@ -4,7 +4,7 @@
 	"chapter_phase": "introduction",
 	"combo_target": 21,
 	"difficulty": 0.049,
-	"duration": 16.28,
+	"duration": 16.38,
 	"entities": [
 		{
 			"d": 23.93,
@@ -143,7 +143,10 @@
 			"lanes": [
 				1
 			],
-			"t": "barrier"
+			"offset": 0.0314,
+			"open": 0.5,
+			"period": 1.0169,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 55.34,
@@ -153,12 +156,7 @@
 		{
 			"d": 56.58,
 			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 57.81,
-			"lane": 0,
-			"t": "spark"
+			"t": "magnet"
 		},
 		{
 			"d": 59.05,
@@ -170,7 +168,10 @@
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.3499,
+			"open": 0.5,
+			"period": 2.0339,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 62.13,
@@ -193,9 +194,9 @@
 			"t": "spark"
 		},
 		{
-			"d": 74.57,
+			"d": 74.65,
 			"lanes": [
-				0
+				1
 			],
 			"t": "barrier"
 		},
@@ -210,56 +211,67 @@
 			"t": "spark"
 		},
 		{
-			"d": 71.29,
-			"lane": 1,
+			"d": 72.01,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 72.52,
-			"lane": 1,
+			"d": 73.24,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 81.42,
+			"d": 81.19,
 			"lanes": [
 				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 76.94,
+			"d": 75.81,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 77.05,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 79.52,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 89.11,
+			"from": 0,
+			"offset": 0.8954,
+			"period": 2.0339,
+			"t": "slider",
+			"to": 1
+		},
+		{
+			"d": 82.29,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 83.53,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 84.76,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 86.0,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 78.8,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 80.03,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 88.43,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 83.84,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 85.79,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 87.03,
+			"d": 87.23,
 			"lane": 1,
 			"t": "spark"
 		}
@@ -274,11 +286,12 @@
 	"intro_mechanic": "pulse",
 	"kind": "normal",
 	"lanes": 2,
-	"length": 100.43,
+	"length": 101.11,
 	"local_index": 42,
 	"mechanics": [
 		"hop",
 		"magnet",
+		"pulse",
 		"slider",
 		"spark"
 	],
@@ -304,8 +317,8 @@
 		"sparks": 36,
 		"taps": [
 			626,
-			758,
-			826
+			692,
+			828
 		]
 	},
 	"spawn": {

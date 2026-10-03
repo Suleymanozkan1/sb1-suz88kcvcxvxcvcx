@@ -39,6 +39,11 @@ func _run() -> void:
 	_flow.s = _app
 	root.add_child(_flow)
 	await _settle(60)
+	# Seeded progress queues level-up reveals on the menu; they are captured on
+	# their own (13_reward), so the menu is shot without them.
+	while _flow.router.has_overlay(&"reward"):
+		_flow._next_reveal()
+	await _settle(20)
 	await _shot("01_main_menu")
 	_flow._show_worlds()
 	await _shot("02_world_select")

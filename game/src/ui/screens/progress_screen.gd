@@ -32,6 +32,7 @@ var _stats: GridContainer
 var _ach_summary: Label
 var _ach_list: VBoxContainer
 var _boards: UiSegmented
+var _emblem: ProfileEmblem
 var _board_note: Label
 var _board_list: VBoxContainer
 var _board_ids: PackedStringArray = PackedStringArray()
@@ -95,8 +96,14 @@ func _build_overview() -> VBoxContainer:
 	_xp_label = UiKit.text("", &"caption", UiTokens.TEXT_MUTED)
 	head.add_child(_xp_label)
 	inner.add_child(head)
+	var who: HBoxContainer = UiKit.hbox(UiTokens.GUTTER)
+	_emblem = ProfileEmblem.new()
+	_emblem.custom_minimum_size = Vector2(88, 88)
+	who.add_child(_emblem)
 	_level = UiKit.text("1", &"h1")
-	inner.add_child(_level)
+	_level.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	who.add_child(_level)
+	inner.add_child(who)
 	_xp_meter = ProgressBar.new()
 	_xp_meter.show_percentage = false
 	_xp_meter.custom_minimum_size = Vector2(0, 6)
@@ -296,6 +303,7 @@ func _board_row(e: Dictionary) -> HBoxContainer:
 ##   "achievements_unlocked", "achievements_total",
 ##   "board_ids": [daily, classic, endless], "board": {...}, "tab": String}
 func enter(payload: Dictionary) -> void:
+	_emblem.setup(payload.get("emblem", {}) as Dictionary)
 	_level.text = str(int(payload.get("player_level", 1)))
 	var xp: int = int(payload.get("xp", 0))
 	var xp_next: int = maxi(1, int(payload.get("xp_next", 1)))

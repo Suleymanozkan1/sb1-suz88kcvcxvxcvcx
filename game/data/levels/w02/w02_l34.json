@@ -2,9 +2,9 @@
 	"beat_seconds": 0.4839,
 	"chapter": "C",
 	"chapter_phase": "combination",
-	"combo_target": 48,
+	"combo_target": 47,
 	"difficulty": 0.179,
-	"duration": 22.48,
+	"duration": 22.53,
 	"entities": [
 		{
 			"d": 22.75,
@@ -59,11 +59,13 @@
 		},
 		{
 			"d": 34.36,
-			"from": 0,
-			"offset": 0.9804,
-			"period": 1.4516,
-			"t": "slider",
-			"to": 1
+			"lanes": [
+				0
+			],
+			"offset": 0.4853,
+			"open": 0.5,
+			"period": 1.9355,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 29.94,
@@ -80,7 +82,10 @@
 			"lanes": [
 				0
 			],
-			"t": "barrier"
+			"offset": 0.0719,
+			"open": 0.5,
+			"period": 1.9355,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 35.56,
@@ -94,11 +99,6 @@
 		},
 		{
 			"d": 37.92,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 39.09,
 			"lane": 1,
 			"t": "spark"
 		},
@@ -132,11 +132,13 @@
 		},
 		{
 			"d": 53.67,
-			"from": 1,
-			"offset": 0.2811,
-			"period": 1.4516,
-			"t": "slider",
-			"to": 0
+			"lanes": [
+				1
+			],
+			"offset": 0.6717,
+			"open": 0.5,
+			"period": 0.9677,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 47.99,
@@ -354,12 +356,10 @@
 			"lanes": [
 				0
 			],
-			"t": "barrier"
-		},
-		{
-			"d": 110.09,
-			"lane": 0,
-			"t": "spark"
+			"offset": 0.155,
+			"open": 0.5,
+			"period": 1.9355,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 111.27,
@@ -461,7 +461,10 @@
 			"lanes": [
 				1
 			],
-			"t": "barrier"
+			"offset": 0.3922,
+			"open": 0.5,
+			"period": 0.9677,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 141.21,
@@ -474,17 +477,22 @@
 			"t": "spark"
 		},
 		{
+			"d": 143.56,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
 			"d": 144.74,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 153.51,
-			"from": 0,
-			"offset": 0.7639,
-			"period": 0.9677,
+			"d": 152.97,
+			"from": 1,
+			"offset": 0.925,
+			"period": 1.9355,
 			"t": "slider",
-			"to": 1
+			"to": 0
 		},
 		{
 			"d": 148.01,
@@ -497,56 +505,50 @@
 			"t": "spark"
 		},
 		{
-			"d": 151.28,
-			"lane": 1,
+			"d": 150.36,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 151.99,
+			"d": 151.54,
 			"lane": 0,
-			"t": "prism"
+			"t": "spark"
 		},
 		{
-			"d": 158.44,
+			"d": 158.18,
 			"form": "phase",
 			"t": "form_gate"
 		},
 		{
-			"d": 154.68,
-			"lane": 1,
+			"d": 154.15,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 155.85,
-			"lane": 1,
+			"d": 155.33,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 157.03,
-			"lane": 1,
+			"d": 156.51,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"color": 1,
-			"d": 164.27,
+			"color": 0,
+			"d": 164.65,
 			"t": "phase_gate"
 		},
 		{
-			"color": 1,
-			"d": 159.65,
-			"lane": 1,
+			"color": 0,
+			"d": 161.74,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"color": 1,
-			"d": 160.82,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 162.0,
-			"lane": 1,
+			"color": 0,
+			"d": 162.91,
+			"lane": 0,
 			"t": "spark"
 		}
 	],
@@ -560,13 +562,14 @@
 	"intro_mechanic": "",
 	"kind": "normal",
 	"lanes": 2,
-	"length": 176.27,
+	"length": 176.65,
 	"local_index": 34,
 	"mechanics": [
 		"form_gate",
 		"hop",
 		"phase",
 		"prism",
+		"pulse",
 		"slider",
 		"spark"
 	],
@@ -579,17 +582,17 @@
 	"music": "crystal_valley",
 	"number": 86,
 	"objective": {
-		"target": 38,
+		"target": 37,
 		"type": "collect"
 	},
-	"perfect_target": 70,
+	"perfect_target": 69,
 	"schema_version": 1,
-	"score_target": 3380,
+	"score_target": 3100,
 	"seed": 442512835,
 	"solution": {
-		"max_combo": 81,
-		"score": 5850,
-		"sparks": 70,
+		"max_combo": 79,
+		"score": 5380,
+		"sparks": 69,
 		"taps": [
 			83,
 			384,
@@ -598,7 +601,7 @@
 			723,
 			857,
 			957,
-			1149
+			1237
 		]
 	},
 	"spawn": {

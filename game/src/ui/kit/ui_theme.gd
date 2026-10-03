@@ -4,12 +4,44 @@ extends RefCounted
 ## Flat surfaces, 1 px hairlines, 4 px radius — no gradients, no glow, no blur.
 
 static var _theme: Theme
+static var _accent: Color = Palette.PRIMARY
+static var _panel_tint: Color = UiTokens.SURFACE
 
 
 static func get_theme() -> Theme:
 	if _theme == null:
 		_theme = _build()
 	return _theme
+
+
+## UI theme cosmetic: {"accent", "panel_tint"} recolours primary buttons,
+## focus rings, selected cards, meters and card surfaces; {} restores the
+## design tokens. Returns true when anything changed.
+static func apply_accent(params: Dictionary) -> bool:
+	var t: Theme = get_theme()
+	var accent: Color = params.get("accent", Palette.PRIMARY) as Color
+	var tint: Color = params.get("panel_tint", UiTokens.SURFACE) as Color
+	if accent == _accent and tint == _panel_tint:
+		return false
+	_accent = accent
+	_panel_tint = tint
+	# Dark text on light accents, light text on dark ones (legibility first).
+	var ink: Color = UiTokens.TEXT_ON_PRIMARY if accent.get_luminance() > 0.45 else Palette.BONE
+	(t.get_stylebox("normal", "PrimaryButton") as StyleBoxFlat).bg_color = accent
+	(t.get_stylebox("pressed", "PrimaryButton") as StyleBoxFlat).bg_color = accent.darkened(0.18)
+	for state: String in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		t.set_color(state, "PrimaryButton", ink)
+	for variation: String in ["PrimaryButton", "SecondaryButton", "TertiaryButton", "IconButton", "ChoiceButton"]:
+		(t.get_stylebox("focus", variation) as StyleBoxFlat).border_color = Palette.with_alpha(accent, 0.8)
+	(t.get_stylebox("panel", "SelectedCard") as StyleBoxFlat).border_color = accent
+	(t.get_stylebox("fill", "ProgressBar") as StyleBoxFlat).bg_color = accent
+	(t.get_stylebox("grabber_area", "HSlider") as StyleBoxFlat).bg_color = accent
+	var surface: Color = UiTokens.SURFACE if params.is_empty() else UiTokens.SURFACE.lerp(tint, 0.45)
+	var raised: Color = UiTokens.SURFACE_RAISED if params.is_empty() else UiTokens.SURFACE_RAISED.lerp(tint, 0.35)
+	(t.get_stylebox("panel", "PanelContainer") as StyleBoxFlat).bg_color = surface
+	(t.get_stylebox("panel", "RaisedCard") as StyleBoxFlat).bg_color = raised
+	(t.get_stylebox("panel", "SelectedCard") as StyleBoxFlat).bg_color = raised
+	return true
 
 
 static func _box(

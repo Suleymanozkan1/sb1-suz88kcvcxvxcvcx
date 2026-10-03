@@ -191,3 +191,27 @@ func test_auto_quality_step_reaches_the_viewport() -> void:
 	_app.bus.quality_changed.emit(&"low", true)
 	var expected: float = float(_app.quality.params()["render_scale"])
 	assert_near(_app.get_viewport().scaling_3d_scale, expected, 0.0001, "render scale applied")
+
+
+func test_particle_effect_and_background_cosmetics_change_the_view() -> void:
+	var view: GameplayView = _view_for("w01_l01", "neon_core")
+	var c: CosmeticService = _app.cosmetics
+	view.apply_effect_cosmetics(
+		c.particle_params("particle_embers"), c.effect_params("fx_void"), c.background_params("bg_dusk")
+	)
+	var sky: Color = view._sky_mat.get_shader_parameter("sky_top") as Color
+	assert_eq(sky, c.background_params("bg_dusk")["sky_top"] as Color, "the sky follows the background item")
+	view.apply_world(WorldTheme.from_world(_app.catalog.world("molten_grid")))
+	assert_eq(view._sky_mat.get_shader_parameter("sky_top") as Color, sky, "and survives a world change")
+	var collect: CPUParticles3D = (view.bursts._pools["collect"] as Array[CPUParticles3D])[0]
+	assert_near(collect.scale_amount_max, float(c.particle_params("particle_embers")["size_mult"]), 0.001)
+	var ember: Color = (c.particle_params("particle_embers")["colors"] as Array)[0] as Color
+	assert_eq(view._particle_color(0, Palette.PRIMARY), ember, "neutral spark bursts use the particle colours")
+	assert_eq(view._effect_color("fail_color", Palette.FAILURE), c.effect_params("fx_void")["fail_color"] as Color)
+	view._shock = 0.0
+	view.shockwave(0.5)
+	assert_near(view._shock, 0.5 * float(c.effect_params("fx_void")["shockwave"]), 0.001, "shockwave strength")
+	view.apply_effect_cosmetics({}, {}, {})
+	view.apply_world(WorldTheme.from_world(_app.catalog.world("neon_core")))
+	assert_eq(view._sky_mat.get_shader_parameter("sky_top") as Color, view.theme.sky_top, "default: world sky")
+	assert_eq(view._particle_color(0, Palette.PRIMARY), Palette.PRIMARY, "default: palette roles")

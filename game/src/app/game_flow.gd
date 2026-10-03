@@ -7,10 +7,10 @@ extends Node
 
 const RESULT_DELAY: float = 0.55
 const REVEAL_DELAY_COMPLETE: float = 2.2
-const REVEAL_DELAY_FAIL: float = 1.2
 const READY_FIRST: float = 0.8
 const READY_RESTART: float = 0.35
 const ATTRACT_READY: float = 0.2
+const WORLD_FADE: float = 0.6
 
 ## The service graph; the autoload unless one is injected before _ready (tests).
 var s: AppServices
@@ -33,6 +33,9 @@ var _ending: bool = false
 var _uncommitted: RunResult = null
 ## A rewarded revive ad is showing (reveals wait; the pending run stays open).
 var _reviving: bool = false
+var _veil: ColorRect
+var _veil_tween: Tween
+var _shown_world: String = ""
 var _reveal_return: GameStateMachine.State = GameStateMachine.State.MAIN_MENU
 
 
@@ -60,6 +63,8 @@ func _ready() -> void:
 	s.bus.settings_changed.connect(func(_k: StringName, _v: Variant) -> void: _apply_settings_to_view())
 	s.bus.quality_changed.connect(func(_p: StringName, _a: bool) -> void: _apply_quality())
 	s.bus.locale_changed.connect(func(_l: String) -> void: _relocalize_ui.call_deferred())
+	# The track breathes with the music: a stronger pulse on each bar's downbeat.
+	s.audio.beat.connect(func(i: int) -> void: view.music_beat(1.0 if i % 4 == 0 else 0.45))
 	_apply_cosmetics()
 	_apply_quality()
 	fsm.state_changed.connect(
@@ -91,6 +96,16 @@ func _announce_save_state() -> void:
 
 
 func _build_ui() -> void:
+	# World transition veil: between the 3D view and the UI.
+	var veil_layer: CanvasLayer = CanvasLayer.new()
+	veil_layer.layer = 5
+	add_child(veil_layer)
+	_veil = ColorRect.new()
+	_veil.color = Palette.INK
+	_veil.modulate.a = 0.0
+	_veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	veil_layer.add_child(_veil)
 	var layer: CanvasLayer = CanvasLayer.new()
 	layer.layer = 10
 	add_child(layer)
@@ -175,11 +190,19 @@ func _build_ui() -> void:
 	complete.replay_requested.connect(_restart)
 	complete.home_requested.connect(_quit_run)
 	complete.double_requested.connect(_double_reward)
-	complete.star_landed.connect(func(_i: int) -> void: s.audio.play_sfx(&"star"))
+	complete.star_landed.connect(
+		func(_i: int) -> void:
+			s.audio.play_sfx(&"star")
+			s.haptics.play(&"reward", 0.7)
+	)
 	var reward: RewardOverlay = RewardOverlay.new()
 	router.register(&"reward", reward)
 	reward.continue_requested.connect(_next_reveal)
-	reward.item_landed.connect(func(_i: int) -> void: s.audio.play_sfx(&"coin"))
+	reward.item_landed.connect(
+		func(_i: int) -> void:
+			s.audio.play_sfx(&"coin")
+			s.haptics.play(&"reward", 0.6)
+	)
 	router.back_unhandled.connect(_on_back_unhandled)
 
 
@@ -327,8 +350,7 @@ func _start_run(mode_id: StringName, level_id: String = "") -> void:
 	)
 	session.begin(READY_FIRST)
 	_go(GameStateMachine.State.PLAYING)
-	var world: Dictionary = s.catalog.world(str(session.level_data.get("world", "")))
-	s.audio.play_music(str(world.get("id", "menu")), str(session.level_data.get("kind", "")) == "boss")
+	_play_level_music(session.level_data)
 	(
 		s
 		. analytics
@@ -343,10 +365,35 @@ func _start_run(mode_id: StringName, level_id: String = "") -> void:
 	)
 
 
+## The level's world track; bosses and mid-world challenges use the world's
+## boss loop (a set piece sounds like one).
+func _play_level_music(data: Dictionary) -> void:
+	var world: Dictionary = s.catalog.world(str(data.get("world", "")))
+	s.audio.set_combo(0)
+	s.audio.play_music(str(world.get("id", "menu")), str(data.get("kind", "")) in ["boss", "challenge"])
+
+
 func _present_level(data: Dictionary) -> void:
-	view.apply_world(WorldTheme.from_world(s.catalog.world(str(data.get("world", "neon_core")))))
+	var world_id: String = str(data.get("world", "neon_core"))
+	if not attract and not _shown_world.is_empty() and world_id != _shown_world:
+		_world_transition()
+	_shown_world = world_id
+	view.apply_world(WorldTheme.from_world(s.catalog.world(world_id)))
 	_apply_cosmetics()
 	view.setup_level()
+
+
+## Entering a different world: the old one is gone behind ink, and the new
+## one rises out of it (calm, ART_DIRECTION §8; shorter with reduce motion).
+func _world_transition() -> void:
+	if _veil_tween != null:
+		_veil_tween.kill()
+	_veil.modulate.a = 1.0
+	_veil_tween = create_tween()
+	var seconds: float = WORLD_FADE * (0.4 if router.reduce_motion else 1.0)
+	_veil_tween.tween_property(_veil, "modulate:a", 0.0, seconds).set_trans(Tween.TRANS_CUBIC).set_ease(
+		Tween.EASE_OUT
+	)
 
 
 func _restart() -> void:
@@ -361,6 +408,7 @@ func _restart() -> void:
 		_start_run(&"boss_rush")
 		return
 	session.restart(READY_RESTART)
+	s.audio.set_combo(0)
 	view.reset_for_run(false)
 	router.show_screen(&"hud", {})
 	_go(GameStateMachine.State.COUNTDOWN)
@@ -411,10 +459,12 @@ func _on_run_ended(result: RunResult) -> void:
 	if _ending:
 		return
 	_ending = true
+	s.audio.set_combo(0)
 	if result.completed and runs.advance_rush(result):
-		# Boss rush continues straight into the next boss.
+		# Boss rush continues straight into the next boss (and its music).
 		_ending = false
 		_present_level(session.level_data)
+		_play_level_music(session.level_data)
 		session.begin(READY_FIRST)
 		return
 	if result.completed:
@@ -434,7 +484,7 @@ func _on_run_ended(result: RunResult) -> void:
 	router.clear_screen()
 	_reveals.append_array(_last_outcome.get("reveals", []) as Array)
 	if result.completed:
-		s.audio.play_stinger(&"perfect" if result.perfect else &"complete")
+		s.audio.play_stinger(&"perfect_fanfare" if result.perfect else &"level_complete")
 		_go(GameStateMachine.State.COMPLETE)
 		router.push_overlay(
 			&"complete",
@@ -460,8 +510,10 @@ func _on_run_ended(result: RunResult) -> void:
 				"can_revive": bool(_last_outcome.get("can_revive", false))
 			}
 		)
-	if not _reveals.is_empty():
-		_schedule_reveals(REVEAL_DELAY_COMPLETE if result.completed else REVEAL_DELAY_FAIL)
+	# Reveals celebrate on the result of a cleared run (or wait for the menu):
+	# nothing ever covers PLAY AGAIN after a fail.
+	if not _reveals.is_empty() and result.completed:
+		_schedule_reveals(REVEAL_DELAY_COMPLETE)
 
 
 ## Reveals wait until the result sequence (stars, count-up) has played; if the
@@ -516,8 +568,6 @@ func _revive() -> void:
 	var shown: Dictionary = await s.ads.show_rewarded(&"revive")
 	_reviving = false
 	if not bool(shown.get("granted", false)):
-		if not _reveals.is_empty() and router.top_id() == &"fail":
-			_schedule_reveals(REVEAL_DELAY_FAIL)
 		return
 	if session.revive():
 		view.on_revive()
@@ -621,13 +671,24 @@ func _on_feedback(kind: StringName, strength: float, pitch_step: int) -> void:
 		return
 	s.audio.on_feedback(kind, strength, pitch_step)
 	s.haptics.on_feedback(kind, strength, pitch_step)
+	# The intensity stem follows the live combo: it drops on a break, a hit
+	# or a miss, not only rises on combo steps.
+	s.audio.set_combo(session.sim.combo)
 	if kind == &"combo":
 		s.bus.combo_reached.emit(pitch_step)
-		s.audio.set_combo(pitch_step)
 
 
 func _apply_cosmetics() -> void:
 	view.apply_cosmetics(s.cosmetics.core_skin_params(), s.cosmetics.trail_params())
+	# Default items keep the art direction's own palette (no override).
+	view.apply_effect_cosmetics(
+		Presenters.worn(s, CosmeticCatalog.PARTICLE),
+		Presenters.worn(s, CosmeticCatalog.EFFECT),
+		Presenters.worn(s, CosmeticCatalog.BACKGROUND)
+	)
+	if UiTheme.apply_accent(Presenters.worn(s, CosmeticCatalog.THEME)):
+		# Buttons keep copies of the theme's boxes: rebuild screens on next show.
+		router.relocalize()
 
 
 func _apply_quality() -> void:

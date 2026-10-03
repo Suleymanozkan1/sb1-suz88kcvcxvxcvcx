@@ -4,6 +4,7 @@ extends TestCase
 ## headless and restart stability.
 
 const FIXED_UNIX: int = 1790000000
+const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 
 var _app: AppServices
 var _session: GameplaySession
@@ -184,8 +185,7 @@ func test_restart_is_stable_and_fast() -> void:
 
 
 func test_main_scene_boots_headless() -> void:
-	var scene: PackedScene = load("res://scenes/main.tscn") as PackedScene
-	var flow: GameFlow = scene.instantiate() as GameFlow
+	var flow: GameFlow = MAIN_SCENE.instantiate() as GameFlow
 	flow.s = _app
 	tree.root.add_child(flow)
 	await wait_frames(30)
@@ -197,8 +197,7 @@ func test_main_scene_boots_headless() -> void:
 
 
 func test_leaving_the_app_on_a_revivable_fail_applies_the_run() -> void:
-	var scene: PackedScene = load("res://scenes/main.tscn") as PackedScene
-	var flow: GameFlow = scene.instantiate() as GameFlow
+	var flow: GameFlow = MAIN_SCENE.instantiate() as GameFlow
 	flow.s = _app
 	tree.root.add_child(flow)
 	await wait_frames(3)
@@ -215,5 +214,27 @@ func test_leaving_the_app_on_a_revivable_fail_applies_the_run() -> void:
 	assert_true(flow._uncommitted == null, "applied before the OS can kill the app")
 	assert_eq(_app.stats.value(StatsService.RUNS_PLAYED), played + 1, "counted once")
 	assert_false((flow.router.screen(&"fail") as FailOverlay)._revive.visible, "revive offer withdrawn")
+	flow.queue_free()
+	await wait_frames(2)
+
+
+func test_fail_card_stays_clear_and_music_follows_the_run() -> void:
+	var flow: GameFlow = MAIN_SCENE.instantiate() as GameFlow
+	flow.s = _app
+	tree.root.add_child(flow)
+	await wait_frames(3)
+	for stinger: StringName in [&"level_complete", &"perfect_fanfare"]:
+		assert_false(_app.audio._bank.stinger(stinger).is_empty(), "stinger %s exists in the bank" % stinger)
+	flow._start_run(&"classic", "w01_l05")
+	_app.audio.set_combo(30)
+	flow._on_feedback(&"miss", 0.2, 0)
+	assert_near(_app.audio._intensity_target, 0.0, 0.0001, "combo break drops the intensity stem")
+	# A queued reveal never covers the fail card.
+	flow._reveals.append({"eyebrow": "x", "title": "y", "subtitle": "", "bundle": null})
+	flow.session.step_ticks(60 * 120)
+	await wait_frames(2)
+	await tree.create_timer(GameFlow.RESULT_DELAY + 0.2).timeout
+	assert_eq(flow.router.top_id(), &"fail", "fail card on top")
+	assert_false(flow._reveals.is_empty(), "the reveal waits for a calmer moment")
 	flow.queue_free()
 	await wait_frames(2)

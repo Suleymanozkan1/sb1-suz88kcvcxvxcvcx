@@ -27,6 +27,8 @@ const SILHOUETTE_DISTANCE: float = 150.0
 const SILHOUETTE_PARALLAX: float = 0.03
 const SILHOUETTE_MAX_APPROACH: float = 40.0
 const ATMOSPHERE_MAX_ALPHA: float = 0.08
+## Bursts whose colour and size follow the equipped particle style.
+const SKINNED_BURSTS: PackedStringArray = ["collect", "prism", "streak"]
 const FOG_BEGIN: float = 28.0
 const FOG_END: float = 115.0
 ## Juice budgets (ART_DIRECTION §9).
@@ -60,6 +62,11 @@ var reduce_motion: bool = false:
 		if camera_rig != null:
 			camera_rig.shake_scale = REDUCED_CAMERA_MOTION if value else 1.0
 var _core_skin: Dictionary = {}
+## Equipped particle / effect / background cosmetics ({} = the art direction's
+## own palette, i.e. the default item).
+var _particle_skin: Dictionary = {}
+var _effect_skin: Dictionary = {}
+var _sky_skin: Dictionary = {}
 var _trail_skin: Dictionary = {}
 var _trail_head: Color = Palette.PRIMARY
 var _trail_tail: Color = Palette.PRIMARY.darkened(0.5)
@@ -91,6 +98,7 @@ var _built: bool = false
 var _turbine_angle: float = 0.0
 var _particle_scale: float = 1.0
 var _colorblind: bool = false
+var _finish_open: float = 0.0
 var _glow: bool = true
 var _ambient: bool = true
 
@@ -214,6 +222,7 @@ func apply_world(world_theme: WorldTheme) -> void:
 	_finish_membrane.position = Vector3(0.0, ViewKit.ARCH_HEIGHT * 0.68, 0.0)
 	_finish_membrane.scale = Vector3(1.0, 1.4, 1.0)
 	_setup_atmosphere()
+	_apply_sky_skin()
 	core_view.set_high_key(theme.bright)
 	_apply_core_skin_defaults()
 
@@ -278,6 +287,42 @@ func apply_cosmetics(core_skin: Dictionary, trail_skin: Dictionary) -> void:
 	_trail_tail = trail_skin.get("tail", Palette.PRIMARY.darkened(0.5)) as Color
 
 
+## Particle, effect and background cosmetics. Gameplay meaning stays with the
+## palette roles: phase-coloured sparks keep their phase colour, hazards and
+## the core are untouched; only celebration colours, sizes and the sky change.
+func apply_effect_cosmetics(particle: Dictionary, effect: Dictionary, background: Dictionary) -> void:
+	_ensure_built()
+	_particle_skin = particle
+	_effect_skin = effect
+	_sky_skin = background
+	bursts.set_size_scale(SKINNED_BURSTS, float(particle.get("size_mult", 1.0)))
+	if theme != null:
+		_apply_sky_skin()
+
+
+## Colour [param slot] of the equipped particle style, or [param fallback].
+func _particle_color(slot: int, fallback: Color) -> Color:
+	var colors: Array = _particle_skin.get("colors", []) as Array
+	if colors.is_empty():
+		return fallback
+	var c: Variant = colors[slot % colors.size()]
+	return c as Color if typeof(c) == TYPE_COLOR else fallback
+
+
+func _effect_color(key: String, fallback: Color) -> Color:
+	var c: Variant = _effect_skin.get(key, null)
+	return c as Color if typeof(c) == TYPE_COLOR else fallback
+
+
+## A non-world background replaces the sky gradient and its star density.
+func _apply_sky_skin() -> void:
+	if _sky_skin.is_empty() or bool(_sky_skin.get("use_world_palette", true)):
+		return
+	_sky_mat.set_shader_parameter("sky_top", _sky_skin.get("sky_top", theme.sky_top))
+	_sky_mat.set_shader_parameter("sky_bottom", _sky_skin.get("sky_bottom", theme.sky_bottom))
+	_sky_mat.set_shader_parameter("star_density", clampf(float(_sky_skin.get("star_density", 0.0)), 0.0, 1.0))
+
+
 ## Builds visuals for the session's current level.
 func setup_level() -> void:
 	_ensure_built()
@@ -304,6 +349,7 @@ func reset_for_run(full_reveal: bool) -> void:
 	_tint = 0.0
 	_slowmo_left = 0.0
 	_end_slow = false
+	_finish_open = 0.0
 	bursts.stop_all()
 	_update_frame(0.0)
 
@@ -439,6 +485,14 @@ func _update_frame(delta: float) -> void:
 		_silhouette.transform.basis = Basis(Vector3.BACK, _turbine_angle)
 		_silhouette.position += Vector3(0.0, 30.0, 0.0) - _silhouette.transform.basis * Vector3(0.0, 30.0, 0.0)
 	_atmosphere.position = Vector3(0.0, 1.6, -d - 14.0)
+	if _finish.visible:
+		# The finish membrane opens as the core reaches it and is gone once the
+		# run is complete (like every gate), so it never fills the backdrop of
+		# the result screen.
+		if sim.status == SimConst.Status.COMPLETED:
+			_finish_open = move_toward(_finish_open, 1.0, delta * 3.0)
+		var through: float = maxf(_finish_open, clampf((d - lvl.length + 0.3) / 1.2, 0.0, 1.0))
+		_finish_membrane.set_instance_shader_parameter("visibility", 1.0 - through)
 	_spawn_entities(lvl, d)
 	for idx: Variant in _active.keys():
 		var i: int = int(idx)
@@ -451,6 +505,7 @@ func _update_frame(delta: float) -> void:
 		view.animate(delta, lvl, t, d)
 	sparks.apply_magnet(core_pos, lvl, sim.cursor, sim.magnet_timer > 0.0 or sim.overdrive_timer > 0.0, sim.phase)
 	_music_pulse = move_toward(_music_pulse, 0.0, delta * 3.0)
+	_floor_mat.set_shader_parameter("beat", 0.0 if reduce_motion else _music_pulse)
 
 
 func _is_pickup(type: int) -> bool:
@@ -585,7 +640,8 @@ func slow_motion(scale_value: float, seconds: float) -> void:
 
 
 func shockwave(strength: float) -> void:
-	_shock = maxf(_shock, strength * (0.5 if reduce_motion else 1.0))
+	var style: float = clampf(float(_effect_skin.get("shockwave", 1.0)), 0.0, 2.0)
+	_shock = maxf(_shock, strength * style * (0.5 if reduce_motion else 1.0))
 	_shock_radius = 0.0
 
 
@@ -637,13 +693,17 @@ func _handle_event(type: int, ent: int, value: int) -> void:
 			var pos: Vector3 = sparks.position_of(ent)
 			sparks.hide_entity(ent)
 			var col: Color = sparks.color_of(ent, session.sim_level)
+			if session.sim_level.e_color[ent] < 0:
+				# Neutral sparks and prisms take the equipped particle colours;
+				# phase-coloured sparks keep their phase (it is information).
+				col = _particle_color(0 if type == SimConst.EventType.SPARK else 1, col)
 			bursts.emit("collect" if type == SimConst.EventType.SPARK else "prism", pos, col)
 			core_view.punch(0.08 if type == SimConst.EventType.SPARK else 0.2)
 			feedback.emit(&"collect" if type == SimConst.EventType.SPARK else &"prism", 0.3, sim.combo)
 		SimConst.EventType.SPARK_MISSED:
 			feedback.emit(&"miss", 0.2, 0)
 		SimConst.EventType.NEAR_MISS:
-			bursts.emit("streak", _entity_pos(ent), Palette.BONE)
+			bursts.emit("streak", _entity_pos(ent), _particle_color(2, Palette.BONE))
 			if sim.combo >= NEAR_MISS_SLOWMO_COMBO:
 				slow_motion(0.75, 0.08)
 			feedback.emit(&"near_miss", 0.5, sim.combo)
@@ -670,7 +730,7 @@ func _handle_event(type: int, ent: int, value: int) -> void:
 			hit_stop(0.09)
 			camera_rig.add_trauma(SHAKE_FAIL)
 			_chroma = 0.8
-			edge_tint(Palette.FAILURE, 0.55)
+			edge_tint(_effect_color("fail_color", Palette.FAILURE), 0.55)
 			core_view.implode()
 			bursts.emit_delayed("fail", core, Palette.form_color(sim.form, sim.phase, sim.heavy), 0.06)
 			feedback.emit(&"fail", 1.0, 0)
@@ -679,9 +739,10 @@ func _handle_event(type: int, ent: int, value: int) -> void:
 			session.time_scale = 0.4
 			var perfect: bool = sim.damage == 0 and sim.sparks >= session.sim_level.spark_total
 			if perfect:
-				bursts.emit("perfect", core + Vector3(0, 0.2, -0.6), Palette.ACCENT)
+				var perfect_col: Color = _effect_color("perfect_color", Palette.ACCENT)
+				bursts.emit("perfect", core + Vector3(0, 0.2, -0.6), perfect_col)
 				shockwave(0.6)
-				edge_tint(Palette.ACCENT, 0.25)
+				edge_tint(perfect_col, 0.25)
 			feedback.emit(&"perfect" if perfect else &"complete", 1.0, 0)
 		SimConst.EventType.FORM_CHANGE:
 			core_view.morph()
