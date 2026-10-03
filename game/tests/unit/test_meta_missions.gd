@@ -107,6 +107,22 @@ func test_mission_progressed_emitted_on_stat_change() -> void:
 	assert_eq(int(events[0]["target"]), 5)
 	_bus.stat_changed.emit(&"taps", 9)
 	assert_eq(events.size(), 1, "unrelated stats do not announce")
+	_bus.stat_changed.emit(&"runs_played", 2)
+	assert_eq(events.size(), 1, "unchanged progress is not announced again")
+
+
+func test_combo_progress_announced_only_when_it_changes() -> void:
+	var events: Array[int] = []
+	_bus.mission_progressed.connect(func(_id: String, progress: int, _target: int) -> void: events.append(progress))
+	var service: MissionService = _missions(_single_config(MissionService.STAT_BEST_COMBO_TODAY, 10))
+	service.on_combo(5)
+	service.on_combo(4)
+	service.on_combo(5)
+	assert_eq(events, [5] as Array[int], "no event without a new best")
+	for combo: int in range(6, 30):
+		service.on_combo(combo)
+	assert_eq(events.size(), 6, "6..10 announced, nothing after the mission is complete")
+	assert_eq(events[events.size() - 1], 10)
 
 
 func test_corrupted_state_recovers() -> void:
@@ -117,6 +133,25 @@ func test_corrupted_state_recovers() -> void:
 	assert_eq(service.active("weekly").size(), 1)
 	assert_eq(int(service.active("weekly")[0]["target"]), 30)
 	assert_empty(service.active("monthly"), "unknown kind")
+	# A slice replaced after construction is checked again, not trusted.
+	_profile.missions["daily"] = {"key": _clock.date_key(), "missions": [{"id": 5}]}
+	var daily: Array[Dictionary] = service.active("daily")
+	assert_eq(daily.size(), 1, "replaced garbage slice reassigned")
+	assert_eq(int(daily[0]["target"]), 5)
+
+
+func test_tampered_stored_reward_is_never_paid() -> void:
+	var service: MissionService = _missions(_single_config("runs_played", 1))
+	var slice: Dictionary = (_profile.missions["daily"] as Dictionary).duplicate(true)
+	var record: Dictionary = (slice["missions"] as Array)[0]
+	record["reward"] = {"coins": "lots", "gems": -50}
+	_profile.missions["daily"] = slice
+	var m: Dictionary = service.active("daily")[0]
+	assert_eq(int((m["reward"] as Dictionary)["coins"]), 100, "reward restored from the template")
+	assert_false((m["reward"] as Dictionary).has("gems"))
+	_profile.stats["runs_played"] = 1
+	assert_false(service.claim(str(m["id"])).is_empty())
+	assert_eq(int((_rewards.calls[0]["spec"] as Dictionary)["coins"]), 100)
 
 
 func test_claim_history_prevents_double_payout_after_clock_rollback() -> void:
@@ -167,3 +202,10 @@ func test_state_survives_profile_round_trip() -> void:
 	assert_eq(str(after["id"]), str(before["id"]))
 	assert_eq(int(after["progress"]), 3, "baseline preserved, no reassignment")
 	assert_eq(int((restored.missions["daily"] as Dictionary)["best_combo"]), 9)
+	var reward: Dictionary = after["reward"]
+	assert_eq(typeof(reward["coins"]), TYPE_INT, "amounts stay whole numbers after a JSON round trip")
+	restored.stats["runs_played"] = 8
+	assert_false(again.claim(str(after["id"])).is_empty())
+	var spec: Dictionary = _rewards.calls[_rewards.calls.size() - 1]["spec"]
+	assert_eq(typeof(spec["coins"]), TYPE_INT, "granted spec uses int amounts")
+	assert_eq(int(spec["coins"]), 100)

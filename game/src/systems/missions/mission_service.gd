@@ -15,9 +15,11 @@ extends RefCounted
 ##
 ## Fair by design: unfinished missions simply expire at the reset (no penalty,
 ## nothing is taken away), [method time_left_seconds] reports the real reset
-## time, and templates with a [code]requires[/code] gate are only offered once
-## the player has reached the content they need. The service owns only
-## [member PlayerProfile.missions].
+## time, templates with a [code]requires[/code] gate are only offered once
+## the player has reached the content they need, and a template with a
+## [code]daily_cap[/code] (the most its stat can grow per UTC day, e.g. one
+## daily challenge) never gets a target that the days left in the period
+## cannot reach. The service owns only [member PlayerProfile.missions].
 
 const DEFAULT_PATH: String = "res://data/missions/missions.json"
 const LOG_CHANNEL: String = "missions"
@@ -43,6 +45,8 @@ const DEFAULT_SCALED_KEYS: PackedStringArray = ["coins", "xp"]
 ## clock change) can never pay the same mission twice.
 const CLAIM_HISTORY_LIMIT: int = 32
 const HISTORY_KEY: String = "claimed_ids"
+## Reach limit of a template without a daily cap (any target is reachable).
+const UNBOUNDED_REACH: int = 1 << 62
 
 var _profile: PlayerProfile
 var _bus: EventBus
@@ -55,6 +59,17 @@ var _counts: Dictionary = {}
 var _templates: Dictionary = {}
 var _reward_step: float = DEFAULT_REWARD_STEP
 var _scaled_keys: PackedStringArray = DEFAULT_SCALED_KEYS
+## UTC day number the cached period keys belong to (-1 before the first use).
+## Keys are recomputed only when the day changes, so the per-combo hot path
+## ([method on_combo]) does not build date strings on every call.
+var _key_day: int = -1
+var _date_key: String = ""
+var _week_key: String = ""
+## kind -> the stored slice that last passed validation, compared by
+## identity: a replaced or reloaded slice is validated again.
+var _checked_slices: Dictionary = {}
+## mission id -> progress last sent with mission_progressed (no repeats).
+var _announced: Dictionary = {}
 
 
 ## [param reward_grant] has the signature
@@ -93,12 +108,17 @@ func refresh() -> bool:
 		var key: String = period_key(kind)
 		var stored: Variant = _profile.missions.get(kind, null)
 		var same_period: bool = typeof(stored) == TYPE_DICTIONARY and str((stored as Dictionary).get("key", "")) == key
-		if same_period and _slice_valid(stored as Dictionary):
-			continue
 		if same_period:
+			if is_same(stored, _checked_slices.get(kind)) or _slice_valid(stored as Dictionary):
+				_checked_slices[kind] = stored
+				continue
 			GameLog.warn(LOG_CHANNEL, "stored %s missions were unreadable; reassigned" % kind)
-		_profile.missions[kind] = _assign(kind, key)
+		var slice: Dictionary = _assign(kind, key, _key_day)
+		_profile.missions[kind] = slice
+		_checked_slices[kind] = slice
 		changed = true
+	if changed:
+		_announced.clear()
 	return changed
 
 
@@ -134,7 +154,7 @@ func claim(mission_id: String) -> RewardBundle:
 	_remember_claim(mission_id)
 	var granted: Variant = null
 	if _reward_grant.is_valid():
-		granted = _reward_grant.call((record["reward"] as Dictionary).duplicate(), REWARD_SOURCE_PREFIX + mission_id)
+		granted = _reward_grant.call(_int_amounts(record["reward"] as Dictionary), REWARD_SOURCE_PREFIX + mission_id)
 	else:
 		GameLog.error(LOG_CHANNEL, "no reward handler; reward for %s not granted" % mission_id)
 	_bus.mission_completed.emit(mission_id)
@@ -160,14 +180,15 @@ func on_combo(combo: int) -> void:
 ## Seconds until the missions of [param kind] reset (next UTC midnight, or
 ## next Monday 00:00 UTC for weekly). Matches [method refresh] exactly.
 func time_left_seconds(kind: String) -> int:
+	# One clock read: the day is derived from the same instant, so a reset that
+	# happens between two reads can never produce a countdown a week too long.
 	var now: int = _clock.now_unix()
+	var into_day: int = posmod(now, SECONDS_PER_DAY)
 	if kind == KIND_DAILY:
-		return SECONDS_PER_DAY - posmod(now, SECONDS_PER_DAY)
+		return SECONDS_PER_DAY - into_day
 	if kind == KIND_WEEKLY:
-		var day: int = _clock.day_number()
-		var weekday: int = posmod(day + EPOCH_WEEKDAY_OFFSET, DAYS_PER_WEEK)
-		var next_monday: int = day - weekday + DAYS_PER_WEEK
-		return next_monday * SECONDS_PER_DAY - now
+		var day: int = (now - into_day) / SECONDS_PER_DAY
+		return _days_left(KIND_WEEKLY, day) * SECONDS_PER_DAY - into_day
 	GameLog.warn(LOG_CHANNEL, "unknown mission kind '%s'" % kind)
 	return 0
 
@@ -175,10 +196,11 @@ func time_left_seconds(kind: String) -> int:
 ## The period identifier missions of [param kind] are assigned for:
 ## "YYYY-MM-DD" for daily, "YYYY-Www" for weekly ("" for unknown kinds).
 func period_key(kind: String) -> String:
+	_update_period_keys()
 	if kind == KIND_DAILY:
-		return _clock.date_key()
+		return _date_key
 	if kind == KIND_WEEKLY:
-		return _clock.week_key()
+		return _week_key
 	return ""
 
 
@@ -274,10 +296,6 @@ func _sanitize_template(raw: Variant, kind: String) -> Dictionary:
 	var targets: Array[int] = []
 	for v: Variant in t["targets"] as Array:
 		targets.append(int(v))
-	var reward: Dictionary = (t["reward"] as Dictionary).duplicate()
-	for key: String in AchievementService.REWARD_AMOUNT_KEYS:
-		if reward.has(key):
-			reward[key] = int(reward[key])
 	var requires: Dictionary = {}
 	if t.has("requires"):
 		var req: Dictionary = t["requires"]
@@ -288,8 +306,9 @@ func _sanitize_template(raw: Variant, kind: String) -> Dictionary:
 		"desc_key": str(t.get("desc_key", "mis.%s.desc" % id)),
 		"stat": str(t["stat"]),
 		"targets": targets,
-		"reward": reward,
+		"reward": _int_amounts(t["reward"] as Dictionary),
 		"requires": requires,
+		"daily_cap": int(t.get("daily_cap", 0)),
 	}
 
 
@@ -336,11 +355,14 @@ func _template_problems(raw: Variant, kind: String, known_stats: PackedStringArr
 			problems.append("requires must be {\"stat\": String, \"min\": int}")
 		elif not known_stats.is_empty() and not known_stats.has(str((req as Dictionary)["stat"])):
 			problems.append("unknown stat '%s' in requires" % str((req as Dictionary)["stat"]))
+	if t.has("daily_cap") and (not _is_integral(t["daily_cap"]) or int(t["daily_cap"]) <= 0):
+		problems.append("daily_cap must be a positive integer")
 	return problems
 
 
-func _assign(kind: String, key: String) -> Dictionary:
-	var eligible: Array[Dictionary] = _eligible(kind)
+func _assign(kind: String, key: String, day: int) -> Dictionary:
+	var days_left: int = _days_left(kind, day)
+	var eligible: Array[Dictionary] = _eligible(kind, days_left)
 	var count: int = mini(int(_counts[kind]), eligible.size())
 	var rng: DetRng = DetRng.new(DetRng.hash_string(SEED_PREFIX + kind + ":" + key))
 	var order: Array[int] = []
@@ -362,7 +384,8 @@ func _assign(kind: String, key: String) -> Dictionary:
 	for i: int in picked:
 		var t: Dictionary = eligible[i]
 		var targets: Array[int] = t["targets"]
-		var target_index: int = rng.range_int(0, targets.size() - 1)
+		var rolled: int = rng.range_int(0, targets.size() - 1)
+		var target_index: int = _reachable_index(targets, rolled, _reach_limit(t, days_left))
 		var stat_name: String = t["stat"]
 		var id: String = "%s:%s:%s" % [kind, key, t["id"]]
 		records.append(
@@ -381,13 +404,55 @@ func _assign(kind: String, key: String) -> Dictionary:
 	return {"key": key, "assigned_at": _clock.now_unix(), "best_combo": 0, "missions": records}
 
 
-func _eligible(kind: String) -> Array[Dictionary]:
+## Templates the player can be offered now: content gate passed and at least
+## one target reachable in [param days_left] days.
+func _eligible(kind: String, days_left: int) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for t: Dictionary in _templates.get(kind, []) as Array:
 		var req: Dictionary = t["requires"]
-		if req.is_empty() or _profile.stat(str(req["stat"])) >= int(req["min"]):
-			out.append(t)
+		if not req.is_empty() and _profile.stat(str(req["stat"])) < int(req["min"]):
+			continue
+		var targets: Array[int] = t["targets"]
+		if _reachable_index(targets, -1, _reach_limit(t, days_left)) < 0:
+			continue
+		out.append(t)
 	return out
+
+
+## Highest stat gain a template's mission can see in [param days_left] days
+## (unbounded without a [code]daily_cap[/code]).
+static func _reach_limit(template: Dictionary, days_left: int) -> int:
+	var cap: int = int(template.get("daily_cap", 0))
+	return cap * days_left if cap > 0 else UNBOUNDED_REACH
+
+
+## [param rolled] when its target is reachable within [param limit]; otherwise
+## the index of the largest reachable target, or -1 when none is reachable.
+static func _reachable_index(targets: Array[int], rolled: int, limit: int) -> int:
+	if rolled >= 0 and rolled < targets.size() and targets[rolled] <= limit:
+		return rolled
+	var best: int = -1
+	for i: int in targets.size():
+		if targets[i] <= limit and (best < 0 or targets[i] > targets[best]):
+			best = i
+	return best
+
+
+## UTC days left in the period of [param kind] that contains [param day],
+## today included: 1 for daily; 7 on Monday down to 1 on Sunday for weekly.
+static func _days_left(kind: String, day: int) -> int:
+	if kind != KIND_WEEKLY:
+		return 1
+	return DAYS_PER_WEEK - posmod(day + EPOCH_WEEKDAY_OFFSET, DAYS_PER_WEEK)
+
+
+func _update_period_keys() -> void:
+	var day: int = _clock.day_number()
+	if day == _key_day:
+		return
+	_key_day = day
+	_date_key = GameClock.date_key_for_day(day)
+	_week_key = GameClock.week_key_for_day(day)
 
 
 func _scaled_reward(reward: Dictionary, target_index: int) -> Dictionary:
@@ -425,7 +490,7 @@ func _view(kind: String, record: Dictionary) -> Dictionary:
 		"progress": progress,
 		"complete": progress >= target,
 		"claimed": bool(record["claimed"]),
-		"reward": (record["reward"] as Dictionary).duplicate(),
+		"reward": _int_amounts(record["reward"] as Dictionary),
 	}
 
 
@@ -445,12 +510,21 @@ func _locate(mission_id: String) -> Dictionary:
 	return {}
 
 
-## Emits mission_progressed for every unclaimed current mission on [param stat_name].
+## Emits mission_progressed for every unclaimed current mission on
+## [param stat_name] whose progress differs from the last value sent, so a
+## finished mission is not re-announced on every later combo or stat change.
 func _announce(stat_name: String) -> void:
 	for kind: String in KINDS:
-		for record: Dictionary in _records(kind):
-			if str(record["stat"]) == stat_name and not bool(record["claimed"]):
-				_bus.mission_progressed.emit(str(record["id"]), _progress(record), int(record["target"]))
+		for raw: Variant in (_profile.missions[kind] as Dictionary)["missions"] as Array:
+			var record: Dictionary = raw as Dictionary
+			if str(record["stat"]) != stat_name or bool(record["claimed"]):
+				continue
+			var id: String = str(record["id"])
+			var progress: int = _progress(record)
+			if int(_announced.get(id, -1)) == progress:
+				continue
+			_announced[id] = progress
+			_bus.mission_progressed.emit(id, progress, int(record["target"]))
 
 
 func _claim_history() -> Array:
@@ -466,6 +540,8 @@ func _remember_claim(mission_id: String) -> void:
 	_profile.missions[HISTORY_KEY] = history
 
 
+## True when a stored slice can be used as is. Rewards are checked too: the
+## stored spec is what [method claim] pays, so a damaged one is never granted.
 func _slice_valid(slice: Dictionary) -> bool:
 	if not _is_integral(slice.get("best_combo", 0)):
 		return false
@@ -480,10 +556,11 @@ func _slice_valid(slice: Dictionary) -> bool:
 			typeof(r.get("id", null)) == TYPE_STRING
 			and typeof(r.get("stat", null)) == TYPE_STRING
 			and typeof(r.get("claimed", null)) == TYPE_BOOL
-			and typeof(r.get("reward", null)) == TYPE_DICTIONARY
 			and _is_integral(r.get("target", null))
 			and int(r.get("target", 0)) > 0
 			and _is_integral(r.get("baseline", null))
+			and int(r.get("baseline", 0)) >= 0
+			and AchievementService.validate_reward(r.get("reward", null)).is_empty()
 		)
 		if not shaped:
 			return false
@@ -516,3 +593,13 @@ static func _is_integral(v: Variant) -> bool:
 		var f: float = v
 		return is_finite(f) and f == floorf(f)
 	return false
+
+
+## Copy of a reward spec with whole-number amounts as ints (a JSON round trip
+## turns them into floats, which the UI would otherwise show as "75.0").
+static func _int_amounts(reward: Dictionary) -> Dictionary:
+	var out: Dictionary = reward.duplicate()
+	for key: String in AchievementService.REWARD_AMOUNT_KEYS:
+		if out.has(key):
+			out[key] = int(out[key])
+	return out
