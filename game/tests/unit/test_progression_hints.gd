@@ -102,3 +102,18 @@ func test_max_level_everything_done() -> void:
 	assert_eq(hint["type"], "player_level")
 	assert_eq(hint["label_key"], ProgressionService.HINT_KEY_COMPLETE)
 	assert_eq(int(hint["progress"]), int(hint["target"]))
+
+
+func test_world_hint_never_overshoots_its_target() -> void:
+	_clear_direct(1, 1, 52, 1)
+	var svc: ProgressionService = _service()
+	assert_eq(svc.next_unlock_hint()["type"], "world")
+	# Stars that arrive without a refresh (e.g. a merged cloud save) must not
+	# produce a "156 / 90 stars" goal.
+	_clear_direct(1, 1, 52, 3)
+	var hint: Dictionary = svc.next_unlock_hint()
+	_assert_shape(hint)
+	assert_eq(svc.refresh_world_unlocks().size(), 1, "the refresh opens the world")
+	var after: Dictionary = svc.next_unlock_hint()
+	_assert_shape(after)
+	assert_eq(after["id"], "w02_l01", "then the hint moves into the new world")

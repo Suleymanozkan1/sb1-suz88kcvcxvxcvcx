@@ -104,21 +104,27 @@ static func is_known(stat: String) -> bool:
 
 
 ## Builds the [method record_run] context from a level file and the outcome of
-## [method ProgressionService.record_level_result].
+## [method ProgressionService.record_level_result]. Wrongly typed values fall
+## back to defaults (normal kind, false flags, no design duration).
 static func build_context(result: RunResult, level_meta: Dictionary, outcome: Dictionary) -> Dictionary:
 	var mode: StringName = result.mode if result != null else MODE_CLASSIC
 	return {
-		"kind": str(level_meta.get("kind", KIND_NORMAL)),
-		"first_clear": bool(outcome.get("first_clear", false)),
-		"first_perfect": bool(outcome.get("first_perfect", false)),
-		"design_duration": float(level_meta.get("duration", 0.0)),
+		"kind": _text(level_meta.get("kind", KIND_NORMAL), KIND_NORMAL),
+		"first_clear": _flag(outcome.get("first_clear", false)),
+		"first_perfect": _flag(outcome.get("first_perfect", false)),
+		"design_duration": _duration(level_meta.get("duration", 0.0)),
 		"mode": mode,
 	}
 
 
-## Current value of [param stat] (0 when never recorded).
+## Current value of [param stat] (0 when never recorded or not a number).
 func value(stat: String) -> int:
-	return clampi(_profile.stat(stat), 0, MAX_VALUE)
+	var raw: Variant = _profile.stats.get(stat, 0)
+	if typeof(raw) == TYPE_INT:
+		return clampi(raw as int, 0, MAX_VALUE)
+	if typeof(raw) == TYPE_FLOAT and is_finite(raw as float):
+		return int(clampf(raw as float, 0.0, float(MAX_VALUE)))
+	return 0
 
 
 ## Adds a non-negative [param amount]; returns the new value. Negative amounts
@@ -164,7 +170,7 @@ func record_run(result: RunResult, ctx: Dictionary = {}) -> void:
 	if result == null:
 		GameLog.warn("stats", "record_run called without a result")
 		return
-	var mode: StringName = StringName(str(ctx.get("mode", result.mode)))
+	var mode: StringName = StringName(_text(ctx.get("mode", result.mode), str(result.mode)))
 	add(RUNS_PLAYED)
 	_record_run_counters(result)
 	if result.revived:
@@ -172,7 +178,7 @@ func record_run(result: RunResult, ctx: Dictionary = {}) -> void:
 	if mode == MODE_ZEN:
 		add(ZEN_RUNS)
 	elif mode == MODE_ENDLESS:
-		set_max(ENDLESS_BEST_DISTANCE, floori(maxf(result.distance, 0.0)))
+		set_max(ENDLESS_BEST_DISTANCE, floori(_measure(result.distance)))
 	if not result.completed:
 		if mode != MODE_ENDLESS and mode != MODE_ZEN:
 			add(RUNS_FAILED)
@@ -191,9 +197,11 @@ func record_daily(first_completion: bool, streak: int) -> void:
 
 
 ## True when a completed run took at most [member fast_clear_ratio] of the
-## level's design duration.
+## level's design duration (both must be positive and finite).
 func is_fast_clear(result: RunResult, design_duration: float) -> bool:
-	if result == null or not result.completed or design_duration <= 0.0 or result.time_seconds <= 0.0:
+	if result == null or not result.completed:
+		return false
+	if _measure(design_duration) <= 0.0 or _measure(result.time_seconds) <= 0.0:
 		return false
 	return result.time_seconds <= design_duration * fast_clear_ratio
 
@@ -223,7 +231,7 @@ func snapshot() -> Dictionary:
 
 func _record_run_counters(result: RunResult) -> void:
 	add(TAPS, maxi(result.taps, 0))
-	add(TIME_PLAYED_SECONDS, maxi(roundi(result.time_seconds), 0))
+	add(TIME_PLAYED_SECONDS, roundi(_measure(result.time_seconds)))
 	add(SPARKS_COLLECTED, maxi(result.sparks, 0))
 	add(PRISMS_COLLECTED, maxi(result.prisms, 0))
 	add(NEAR_MISSES, maxi(result.near_misses, 0))
@@ -239,20 +247,20 @@ func _record_run_counters(result: RunResult) -> void:
 
 func _record_clear(result: RunResult, ctx: Dictionary) -> void:
 	add(LEVELS_CLEARED)
-	if bool(ctx.get("first_clear", false)):
+	if _flag(ctx.get("first_clear", false)):
 		add(UNIQUE_LEVELS_CLEARED)
 	if result.perfect:
 		add(PERFECTS)
-	if bool(ctx.get("first_perfect", false)):
+	if _flag(ctx.get("first_perfect", false)):
 		add(UNIQUE_PERFECTS)
 	if result.damage == 0:
 		add(DAMAGE_FREE_CLEARS)
-	var kind: String = str(ctx.get("kind", KIND_NORMAL))
+	var kind: String = _text(ctx.get("kind", KIND_NORMAL), KIND_NORMAL)
 	if kind == KIND_BOSS:
 		add(BOSSES_CLEARED)
 	elif kind == KIND_CHALLENGE:
 		add(CHALLENGES_CLEARED)
-	var duration: float = float(ctx.get("design_duration", ctx.get("duration", 0.0)))
+	var duration: float = _duration(ctx.get("design_duration", ctx.get("duration", 0.0)))
 	if is_fast_clear(result, duration):
 		add(FAST_CLEARS)
 
@@ -263,7 +271,8 @@ func _on_currency_changed(currency: StringName, _balance: int, delta: int) -> vo
 
 
 func _store(stat: String, new_value: int) -> int:
-	if _profile.stats.has(stat) and int(_profile.stats[stat]) == new_value:
+	var stored: Variant = _profile.stats.get(stat)
+	if typeof(stored) == TYPE_INT and (stored as int) == new_value:
 		return new_value
 	_profile.stats[stat] = new_value
 	if _bus != null:
@@ -289,7 +298,39 @@ static func _read_fast_clear_ratio(config: Dictionary) -> float:
 		GameLog.warn("stats", "fast_clear_ratio is not a number; using %.2f" % DEFAULT_FAST_CLEAR_RATIO)
 		return DEFAULT_FAST_CLEAR_RATIO
 	var ratio: float = float(raw)
-	if ratio < FAST_CLEAR_RATIO_MIN or ratio > FAST_CLEAR_RATIO_MAX:
+	if is_nan(ratio) or ratio < FAST_CLEAR_RATIO_MIN or ratio > FAST_CLEAR_RATIO_MAX:
 		GameLog.warn("stats", "fast_clear_ratio %.3f out of range; using %.2f" % [ratio, DEFAULT_FAST_CLEAR_RATIO])
 		return DEFAULT_FAST_CLEAR_RATIO
 	return ratio
+
+
+## A finite, non-negative measurement (time, distance) capped at
+## [constant MAX_VALUE]; NaN/INF read as 0 so platform-specific float -> int
+## conversions can never inflate a stat.
+static func _measure(v: float) -> float:
+	if not is_finite(v) or v <= 0.0:
+		return 0.0
+	return minf(v, float(MAX_VALUE))
+
+
+## Design duration from untrusted context/level data (0 = unknown).
+static func _duration(v: Variant) -> float:
+	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
+		return _measure(float(v))
+	return 0.0
+
+
+## Only real booleans (or non-zero numbers) count as true.
+static func _flag(v: Variant) -> bool:
+	if typeof(v) == TYPE_BOOL:
+		return v as bool
+	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
+		return float(v) != 0.0
+	return false
+
+
+## Text from a String/StringName, else [param fallback].
+static func _text(v: Variant, fallback: String) -> String:
+	if typeof(v) == TYPE_STRING or typeof(v) == TYPE_STRING_NAME:
+		return str(v)
+	return fallback

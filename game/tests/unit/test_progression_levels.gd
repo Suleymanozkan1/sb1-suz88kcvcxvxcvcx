@@ -224,3 +224,42 @@ func test_progress_survives_save_round_trip() -> void:
 	assert_eq(svc2.total_stars(), 5)
 	assert_true(svc2.is_level_unlocked("w01_l03"))
 	assert_eq(svc2.next_level_to_play(), "w01_l03")
+
+
+func test_level_in_locked_world_is_rejected() -> void:
+	_clear_direct(1, 1, 52, 1)
+	svc = ProgressionService.new(profile, bus, catalog)
+	assert_false(svc.is_world_unlocked("crystal_valley"), "52 stars < 90: world 2 locked")
+	var out: Dictionary = svc.record_level_result(_run("w02_l01", true, 3))
+	assert_false(bool(out["accepted"]), "a level of a locked world cannot be recorded")
+	assert_false(profile.levels.has("w02_l01"))
+	assert_eq(svc.total_stars(), 52, "no stars from a locked world")
+
+
+func test_non_finite_times_never_become_best_time() -> void:
+	svc.record_level_result(_run("w01_l01", true, 1, 100, INF))
+	assert_near(float(profile.level_result("w01_l01")["best_time"]), 0.0, 0.0001, "infinite time ignored")
+	svc.record_level_result(_run("w01_l01", true, 1, 100, NAN))
+	assert_near(float(profile.level_result("w01_l01")["best_time"]), 0.0, 0.0001, "NaN time ignored")
+	svc.record_level_result(_run("w01_l01", true, 1, 100, 12.5))
+	assert_near(float(profile.level_result("w01_l01")["best_time"]), 12.5, 0.0001, "finite time recorded")
+	assert_eq(int(profile.level_result("w01_l01")["clears"]), 3, "every completed run still counts")
+
+
+func test_wrongly_typed_record_fields_do_not_break_recording() -> void:
+	profile.levels["w01_l01"] = {"stars": null, "perfect": "yes", "clears": null, "attempts": [3], "best_time": "x"}
+	profile.levels["w01_l02"] = 7
+	# Statement calls on purpose: a script error inside the service must show
+	# up as a failed state assertion below instead of silently ending the test.
+	svc.record_level_result(_run("w01_l01", true, 2, 300, 20.0))
+	# Raw values compared without conversions (int(null) would itself error).
+	var rec: Dictionary = profile.level_result("w01_l01")
+	assert_eq(rec.get("clears"), 1, "record updated despite bad fields")
+	assert_eq(rec.get("attempts"), 1, "non-numeric attempts treated as 0")
+	assert_eq(rec.get("perfect"), false, "a non-bool perfect flag is repaired to false")
+	assert_eq(rec.get("stars"), 2)
+	assert_true(svc.is_level_unlocked("w01_l02"), "next level unlocked")
+	svc.record_level_result(_run("w01_l02", true, 1))
+	var raw: Variant = profile.levels.get("w01_l02")
+	assert_eq(typeof(raw), TYPE_DICTIONARY, "a non-dictionary record is replaced")
+	assert_eq(svc.total_stars(), 3)
