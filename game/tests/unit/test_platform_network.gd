@@ -39,6 +39,49 @@ func _listen(server: TCPServer) -> int:
 	return -1
 
 
+## True once [param text] holds the request head and its whole body.
+static func _request_complete(text: String) -> bool:
+	var head_end: int = text.find("\r\n\r\n")
+	if head_end < 0:
+		return false
+	var length: int = 0
+	for line: String in text.substr(0, head_end).split("\r\n"):
+		if line.to_lower().begins_with("content-length:"):
+			length = line.get_slice(":", 1).strip_edges().to_int()
+	return text.to_utf8_buffer().size() - (head_end + 4) >= length
+
+
+## Runs [param send] (a no-argument coroutine returning the transport result)
+## against [param server], answering the first request with [param reply].
+## Returns {"result"?: Dictionary, "request": String, "frames": int}.
+func _exchange(server: TCPServer, send: Callable, reply: String) -> Dictionary:
+	# Earlier suites may block the main loop for seconds; let that huge frame
+	# delta pass so HTTPRequest's internal timeout timer starts fresh.
+	await wait_frames(2)
+	var out: Dictionary = {"request": "", "frames": 0}
+	var runner: Callable = func() -> void: out["result"] = await send.call()
+	runner.call()
+	var peer: StreamPeerTCP = null
+	var responded: bool = false
+	while not out.has("result") and int(out["frames"]) < MAX_WAIT_FRAMES:
+		await tree.process_frame
+		out["frames"] = int(out["frames"]) + 1
+		if peer == null and server.is_connection_available():
+			peer = server.take_connection()
+		if peer == null:
+			continue
+		peer.poll()
+		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+			continue
+		var available: int = peer.get_available_bytes()
+		if available > 0:
+			out["request"] = str(out["request"]) + peer.get_utf8_string(available)
+		if not responded and _request_complete(str(out["request"])):
+			peer.put_data(reply.to_utf8_buffer())
+			responded = true
+	return out
+
+
 func test_monitor_transitions_emit_signal() -> void:
 	var bus: EventBus = EventBus.new()
 	var seen: Array[bool] = []
@@ -94,6 +137,7 @@ func test_http_transport_refuses_insecure_or_invalid_requests() -> void:
 	assert_eq(spaced["error"], HttpTransport.ERR_INSECURE_URL)
 	var verb: Dictionary = await transport.request("TRACE", "https://example.invalid")
 	assert_eq(verb["error"], HttpTransport.ERR_UNSUPPORTED_METHOD)
+	assert_eq(transport.allow_local_http, OS.is_debug_build(), "local HTTP only in debug builds")
 	transport.allow_local_http = false
 	assert_false(transport.is_url_allowed("http://127.0.0.1:8080/"))
 	assert_true(transport.is_url_allowed("https://api.example.invalid/v1"))
@@ -101,6 +145,24 @@ func test_http_transport_refuses_insecure_or_invalid_requests() -> void:
 	var not_in_tree: Dictionary = await detached.request("GET", "https://example.invalid")
 	assert_eq(not_in_tree["error"], HttpTransport.ERR_NOT_IN_TREE)
 	detached.free()
+
+
+func test_url_guard_refuses_credentials_and_lookalike_hosts() -> void:
+	var transport: HttpTransport = HttpTransport.new()
+	transport.allow_local_http = true
+	assert_true(transport.is_url_allowed("http://localhost:8080/x"))
+	assert_true(transport.is_url_allowed("https://api.example.invalid:8443/v1?q=a@b"), "'@' after the host is fine")
+	assert_false(transport.is_url_allowed("http://localhost:80@evil.example.invalid/"), "credential trick")
+	assert_false(transport.is_url_allowed("https://user:pw@api.example.invalid/"), "no embedded credentials")
+	assert_false(transport.is_url_allowed("http://127.0.0.1.evil.example.invalid/"))
+	assert_false(transport.is_url_allowed("http://localhost.evil.example.invalid/"))
+	assert_false(transport.is_url_allowed("https://"))
+	assert_false(transport.is_url_allowed("https:///path"))
+	assert_false(transport.is_url_allowed("https://api.example.invalid\\@evil/"))
+	assert_false(transport.is_url_allowed("https://api.example.invalid/\r\nX-Injected: 1"))
+	assert_eq(HttpTransport.authority_of("https://a.example.invalid:9/p?q#f"), "a.example.invalid:9")
+	assert_eq(HttpTransport.authority_of("no-scheme"), "")
+	transport.free()
 
 
 func test_parse_completion() -> void:
@@ -121,6 +183,13 @@ func test_parse_completion() -> void:
 	assert_eq(timeout["error"], "timeout")
 	var odd: Dictionary = HttpTransport.parse_completion(999, 0, PackedByteArray())
 	assert_eq(odd["error"], "network_error")
+	var redirect: Dictionary = HttpTransport.parse_completion(
+		HTTPRequest.RESULT_REDIRECT_LIMIT_REACHED, 302, PackedByteArray()
+	)
+	assert_false(bool(redirect["ok"]))
+	assert_eq(redirect["status"], 302, "the server answered: keep its status")
+	assert_eq(redirect["error"], "redirect_refused")
+	assert_true(NetworkMonitor.server_reached(redirect), "a refused redirect is not 'offline'")
 
 
 func test_http_transport_round_trip_with_local_server() -> void:
@@ -129,54 +198,58 @@ func test_http_transport_round_trip_with_local_server() -> void:
 	assert_gt(port, 0, "a local port is available")
 	if port < 0:
 		return
-	# Earlier suites may block the main loop for seconds; let that huge frame
-	# delta pass so HTTPRequest's internal timeout timer starts fresh.
-	await wait_frames(2)
 	var transport: HttpTransport = _transport_in_tree()
 	var send: Callable = transport.as_callable()
-	var holder: Dictionary = {}
 	var url: String = "http://127.0.0.1:%d/v1/scores" % port
-	var runner: Callable = func() -> void: holder["result"] = await send.call("POST", url, {"hello": "world"})
-	runner.call()
-	var peer: StreamPeerTCP = null
-	var request_text: String = ""
-	var responded: bool = false
-	var frames: int = 0
-	while not holder.has("result") and frames < MAX_WAIT_FRAMES:
-		await tree.process_frame
-		frames += 1
-		if peer == null and server.is_connection_available():
-			peer = server.take_connection()
-		if peer == null:
-			continue
-		peer.poll()
-		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
-			continue
-		var available: int = peer.get_available_bytes()
-		if available > 0:
-			request_text += peer.get_utf8_string(available)
-		if not responded and request_text.contains("\r\n\r\n") and request_text.ends_with("}"):
-			var reply: String = "{\"accepted\": true, \"rank\": 3}"
-			var head: String = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\n"
-			var response: String = (head % reply.to_utf8_buffer().size()) + "Connection: close\r\n\r\n" + reply
-			peer.put_data(response.to_utf8_buffer())
-			responded = true
+	var reply_body: String = "{\"accepted\": true, \"rank\": 3}"
+	var head: String = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\n"
+	var reply: String = (head % reply_body.to_utf8_buffer().size()) + "Connection: close\r\n\r\n" + reply_body
+	var post: Callable = func() -> Dictionary: return await send.call("POST", url, {"hello": "world"})
+	var exchange: Dictionary = await _exchange(server, post, reply)
 	server.stop()
-	assert_true(holder.has("result"), "request completed")
-	if not holder.has("result"):
+	var request_text: String = str(exchange["request"])
+	assert_true(exchange.has("result"), "request completed")
+	if not exchange.has("result"):
 		return
-	var result: Dictionary = holder["result"] as Dictionary
-	var detail: String = "%s after %d frames; server saw: %s" % [str(result), frames, request_text.c_escape()]
+	var result: Dictionary = exchange["result"] as Dictionary
+	var detail: String = "%s after %d frames; server saw: %s" % [str(result), exchange["frames"], request_text.c_escape()]
 	assert_true(bool(result["ok"]), detail)
 	assert_eq(result["status"], 200, detail)
-	if typeof(result["body"]) != TYPE_DICTIONARY:
-		return
-	assert_eq((result["body"] as Dictionary)["accepted"], true)
+	assert_eq(typeof(result["body"]), TYPE_DICTIONARY, "JSON body parsed: " + detail)
+	if typeof(result["body"]) == TYPE_DICTIONARY:
+		assert_eq((result["body"] as Dictionary)["accepted"], true)
 	assert_eq(transport.in_flight, 0)
 	assert_true(request_text.begins_with("POST /v1/scores HTTP/1.1"))
 	assert_has(request_text, "Content-Type: application/json")
 	assert_has(request_text, "{\"hello\":\"world\"}")
 	assert_has(request_text, "User-Agent: FluxDrop/")
+
+
+func test_http_transport_does_not_follow_redirects() -> void:
+	var server: TCPServer = TCPServer.new()
+	var port: int = _listen(server)
+	assert_gt(port, 0, "a local port is available")
+	if port < 0:
+		return
+	var transport: HttpTransport = _transport_in_tree()
+	var url: String = "http://127.0.0.1:%d/v1/config" % port
+	var location: String = "http://127.0.0.1:%d/elsewhere" % port
+	var reply: String = (
+		"HTTP/1.1 302 Found\r\nLocation: %s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n" % location
+	)
+	var fetch: Callable = func() -> Dictionary: return await transport.request("GET", url)
+	var exchange: Dictionary = await _exchange(server, fetch, reply)
+	await wait_frames(2)
+	var followed: bool = server.is_connection_available()
+	server.stop()
+	assert_true(exchange.has("result"), "request completed")
+	if not exchange.has("result"):
+		return
+	var result: Dictionary = exchange["result"] as Dictionary
+	assert_false(bool(result["ok"]), str(result))
+	assert_eq(result["status"], 302, str(result))
+	assert_eq(result["error"], "redirect_refused")
+	assert_false(followed, "no second request to the redirect target")
 
 
 func test_http_transport_unreachable_host_is_offline_not_crash() -> void:

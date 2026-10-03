@@ -5,9 +5,12 @@ extends Node
 ## [method request] is a coroutine that performs one JSON request with a
 ## temporary [HTTPRequest] child and always resolves to
 ## {"ok": bool, "status": int, "body": Variant, "error": String}; it never
-## throws or blocks gameplay. "ok" means a 2xx response. "status" is 0 when no
-## HTTP response arrived (offline, timeout, DNS, TLS). Only HTTPS URLs are
-## allowed (plain HTTP only for localhost during development and tests).
+## throws or blocks gameplay. "ok" means a 2xx response. "status" is the HTTP
+## status when a response arrived and 0 when none did (offline, timeout, DNS,
+## TLS). Only HTTPS URLs are allowed; plain HTTP to localhost only in debug
+## builds (development servers and tests). URLs with credentials ("user@host")
+## are refused and redirects are not followed, so a server can never bounce a
+## request to plain HTTP or to another host.
 ## [method as_callable] exposes the 3-argument transport Callable that
 ## services receive by injection.
 
@@ -15,9 +18,11 @@ const DEFAULT_TIMEOUT_S: float = 8.0
 const MIN_TIMEOUT_S: float = 0.5
 const MAX_TIMEOUT_S: float = 60.0
 const MAX_BODY_BYTES: int = 1048576
-const MAX_REDIRECTS: int = 3
+## API endpoints never need redirects; following one could downgrade to HTTP.
+const MAX_REDIRECTS: int = 0
 const STATUS_OK_MIN: int = 200
 const STATUS_OK_MAX: int = 299
+const SCHEME_SEPARATOR: String = "://"
 const SECURE_PREFIX: String = "https://"
 const LOCAL_PREFIXES: PackedStringArray = [
 	"http://127.0.0.1:",
@@ -25,6 +30,10 @@ const LOCAL_PREFIXES: PackedStringArray = [
 	"http://localhost:",
 	"http://localhost/",
 ]
+## Characters that end the authority (host[:port]) part of a URL.
+const AUTHORITY_END: PackedStringArray = ["/", "?", "#"]
+## Never valid in a URL we send (whitespace tricks, Windows-style separators).
+const FORBIDDEN_URL_CHARS: PackedStringArray = [" ", "\t", "\n", "\r", "\\"]
 const METHODS: Dictionary = {
 	"GET": HTTPClient.METHOD_GET,
 	"POST": HTTPClient.METHOD_POST,
@@ -50,12 +59,13 @@ const RESULT_ERRORS: Dictionary = {
 	HTTPRequest.RESULT_REQUEST_FAILED: "request_failed",
 	HTTPRequest.RESULT_DOWNLOAD_FILE_CANT_OPEN: "download_failed",
 	HTTPRequest.RESULT_DOWNLOAD_FILE_WRITE_ERROR: "download_failed",
-	HTTPRequest.RESULT_REDIRECT_LIMIT_REACHED: "redirect_limit",
+	HTTPRequest.RESULT_REDIRECT_LIMIT_REACHED: "redirect_refused",
 	HTTPRequest.RESULT_TIMEOUT: "timeout",
 }
 
-## Allows plain HTTP to localhost (development servers and tests).
-var allow_local_http: bool = true
+## Allows plain HTTP to localhost (development servers and tests). Off in
+## release builds.
+var allow_local_http: bool = OS.is_debug_build()
 ## Requests currently in flight.
 var in_flight: int = 0
 
@@ -96,23 +106,47 @@ func as_callable() -> Callable:
 		return await request(method, url, body)
 
 
-## True for HTTPS URLs (and localhost HTTP when allowed).
+## True for HTTPS URLs (and localhost HTTP when allowed) with a plain host:
+## no embedded credentials and no whitespace or backslashes.
 func is_url_allowed(url: String) -> bool:
-	if url.contains(" ") or url.contains("\n") or url.contains("\t"):
+	for ch: String in FORBIDDEN_URL_CHARS:
+		if url.contains(ch):
+			return false
+	var authority: String = HttpTransport.authority_of(url)
+	if authority.is_empty() or authority.contains("@"):
 		return false
-	if url.begins_with(SECURE_PREFIX) and url.length() > SECURE_PREFIX.length():
+	if url.begins_with(SECURE_PREFIX):
 		return true
+	var local: bool = false
 	if allow_local_http:
 		for prefix: String in LOCAL_PREFIXES:
-			if url.begins_with(prefix):
-				return true
-	return false
+			local = local or url.begins_with(prefix)
+	return local
 
 
-## Builds the contract dictionary from an HTTPRequest completion.
+## The "host[:port]" part of [param url] (with any "user@" kept so callers
+## can refuse it); "" when the URL has no scheme or no host.
+static func authority_of(url: String) -> String:
+	var start: int = url.find(SCHEME_SEPARATOR)
+	if start < 0:
+		return ""
+	var rest: String = url.substr(start + SCHEME_SEPARATOR.length())
+	var end: int = rest.length()
+	for sep: String in AUTHORITY_END:
+		var at: int = rest.find(sep)
+		if at >= 0 and at < end:
+			end = at
+	return rest.substr(0, end)
+
+
+## Builds the contract dictionary from an HTTPRequest completion. A failed
+## completion keeps the HTTP status when the server did answer (e.g. a
+## refused redirect), so connectivity is not misreported as offline.
 static func parse_completion(result: int, status: int, raw_body: PackedByteArray) -> Dictionary:
 	if result != HTTPRequest.RESULT_SUCCESS:
-		return HttpTransport.failure(str(RESULT_ERRORS.get(result, "network_error")))
+		var failed: Dictionary = HttpTransport.failure(str(RESULT_ERRORS.get(result, "network_error")))
+		failed["status"] = maxi(0, status)
+		return failed
 	var text: String = raw_body.get_string_from_utf8()
 	var parsed: Variant = null
 	if not text.strip_edges().is_empty():

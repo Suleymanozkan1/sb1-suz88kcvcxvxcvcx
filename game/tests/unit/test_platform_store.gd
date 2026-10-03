@@ -223,6 +223,46 @@ func test_purchase_failures_record_nothing() -> void:
 	assert_eq(StoreService.message_key("weird_platform_code"), StoreService.MESSAGE_KEY_GENERIC)
 
 
+func test_provider_error_text_is_normalised() -> void:
+	var provider: ScriptedStoreProvider = ScriptedStoreProvider.new()
+	var store: StoreService = _store(provider)
+	provider.purchase_result = {"ok": false, "error": "Billing-Unavailable"}
+	assert_eq((await store.purchase(PACK))["error"], "billing_unavailable", "short codes are kept, normalised")
+	provider.purchase_result = {"ok": false, "error": "Payment declined for card of someone@example.com"}
+	assert_eq((await store.purchase(PACK))["error"], StoreService.ERR_FAILED, "free text is never passed on")
+	provider.purchase_result = {"ok": false, "error": "x".repeat(200)}
+	assert_eq((await store.purchase(PACK))["error"], StoreService.ERR_FAILED)
+	provider.purchase_result = {"ok": false, "error": 42}
+	assert_eq((await store.purchase(PACK))["error"], StoreService.ERR_FAILED)
+	provider.purchase_result = {"ok": false, "error": "User Canceled"}
+	assert_eq((await store.purchase(PACK))["error"], StoreService.ERR_CANCELLED)
+	for call: Dictionary in _tracker.calls:
+		if call["event"] == "purchase_failed":
+			assert_false(str((call["params"] as Dictionary)["error"]).contains("@"), "no free text in analytics")
+	provider.restore_result = {"ok": false, "error": "Network unreachable: host 10.0.0.1"}
+	assert_eq((await store.restore_purchases())["error"], StoreService.ERR_FAILED)
+
+
+func test_restore_is_blocked_while_a_purchase_is_in_flight() -> void:
+	var provider: ScriptedStoreProvider = ScriptedStoreProvider.new()
+	provider.tree = tree
+	provider.restore_result = {"ok": true, "product_ids": [PACK], "error": ""}
+	var store: StoreService = _store(provider)
+	var holder: Dictionary = {}
+	var buy: Callable = func() -> void: holder["result"] = await store.purchase(PACK)
+	buy.call()
+	var restore: Dictionary = await store.restore_purchases()
+	assert_false(bool(restore["ok"]))
+	assert_eq(restore["error"], StoreService.ERR_IN_PROGRESS)
+	var guard: int = 0
+	while not holder.has("result") and guard < 10:
+		await tree.process_frame
+		guard += 1
+	assert_true(bool((holder["result"] as Dictionary)["ok"]))
+	assert_eq(_tracker.names().count("purchase_completed"), 1, "one purchase, one completion")
+	assert_true(bool((await store.restore_purchases())["ok"]), "restore works once the purchase finished")
+
+
 func test_concurrent_purchase_is_blocked() -> void:
 	var provider: ScriptedStoreProvider = ScriptedStoreProvider.new()
 	provider.tree = tree

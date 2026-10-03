@@ -64,6 +64,66 @@ func sinks() -> Array[AnalyticsSink]:
 ## Records [param event] with sanitised [param params]. Returns false when the
 ## event was not recorded (consent off or unknown event).
 func track(event: StringName, params: Dictionary = {}) -> bool:
+	var source: Dictionary = params
+	if event == ERROR_EVENT and not context.is_empty():
+		source = context.duplicate()
+		source.merge(params, true)
+	return _record(event, source)
+
+
+## Asks every sink to deliver what it buffered. Returns true when all sinks
+## report nothing pending. Does nothing without consent.
+func flush() -> bool:
+	if not enabled:
+		return false
+	var all_delivered: bool = true
+	for sink: AnalyticsSink in _sinks.duplicate():
+		var delivered: bool = await sink.flush()
+		all_delivered = all_delivered and delivered
+	return all_delivered
+
+
+## Converts [ErrorReporter] reports into "error_reported" events. Only the
+## error kind, script file name (no directories) and line are kept; messages
+## are never sent because they may contain paths or user input. Identical
+## errors are aggregated with a count. The live [member context] is not added:
+## the reports come from an earlier session and carry their own context.
+## Returns the number of events tracked.
+func track_error_reports(reports: Array[Dictionary]) -> int:
+	var grouped: Dictionary = {}
+	var order: Array[String] = []
+	for report: Dictionary in reports:
+		var raw_err: Variant = report.get("error", {})
+		var err: Dictionary = raw_err as Dictionary if typeof(raw_err) == TYPE_DICTIONARY else {}
+		# Reports are read back from disk: any field may be corrupt or hostile.
+		var error_type: int = AnalyticsService._int_or(err.get("error_type"), -1)
+		var kind: String = UNKNOWN_ERROR_KIND
+		if error_type >= 0 and error_type < ERROR_KINDS.size():
+			kind = ERROR_KINDS[error_type]
+		var raw_file: Variant = err.get("file", "")
+		var file_name: String = (raw_file as String).get_file() if typeof(raw_file) == TYPE_STRING else ""
+		var where: String = "%s:%d" % [file_name, AnalyticsService._int_or(err.get("line"), 0)]
+		var group_key: String = kind + "|" + where
+		if not grouped.has(group_key):
+			var params: Dictionary = {"kind": kind, "where": where, "error_type": error_type, "count": 0}
+			var extra: Variant = report.get("context", {})
+			if typeof(extra) == TYPE_DICTIONARY:
+				for k: Variant in extra as Dictionary:
+					if not params.has(str(k)):
+						params[str(k)] = (extra as Dictionary)[k]
+			grouped[group_key] = params
+			order.append(group_key)
+		var entry: Dictionary = grouped[group_key] as Dictionary
+		entry["count"] = int(entry["count"]) + 1
+	var tracked: int = 0
+	for group_key: String in order:
+		if _record(ERROR_EVENT, grouped[group_key] as Dictionary):
+			tracked += 1
+	return tracked
+
+
+## Validates, sanitises, enriches and dispatches one event.
+func _record(event: StringName, source: Dictionary) -> bool:
 	if not enabled:
 		return false
 	var event_name: String = String(event)
@@ -71,10 +131,6 @@ func track(event: StringName, params: Dictionary = {}) -> bool:
 		rejected_count += 1
 		GameLog.warn("analytics", "unknown event '%s' rejected" % event_name)
 		return false
-	var source: Dictionary = params
-	if event == ERROR_EVENT and not context.is_empty():
-		source = context.duplicate()
-		source.merge(params, true)
 	var record: Dictionary = {
 		"event": event_name,
 		"params": schema.sanitize_params(event_name, source),
@@ -93,52 +149,6 @@ func track(event: StringName, params: Dictionary = {}) -> bool:
 	return true
 
 
-## Asks every sink to deliver what it buffered. Returns true when all sinks
-## report nothing pending. Does nothing without consent.
-func flush() -> bool:
-	if not enabled:
-		return false
-	var all_delivered: bool = true
-	for sink: AnalyticsSink in _sinks.duplicate():
-		var delivered: bool = await sink.flush()
-		all_delivered = all_delivered and delivered
-	return all_delivered
-
-
-## Converts [ErrorReporter] reports into "error_reported" events. Only the
-## error kind, script file name (no directories) and line are kept; messages
-## are never sent because they may contain paths or user input. Identical
-## errors are aggregated with a count. Returns the number of events tracked.
-func track_error_reports(reports: Array[Dictionary]) -> int:
-	var grouped: Dictionary = {}
-	var order: Array[String] = []
-	for report: Dictionary in reports:
-		var raw_err: Variant = report.get("error", {})
-		var err: Dictionary = raw_err as Dictionary if typeof(raw_err) == TYPE_DICTIONARY else {}
-		var error_type: int = int(err.get("error_type", -1))
-		var kind: String = UNKNOWN_ERROR_KIND
-		if error_type >= 0 and error_type < ERROR_KINDS.size():
-			kind = ERROR_KINDS[error_type]
-		var where: String = "%s:%d" % [str(err.get("file", "")).get_file(), int(err.get("line", 0))]
-		var group_key: String = kind + "|" + where
-		if not grouped.has(group_key):
-			var params: Dictionary = {"kind": kind, "where": where, "error_type": error_type, "count": 0}
-			var extra: Variant = report.get("context", {})
-			if typeof(extra) == TYPE_DICTIONARY:
-				for k: Variant in extra as Dictionary:
-					if not params.has(str(k)):
-						params[str(k)] = (extra as Dictionary)[k]
-			grouped[group_key] = params
-			order.append(group_key)
-		var entry: Dictionary = grouped[group_key] as Dictionary
-		entry["count"] = int(entry["count"]) + 1
-	var tracked: int = 0
-	for group_key: String in order:
-		if track(ERROR_EVENT, grouped[group_key] as Dictionary):
-			tracked += 1
-	return tracked
-
-
 func _set_enabled(value: bool) -> void:
 	var was_enabled: bool = enabled
 	enabled = value
@@ -146,6 +156,15 @@ func _set_enabled(value: bool) -> void:
 		for sink: AnalyticsSink in _sinks:
 			sink.clear()
 		GameLog.info("analytics", "consent withdrawn; stored analytics cleared")
+
+
+## Finite number as int, else [param fallback] (int() on other types is a script error).
+static func _int_or(value: Variant, fallback: int) -> int:
+	if typeof(value) == TYPE_INT:
+		return value as int
+	if typeof(value) == TYPE_FLOAT and is_finite(value as float):
+		return int(value)
+	return fallback
 
 
 static func _sanitize_install_id(raw: String) -> String:

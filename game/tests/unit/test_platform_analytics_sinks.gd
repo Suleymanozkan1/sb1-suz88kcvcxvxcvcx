@@ -46,6 +46,14 @@ func _remove_dir(dir_path: String) -> void:
 	DirAccess.remove_absolute(dir_path)
 
 
+func _physical_lines(path: String) -> int:
+	var count: int = 0
+	for line: String in FileAccess.get_file_as_string(path).split("\n", false):
+		if not line.strip_edges().is_empty():
+			count += 1
+	return count
+
+
 func _events(count: int, first_seq: int = 0) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for i: int in count:
@@ -88,6 +96,48 @@ func test_file_sink_skips_corrupt_lines() -> void:
 	sink.send(_events(2))
 	assert_eq(sink.line_count(), 3)
 	assert_eq(sink.read_events().size(), 2, "corrupt line ignored")
+
+
+func test_file_sink_trims_in_batches_not_per_event() -> void:
+	var path: String = _unique_dir().path_join("events.jsonl")
+	var sink: FileAnalyticsSink = FileAnalyticsSink.new(path, 10)
+	assert_eq(sink.trim_slack, 2)
+	for i: int in 12:
+		sink.send(_events(1, i))
+	assert_eq(_physical_lines(path), 12, "within the slack the file is only appended to")
+	assert_eq(sink.line_count(), 10, "readers still see only the newest max_lines")
+	assert_eq(sink.read_lines().size(), 10)
+	assert_eq(int(sink.read_events()[0]["seq"]), 2)
+	sink.send(_events(1, 12))
+	assert_eq(_physical_lines(path), 10, "trimmed in one rewrite once the slack is used up")
+	assert_eq(int(sink.read_events()[9]["seq"]), 12)
+	for i: int in 40:
+		sink.send(_events(1, 13 + i))
+		assert_le(_physical_lines(path), 12, "the file never grows past max_lines + slack")
+
+
+func test_file_sink_recovers_a_line_cut_short_by_a_crash() -> void:
+	var path: String = _unique_dir().path_join("events.jsonl")
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	f.store_string("{\"event\": \"level_started\", \"seq\": 0}\n{\"event\": \"level_sta")
+	f.close()
+	var sink: FileAnalyticsSink = FileAnalyticsSink.new(path, 10)
+	sink.send(_events(1, 5))
+	var events: Array[Dictionary] = sink.read_events()
+	assert_eq(events.size(), 2, "the cut line is skipped, the new event stays intact")
+	assert_eq(int(events[1]["seq"]), 5)
+
+
+func test_file_sink_clear_deletes_the_file() -> void:
+	var path: String = _unique_dir().path_join("events.jsonl")
+	var sink: FileAnalyticsSink = FileAnalyticsSink.new(path, 10)
+	sink.send(_events(3))
+	sink.clear()
+	assert_false(FileAccess.file_exists(path))
+	assert_eq(sink.line_count(), 0)
+	sink.send(_events(1))
+	assert_eq(sink.line_count(), 1)
 
 
 func test_http_sink_queues_offline_then_flushes() -> void:
@@ -141,6 +191,28 @@ func test_http_sink_drops_permanently_rejected_batch() -> void:
 	delivered = await sink.flush()
 	assert_false(delivered, "rate limiting is retried later")
 	assert_eq(sink.queued_count(), 1)
+
+
+func test_http_sink_clear_during_upload_drops_the_batch() -> void:
+	var transport: ScriptedTransport = ScriptedTransport.new()
+	transport.tree = tree
+	var sink: HttpAnalyticsSink = HttpAnalyticsSink.new(ENDPOINT, transport.respond, 2)
+	sink.send(_events(3))
+	var holder: Dictionary = {}
+	var runner: Callable = func() -> void: holder["delivered"] = await sink.flush()
+	runner.call()
+	sink.clear()
+	sink.send(_events(1, 100))
+	var guard: int = 0
+	while not holder.has("delivered") and guard < 10:
+		await tree.process_frame
+		guard += 1
+	assert_true(holder.has("delivered"))
+	assert_eq(sink.queued_count(), 1, "only the event queued after clear() remains")
+	transport.online = true
+	assert_true(await sink.flush())
+	var last_body: Dictionary = transport.calls.back()["body"] as Dictionary
+	assert_eq(int(((last_body["events"] as Array)[0] as Dictionary)["seq"]), 100)
 
 
 func test_http_sink_disabled_without_endpoint() -> void:

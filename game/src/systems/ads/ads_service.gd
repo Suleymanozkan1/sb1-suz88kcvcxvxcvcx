@@ -43,6 +43,9 @@ var _last_interstitial_unix: int = -1
 var _revives_this_run: int = 0
 ## True between a granted revive and the run_started its resume re-emits.
 var _resuming_after_revive: bool = false
+## Level of the current run (from run_started), so a revive that was never
+## resumed cannot make the next level's run count as the same run.
+var _run_level_id: String = ""
 var _showing: bool = false
 
 
@@ -218,9 +221,11 @@ func _on_run_failed(_result: RunResult) -> void:
 	_resuming_after_revive = false
 
 
-func _on_run_started(_level_id: String, _mode: StringName) -> void:
-	if _resuming_after_revive:
-		# A revived run resumes and may re-emit run_started: same run.
+func _on_run_started(level_id: String, _mode: StringName) -> void:
+	var resumed: bool = _resuming_after_revive and level_id == _run_level_id
+	_run_level_id = level_id
+	if resumed:
+		# A revived run resumes and re-emits run_started: same run.
 		_resuming_after_revive = false
 		return
 	begin_run()

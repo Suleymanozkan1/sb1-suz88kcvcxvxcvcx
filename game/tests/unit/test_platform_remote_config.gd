@@ -115,6 +115,7 @@ func test_values_are_typed_and_clamped_even_with_bad_schema_defaults() -> void:
 			"a.int": {"type": "int", "min": 1, "max": 3, "default": "two"},
 			"a.bool": {"type": "bool", "default": 1},
 			"a.str": {"type": "string", "default": 5},
+			"a.len": {"type": "string", "max_length": [8], "default": "kept"},
 			"a.bad": {"type": "vector", "default": 1},
 			"a.notdict": 3,
 		}
@@ -124,6 +125,7 @@ func test_values_are_typed_and_clamped_even_with_bad_schema_defaults() -> void:
 	assert_eq(rc.get_value("a.int"), 1)
 	assert_eq(rc.get_value("a.bool"), false)
 	assert_eq(rc.get_value("a.str"), "")
+	assert_eq(rc.get_value("a.len"), "kept", "malformed max_length falls back to the default limit")
 	assert_false(rc.has_key("a.bad"))
 	assert_false(rc.has_key("a.notdict"))
 	assert_eq(rc.get_float("a.float"), 0.5)

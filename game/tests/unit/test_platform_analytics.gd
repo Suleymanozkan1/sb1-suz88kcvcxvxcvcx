@@ -142,6 +142,15 @@ func test_pattern_matching_uses_tokens_for_short_patterns() -> void:
 	assert_false(schema.is_forbidden_param("platform"), "'lat' inside a word is fine")
 	assert_false(schema.is_forbidden_param("long_combo"), "'lon' inside a word is fine")
 	assert_false(schema.is_forbidden_param("skipped"))
+	assert_false(schema.is_forbidden_param("latency_ms"))
+
+
+func test_spelled_out_location_and_network_names_are_forbidden() -> void:
+	var schema: AnalyticsSchema = AnalyticsSchema.from_dict({"events": {}, "forbidden_param_patterns": []})
+	for param: String in ["latitude", "playerLongitude", "geo_hash", "ipv4", "client_ipv6", "password"]:
+		assert_true(schema.is_forbidden_param(param), "%s must be refused" % param)
+	for pattern: String in AnalyticsSchema.DEFAULT_FORBIDDEN:
+		assert_has(schema.forbidden_patterns, pattern, "built-in patterns cannot be removed by data")
 
 
 func test_type_coercion() -> void:
@@ -270,6 +279,31 @@ func test_withdrawing_consent_clears_stored_events() -> void:
 	assert_true(svc.track(&"level_started", {"level_id": "w01_l02"}), "re-enabling resumes tracking")
 
 
+func test_withdrawing_consent_during_upload_never_requeues() -> void:
+	var transport: ScriptedTransport = ScriptedTransport.new()
+	transport.tree = tree
+	var svc: AnalyticsService = _service()
+	var http: HttpAnalyticsSink = HttpAnalyticsSink.new("https://analytics.example.invalid/v1/events", transport.respond)
+	svc.add_sink(http)
+	svc.track(&"level_started", {"level_id": "w01_l01"})
+	svc.track(&"level_failed", {"level_id": "w01_l01", "score": 3})
+	var holder: Dictionary = {}
+	var runner: Callable = func() -> void: holder["delivered"] = await svc.flush()
+	runner.call()
+	assert_eq(transport.calls.size(), 1, "upload in flight")
+	svc.enabled = false
+	var guard: int = 0
+	while not holder.has("delivered") and guard < 10:
+		await tree.process_frame
+		guard += 1
+	assert_true(holder.has("delivered"), "flush resolved")
+	assert_eq(http.queued_count(), 0, "the failed in-flight batch is dropped, not put back")
+	svc.enabled = true
+	transport.online = true
+	assert_true(await svc.flush())
+	assert_eq(transport.calls.size(), 1, "nothing collected before withdrawal is ever sent")
+
+
 func test_context_is_merged_into_error_reports_only() -> void:
 	var svc: AnalyticsService = _service()
 	var sink: MemoryAnalyticsSink = MemoryAnalyticsSink.new()
@@ -299,7 +333,10 @@ func test_error_reports_are_aggregated_and_stripped() -> void:
 		{"error": {"file": "res://src/ui/hud.gd", "line": 7, "error_type": 0}},
 		{"error": "garbage"},
 	]
+	svc.context = {"screen": "boot", "level_id": "w09_l01"}
 	assert_eq(svc.track_error_reports(reports), 3)
+	for event: Dictionary in sink.events:
+		assert_false((event["params"] as Dictionary).has("screen"), "live context not glued onto old reports")
 	var first: Dictionary = sink.events[0]["params"] as Dictionary
 	assert_eq(first["where"], "flux_sim.gd:42", "only the file name is kept")
 	assert_eq(first["kind"], "script")
@@ -308,6 +345,25 @@ func test_error_reports_are_aggregated_and_stripped() -> void:
 	assert_false(first.has("message"))
 	assert_false(first.has("user_email"))
 	assert_eq((sink.events[2]["params"] as Dictionary)["kind"], "unknown")
+
+
+func test_corrupt_error_reports_do_not_abort_tracking() -> void:
+	var svc: AnalyticsService = _service()
+	var sink: MemoryAnalyticsSink = MemoryAnalyticsSink.new()
+	svc.add_sink(sink)
+	var reports: Array[Dictionary] = [
+		{"error": {"file": ["not", "a", "path"], "line": [1, 2], "error_type": {"x": 1}}},
+		{"error": {"file": "res://src/ui/hud.gd", "line": INF, "error_type": "script"}},
+		{"error": {"file": "res://src/ui/menu.gd", "line": 12.0, "error_type": 1.0}, "context": [1]},
+	]
+	assert_eq(svc.track_error_reports(reports), 3, "every report survives hostile field types")
+	var first: Dictionary = sink.events[0]["params"] as Dictionary
+	assert_eq(first["where"], ":0")
+	assert_eq(first["kind"], "unknown")
+	assert_eq((sink.events[1]["params"] as Dictionary)["where"], "hud.gd:0")
+	var third: Dictionary = sink.events[2]["params"] as Dictionary
+	assert_eq(third["where"], "menu.gd:12")
+	assert_eq(third["kind"], "warning")
 
 
 func test_service_flush_with_coroutine_transport() -> void:

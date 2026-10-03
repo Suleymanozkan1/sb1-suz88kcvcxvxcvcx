@@ -31,6 +31,9 @@ var sent_count: int = 0
 var _transport: Callable = Callable()
 var _queue: Array[Dictionary] = []
 var _flushing: bool = false
+## Bumped by [method clear] so an upload that is in flight while consent is
+## withdrawn can never put its batch back into the queue.
+var _generation: int = 0
 
 
 func _init(
@@ -64,9 +67,10 @@ func queued_count() -> int:
 	return _queue.size()
 
 
-## Drops queued events (consent withdrawn).
+## Drops queued events (consent withdrawn), including a batch in flight.
 func clear() -> void:
 	_queue.clear()
+	_generation += 1
 
 
 ## Uploads queued events batch by batch. Stops at the first transport failure
@@ -77,6 +81,7 @@ func flush() -> bool:
 	if _flushing:
 		return false
 	_flushing = true
+	var generation: int = _generation
 	while not _queue.is_empty():
 		var count: int = mini(batch_size, _queue.size())
 		var in_flight: Array[Dictionary] = _take_front(count)
@@ -88,10 +93,15 @@ func flush() -> bool:
 		elif outcome == Outcome.REJECTED:
 			rejected_count += in_flight.size()
 			GameLog.warn("analytics", "server rejected a batch of %d events; dropped" % in_flight.size())
-		else:
+		if generation != _generation:
+			# Cleared while the request was in flight: drop the batch, stop here.
+			break
+		if outcome == Outcome.RETRY:
 			# Put the batch back in front (it is the oldest data) and retry later.
-			in_flight.append_array(_queue)
-			_queue = in_flight
+			# A new array: the transport may still hold the request body.
+			var requeued: Array[Dictionary] = in_flight.duplicate()
+			requeued.append_array(_queue)
+			_queue = requeued
 			_enforce_bound()
 			break
 	_flushing = false

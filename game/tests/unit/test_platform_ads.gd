@@ -169,6 +169,20 @@ func test_revive_allowed_once_per_run() -> void:
 	assert_true(ads.is_rewarded_available(&"revive"), "restart starts a new run")
 
 
+func test_unresumed_revive_does_not_cost_the_next_level_its_revive() -> void:
+	var provider: ScriptedAdProvider = ScriptedAdProvider.new()
+	var ads: AdsService = _service(provider)
+	_bus.run_started.emit("w01_l04", &"classic")
+	assert_true(bool((await ads.show_rewarded(&"revive"))["granted"]))
+	# The player watched the revive ad but left before the run resumed, so no
+	# run_started/run_failed followed. The next run is on another level.
+	_bus.run_started.emit("w01_l05", &"classic")
+	assert_true(ads.is_rewarded_available(&"revive"), "a different level is a new run")
+	assert_true(bool((await ads.show_rewarded(&"revive"))["granted"]))
+	_bus.run_started.emit("w01_l05", &"classic")
+	assert_false(ads.is_rewarded_available(&"revive"), "the resume of that run is still the same run")
+
+
 func test_interstitial_only_at_natural_breakpoints() -> void:
 	_eligible_profile()
 	var ads: AdsService = _service(ScriptedAdProvider.new())

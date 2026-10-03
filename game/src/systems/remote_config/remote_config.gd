@@ -273,7 +273,9 @@ static func _sanitize_spec(key: String, raw: Variant) -> Dictionary:
 			spec.erase("min")
 			spec.erase("max")
 	elif kind == KIND_STRING:
-		spec["max_length"] = maxi(0, int(src.get("max_length", DEFAULT_MAX_LENGTH)))
+		var raw_max: Variant = src.get("max_length", DEFAULT_MAX_LENGTH)
+		var numeric_max: bool = typeof(raw_max) == TYPE_INT or typeof(raw_max) == TYPE_FLOAT
+		spec["max_length"] = maxi(0, int(raw_max)) if numeric_max else DEFAULT_MAX_LENGTH
 		spec["format"] = str(src.get("format", ""))
 	var default_value: Variant = RemoteConfig._validated(spec, src.get("default"))
 	if typeof(default_value) == TYPE_NIL:

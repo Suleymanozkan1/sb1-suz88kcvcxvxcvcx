@@ -44,6 +44,19 @@ func test_required_keys_present() -> void:
 		assert_has(en, StoreService.message_key(error))
 
 
+func test_consent_copy_does_not_overclaim_anonymity() -> void:
+	# Events carry the random install id (pseudonymous), so the copy must not
+	# promise anonymity or "no personal data".
+	var key: String = "platform.analytics.consent.body"
+	var en_text: String = str(JsonIO.read_dict(EN_PATH).get(key, "")).to_lower()
+	var tr_text: String = str(JsonIO.read_dict(TR_PATH).get(key, "")).to_lower()
+	for word: String in ["anonymous", "no personal data"]:
+		assert_false(en_text.contains(word), "en consent copy must not claim '%s'" % word)
+	for word: String in ["anonim", "kişisel veri toplanmaz"]:
+		assert_false(tr_text.contains(word), "tr consent copy must not claim '%s'" % word)
+	assert_has(en_text, "random id")
+
+
 func test_reminder_copy_is_neutral() -> void:
 	var en: Dictionary = JsonIO.read_dict(EN_PATH)
 	var tr_strings: Dictionary = JsonIO.read_dict(TR_PATH)

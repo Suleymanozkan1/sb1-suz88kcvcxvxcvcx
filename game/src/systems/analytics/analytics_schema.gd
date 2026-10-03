@@ -22,6 +22,8 @@ const MAX_EVENT_NAME_LENGTH: int = 40
 const SHORT_PATTERN_LENGTH: int = 4
 ## Floats beyond this magnitude are not converted to int (precision loss).
 const MAX_SAFE_INT_FLOAT: float = 9.0e15
+## Built-in patterns: the spec list plus spelled-out forms that the short,
+## token-matched "lat"/"lon"/"ip" patterns would otherwise miss.
 const DEFAULT_FORBIDDEN: PackedStringArray = [
 	"email",
 	"name",
@@ -33,6 +35,12 @@ const DEFAULT_FORBIDDEN: PackedStringArray = [
 	"lat",
 	"lon",
 	"address",
+	"latitude",
+	"longitude",
+	"geo",
+	"ipv4",
+	"ipv6",
+	"password",
 ]
 const TRUE_WORDS: PackedStringArray = ["true", "yes", "1"]
 const FALSE_WORDS: PackedStringArray = ["false", "no", "0"]
@@ -187,7 +195,7 @@ static func name_tokens(text: String) -> PackedStringArray:
 	var prev_lower: bool = false
 	for i: int in text.length():
 		var ch: String = text[i]
-		var is_alnum: bool = ch.is_valid_identifier() or ch.is_valid_int()
+		var is_alnum: bool = ch.is_valid_ascii_identifier() or ch.is_valid_int()
 		if not is_alnum or ch == "_":
 			if not current.is_empty():
 				tokens.append(current.to_lower())
@@ -206,7 +214,7 @@ static func name_tokens(text: String) -> PackedStringArray:
 
 
 func _add_event(event: String, raw_spec: Variant) -> void:
-	if event.is_empty() or event.length() > MAX_EVENT_NAME_LENGTH or not event.is_valid_identifier():
+	if event.is_empty() or event.length() > MAX_EVENT_NAME_LENGTH or not event.is_valid_ascii_identifier():
 		load_issues.append("invalid event name '%s'" % event)
 		return
 	var declared: Dictionary = {}

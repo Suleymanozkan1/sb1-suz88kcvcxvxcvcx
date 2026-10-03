@@ -3,10 +3,13 @@ extends TestCase
 
 const ISTANBUL_OFFSET_MINUTES: int = 180
 const NEW_YORK_OFFSET_MINUTES: int = -240
+const EN_STRINGS_PATH: String = "res://data/i18n/parts/platform.en.json"
 
 var _profile: PlayerProfile
 var _clock: GameClock
 var _provider: RecordingNotificationProvider
+## Reminder strings registered for the current locale during each test.
+var _strings: Translation = null
 
 
 ## Records schedule/cancel calls; can be told to decline.
@@ -30,6 +33,16 @@ func before_each() -> void:
 	_clock = GameClock.new()
 	_clock.set_fixed_unix(_utc(2026, 10, 3, 9, 30))
 	_provider = RecordingNotificationProvider.new()
+	var en: Dictionary = JsonIO.read_dict(EN_STRINGS_PATH)
+	_strings = Translation.new()
+	_strings.locale = TranslationServer.get_locale()
+	for key: String in [NotificationService.TITLE_KEY, NotificationService.BODY_KEY]:
+		_strings.add_message(key, str(en.get(key, key)))
+	TranslationServer.add_translation(_strings)
+
+
+func after_each() -> void:
+	TranslationServer.remove_translation(_strings)
 
 
 func _utc(year: int, month: int, day: int, hour: int, minute: int = 0) -> int:
@@ -63,8 +76,9 @@ func test_schedules_next_day_at_friendly_local_hour() -> void:
 	assert_eq(entry["id"], NotificationService.DAILY_REMINDER_ID)
 	# 09:30 UTC = 12:30 in Istanbul -> tomorrow 18:00 local = 15:00 UTC.
 	assert_eq(entry["at"], _utc(2026, 10, 4, 15))
-	assert_eq(entry["title"], String(TranslationServer.translate(NotificationService.TITLE_KEY)))
-	assert_eq(entry["body"], String(TranslationServer.translate(NotificationService.BODY_KEY)))
+	var en: Dictionary = JsonIO.read_dict(EN_STRINGS_PATH)
+	assert_eq(entry["title"], en[NotificationService.TITLE_KEY], "translated title, not the key")
+	assert_eq(entry["body"], en[NotificationService.BODY_KEY])
 	assert_eq(svc.scheduled_day(), svc.local_day(_utc(2026, 10, 4, 15)))
 
 
@@ -111,6 +125,17 @@ func test_reminder_hour_is_clamped_to_friendly_window() -> void:
 	assert_eq(svc.next_reminder_unix(), _utc(2026, 10, 4, NotificationService.EARLIEST_FRIENDLY_HOUR))
 	svc.reminder_hour = 23
 	assert_eq(svc.next_reminder_unix(), _utc(2026, 10, 4, NotificationService.LATEST_FRIENDLY_HOUR))
+
+
+func test_untranslated_reminder_is_never_scheduled() -> void:
+	_profile.settings["notifications"] = true
+	TranslationServer.remove_translation(_strings)
+	var svc: NotificationService = _service()
+	assert_false(svc.schedule_daily_reminder(), "a raw key must never reach the notification shade")
+	assert_empty(_provider.scheduled)
+	assert_eq(svc.scheduled_day(), -1)
+	TranslationServer.add_translation(_strings)
+	assert_true(svc.schedule_daily_reminder(), "scheduled once the strings are loaded")
 
 
 func test_declined_or_unsupported_provider() -> void:

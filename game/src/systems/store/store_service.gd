@@ -33,6 +33,10 @@ const MESSAGE_KEY_PREFIX: String = "platform.store.error."
 const MESSAGE_KEY_GENERIC: String = "platform.store.error.generic"
 const PRODUCT_ID_CHARS: String = "abcdefghijklmnopqrstuvwxyz0123456789_."
 const MAX_PRODUCT_ID_LENGTH: int = 64
+## Provider error strings are untrusted free text: only short lower_snake
+## codes are passed on (to the UI and analytics), anything else is generic.
+const ERROR_CODE_CHARS: String = "abcdefghijklmnopqrstuvwxyz0123456789_"
+const MAX_ERROR_CODE_LENGTH: int = 40
 ## An item id whose first segment is one of these would grant currency or
 ## gameplay power; such products are rejected.
 const FORBIDDEN_ITEM_PREFIXES: PackedStringArray = [
@@ -203,13 +207,18 @@ func purchase(product_id: String) -> Dictionary:
 func restore_purchases() -> Dictionary:
 	if not _provider.is_available():
 		return {"ok": false, "error": ERR_UNAVAILABLE, "restored": [], "product_ids": []}
+	if _busy:
+		# A purchase or restore is already talking to the store.
+		return {"ok": false, "error": ERR_IN_PROGRESS, "restored": [], "product_ids": []}
+	_busy = true
 	var raw: Variant = await _provider.restore()
+	_busy = false
 	if typeof(raw) != TYPE_DICTIONARY:
 		return {"ok": false, "error": ERR_INVALID_RESPONSE, "restored": [], "product_ids": []}
 	var r: Dictionary = raw as Dictionary
 	if not (typeof(r.get("ok")) == TYPE_BOOL and bool(r["ok"])):
-		var err: String = str(r.get("error", ERR_FAILED))
-		return {"ok": false, "error": err if not err.is_empty() else ERR_FAILED, "restored": [], "product_ids": []}
+		var err: String = StoreService._error_code(r.get("error"))
+		return {"ok": false, "error": err, "restored": [], "product_ids": []}
 	var restored: Array[String] = []
 	var reported: Array[String] = []
 	var raw_ids: Variant = r.get("product_ids", [])
@@ -308,14 +317,27 @@ static func _purchase_error(raw: Variant) -> String:
 	var r: Dictionary = raw as Dictionary
 	var ok: bool = typeof(r.get("ok")) == TYPE_BOOL and bool(r["ok"])
 	if not ok:
-		var err: String = str(r.get("error", "")).to_lower()
-		if CANCEL_ALIASES.has(err):
-			return ERR_CANCELLED
-		return err if not err.is_empty() else ERR_FAILED
+		return StoreService._error_code(r.get("error"))
 	var receipt: Variant = r.get("receipt", "")
 	if typeof(receipt) != TYPE_STRING or (receipt as String).strip_edges().is_empty():
 		return ERR_INVALID_RESPONSE
 	return ""
+
+
+## Normalises a provider error: cancel spellings -> "cancelled"; short
+## lower_snake codes kept; empty, long or free-text values -> "purchase_failed".
+static func _error_code(raw: Variant) -> String:
+	if typeof(raw) != TYPE_STRING and typeof(raw) != TYPE_STRING_NAME:
+		return ERR_FAILED
+	var code: String = str(raw).strip_edges().to_lower().replace("-", "_").replace(" ", "_")
+	if CANCEL_ALIASES.has(code):
+		return ERR_CANCELLED
+	if code.is_empty() or code.length() > MAX_ERROR_CODE_LENGTH:
+		return ERR_FAILED
+	for i: int in code.length():
+		if not ERROR_CODE_CHARS.contains(code[i]):
+			return ERR_FAILED
+	return code
 
 
 static func _is_valid_product_id(id: String) -> bool:

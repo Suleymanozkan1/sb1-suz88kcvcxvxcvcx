@@ -46,8 +46,8 @@ func is_enabled() -> bool:
 
 ## Schedules the reminder for the next local day at [member reminder_hour].
 ## Returns true when a reminder was newly scheduled; false when opted out
-## (everything is cancelled), already scheduled for that day, or declined by
-## the platform.
+## (everything is cancelled), already scheduled for that day, the reminder
+## text is not translated, or the platform declined.
 func schedule_daily_reminder() -> bool:
 	if not is_enabled():
 		cancel_all()
@@ -56,7 +56,13 @@ func schedule_daily_reminder() -> bool:
 	var target_day: int = local_day(target)
 	if scheduled_day() == target_day:
 		return false
-	var ok: bool = _provider.schedule(DAILY_REMINDER_ID, tr(TITLE_KEY), tr(BODY_KEY), target)
+	var title: String = tr(TITLE_KEY)
+	var body: String = tr(BODY_KEY)
+	if title == TITLE_KEY or body == BODY_KEY:
+		# Strings not loaded: never push a raw translation key to the player.
+		GameLog.warn("notifications", "reminder text is not translated; nothing scheduled")
+		return false
+	var ok: bool = _provider.schedule(DAILY_REMINDER_ID, title, body, target)
 	if ok:
 		_profile.flags[STATE_FLAG] = target_day
 	return ok
