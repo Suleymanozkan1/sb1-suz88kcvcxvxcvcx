@@ -66,12 +66,13 @@ func test_auto_unlock_by_stars() -> void:
 
 
 func test_auto_unlock_by_player_level() -> void:
-	_progress["player_level"] = 10
+	_progress["player_level"] = 5
 	var granted: Array[String] = _service.check_auto_unlocks()
-	assert_has(granted, "core_electric")
-	assert_has(granted, "particle_bubbles")
-	assert_has(granted, "fx_soft_glow")
-	assert_false(granted.has("theme_royal"), "level 12 item still locked")
+	assert_has(granted, "core_electric", "level 5")
+	assert_has(granted, "particle_bubbles", "level 4")
+	assert_has(granted, "fx_soft_glow", "level 2")
+	assert_false(granted.has("trail_helix"), "level 6 item still locked")
+	assert_false(granted.has("avatar_crown"), "level 15 item still locked")
 
 
 func test_auto_unlock_by_perfects() -> void:
@@ -85,29 +86,32 @@ func test_auto_unlock_by_perfects() -> void:
 
 
 func test_auto_unlock_by_achievements() -> void:
-	_progress["achievements"] = ["boss_master", "high_combo"]
+	# Achievement ids are the meta module's (data/achievements/achievements.json).
+	_progress["achievements"] = ["boss_10", "combo_50", "first_perfect"]
 	var granted: Array[String] = _service.check_auto_unlocks()
 	assert_has(granted, "core_shadow")
 	assert_has(granted, "badge_boss_master")
-	assert_has(granted, "badge_high_combo")
+	assert_has(granted, "badge_combo_master")
 	assert_has(granted, "fx_prism")
+	assert_has(granted, "badge_first_perfect")
 	assert_false(granted.has("badge_daily_master"))
+	assert_false(granted.has("badge_grandmaster"))
 
 
 func test_auto_unlocks_never_grant_shop_or_premium_items() -> void:
-	_progress = {"total_stars": 1560, "player_level": 999, "perfects": 520, "achievements": ["boss_master"]}
+	_progress = {"total_stars": 1560, "player_level": 999, "perfects": 520, "achievements": ["boss_10"]}
 	_service.check_auto_unlocks()
 	assert_false(_service.owns("core_fire"), "coin item not free")
 	assert_false(_service.owns("core_nebula"), "gem item not free")
 	assert_false(_service.owns("core_inferno"), "premium item not free")
 	assert_true(_service.owns("core_prism"), "900 stars item granted")
-	assert_true(_service.owns("avatar_crown"), "level 40 item granted")
+	assert_true(_service.owns("avatar_crown"), "level 15 item granted")
 
 
 func test_invalid_progress_query_is_ignored() -> void:
 	var s: CosmeticService = CosmeticService.new(_profile, _bus, _catalog, _economy, func() -> Variant: return 42)
 	assert_empty(s.check_auto_unlocks(), "non-dictionary progress")
-	_progress = {"total_stars": "lots", "achievements": "boss_master"}
+	_progress = {"total_stars": "lots", "achievements": "boss_10"}
 	assert_empty(_service.check_auto_unlocks(), "wrongly typed fields count as zero")
 
 
@@ -137,7 +141,7 @@ func test_unlock_status_for_progress_items() -> void:
 	assert_true(bool(s["can_unlock_now"]))
 	assert_eq(int(s["progress"]), 90, "progress capped")
 	var ach: Dictionary = _service.unlock_status("badge_daily_master")
-	assert_eq(str(ach["requirement"]), "daily_master")
+	assert_eq(str(ach["requirement"]), "daily_30")
 	assert_eq(int(ach["target"]), 1)
 	assert_eq(int(ach["progress"]), 0)
 	var tier: Dictionary = _service.unlock_status("badge_perfect_expert")

@@ -141,14 +141,12 @@ func grant(id: String) -> bool:
 func purchase(id: String) -> bool:
 	if not catalog.has_item(id) or owns(id):
 		return false
-	var unlock: Dictionary = catalog.unlock_of(id)
-	var currency_name: String = str(unlock["type"])
-	var category: String = catalog.category_of(id)
-	if category == CosmeticCatalog.BADGE or not CosmeticCatalog.PURCHASABLE_UNLOCKS.has(currency_name):
+	var price: int = _sale_price(id)
+	var currency_name: String = str(catalog.unlock_of(id)["type"])
+	if price <= 0:
 		GameLog.info(LOG_CHANNEL, "item '%s' (%s) is not for sale" % [id, currency_name])
 		return false
-	var price: int = int(unlock["value"])
-	if price <= 0 or not _economy_ready():
+	if not _economy_ready():
 		return false
 	var currency: StringName = StringName(currency_name)
 	if not bool(_economy.call(METHOD_CAN_AFFORD, currency, price)):
@@ -180,8 +178,12 @@ func unlock_status(id: String) -> Dictionary:
 	var owned: bool = owns(id)
 	status["owned"] = owned
 	status["type"] = type
-	if CosmeticCatalog.PURCHASABLE_UNLOCKS.has(type):
-		_fill_price_status(status, type, int(unlock["value"]))
+	var price: int = _sale_price(id)
+	if price > 0:
+		_fill_price_status(status, type, price)
+	elif CosmeticCatalog.PURCHASABLE_UNLOCKS.has(type):
+		# Malformed sale data (e.g. a priced badge): shown locked, never buyable.
+		status["target"] = 1
 	elif type == CosmeticCatalog.UNLOCK_PREMIUM:
 		status["products"] = catalog.products_containing(id)
 		status["target"] = 1
@@ -222,11 +224,10 @@ func shop_items() -> Array[Dictionary]:
 	for it: Dictionary in catalog.items:
 		var id: String = str(it["id"])
 		var category: String = str(it["category"])
-		var unlock: Dictionary = catalog.unlock_of(id)
-		var currency_name: String = str(unlock["type"])
-		if category == CosmeticCatalog.BADGE or not CosmeticCatalog.PURCHASABLE_UNLOCKS.has(currency_name):
+		var price: int = _sale_price(id)
+		if price <= 0:
 			continue
-		var price: int = int(unlock["value"])
+		var currency_name: String = str(catalog.unlock_of(id)["type"])
 		rows.append(
 			{
 				"id": id,
@@ -317,7 +318,10 @@ func grant_from_product(product_id: String) -> Array[String]:
 	if typeof(list) != TYPE_ARRAY:
 		return granted
 	for raw: Variant in list as Array:
-		var id: String = str(raw)
+		if typeof(raw) != TYPE_STRING:
+			GameLog.warn(LOG_CHANNEL, "product '%s' lists a non-id entry %s" % [product_id, str(raw)])
+			continue
+		var id: String = raw as String
 		if grant(id):
 			granted.append(id)
 	return granted
@@ -334,9 +338,24 @@ func _params(category: String, id: String) -> Dictionary:
 	if catalog.category_of(resolved) != category:
 		GameLog.warn(LOG_CHANNEL, "'%s' is not a %s item; using the default" % [resolved, category])
 		resolved = catalog.default_for(category)
-	var out: Dictionary = catalog.parse_params(category, catalog.item(resolved).get("params", {}))
+	# typed_params() parses in place (no item copy); {} only for an empty catalog.
+	var out: Dictionary = catalog.typed_params(resolved)
+	if out.is_empty():
+		out = catalog.parse_params(category, {})
 	out["id"] = resolved
 	return out
+
+
+## The coin/gem price of a purchasable item, or 0 when it is not for sale
+## (badges, premium/earned items, unknown ids or malformed prices).
+func _sale_price(id: String) -> int:
+	if catalog.category_of(id) == CosmeticCatalog.BADGE:
+		return 0
+	var unlock: Dictionary = catalog.unlock_of(id)
+	if not CosmeticCatalog.PURCHASABLE_UNLOCKS.has(str(unlock["type"])):
+		return 0
+	var value: Variant = unlock["value"]
+	return maxi(0, value as int) if typeof(value) == TYPE_INT else 0
 
 
 func _economy_ready() -> bool:

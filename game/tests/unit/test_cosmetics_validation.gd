@@ -200,6 +200,7 @@ func _fixture() -> Dictionary:
 		var id: String = "t_%s" % category.get_slice("_", 0)
 		items.append(_item(id, category, {"type": "default"}, _params_for(category)))
 	items.append(_item("t_premium", "core_skin", {"type": "premium"}, _params_for("core_skin")))
+	items.append(_item("badge_perfect_expert", "badge", {"type": "perfects", "value": "expert"}, _params_for("badge")))
 	var real: CosmeticCatalog = CosmeticCatalog.load_default()
 	return {
 		"schema_version": 1,
@@ -210,7 +211,7 @@ func _fixture() -> Dictionary:
 		"frame_patterns": Array(real.options("frame_patterns")),
 		"avatar_glyphs": Array(real.options("avatar_glyphs")),
 		"badge_icons": Array(real.options("badge_icons")),
-		"perfect_tiers": Array(real.options("perfect_tiers")),
+		"perfect_tiers": ["expert"],
 		"ranges": {"core_skin.anim_speed": [0.25, 3.0], "effect.shockwave": [0.0, 2.0]},
 		"items": items,
 	}

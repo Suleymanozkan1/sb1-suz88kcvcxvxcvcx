@@ -148,13 +148,13 @@ func test_equip_owned_item_emits_signal() -> void:
 
 
 func test_grant_duplicate_returns_false() -> void:
-	assert_true(_service.grant("badge_high_combo"), "first grant is new")
-	assert_false(_service.grant("badge_high_combo"), "duplicate")
+	assert_true(_service.grant("badge_combo_master"), "first grant is new")
+	assert_false(_service.grant("badge_combo_master"), "duplicate")
 	assert_false(_service.grant("no_such_item"), "unknown id")
-	assert_eq(_unlocked, ["badge_high_combo"], "one unlock signal")
+	assert_eq(_unlocked, ["badge_combo_master"], "one unlock signal")
 	var copies: int = 0
 	for id: String in _profile.cosmetics_owned:
-		if id == "badge_high_combo":
+		if id == "badge_combo_master":
 			copies += 1
 	assert_eq(copies, 1, "stored once")
 

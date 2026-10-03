@@ -24,6 +24,16 @@ const FORBIDDEN_WORDS: PackedStringArray = [
 ]
 const REQUIRED_PRODUCTS: PackedStringArray = ["pack_neon_pulse", "starter_cosmetic_bundle"]
 const PRODUCT_ID_CHARS: String = "abcdefghijklmnopqrstuvwxyz0123456789_."
+## Achievement definitions owned by the meta module (checked once merged).
+const ACHIEVEMENTS_PATH: String = "res://data/achievements/achievements.json"
+## 520 campaign levels x 3 stars.
+const MAX_STARS: int = 1560
+## With the shared XP curve (120 * level^1.25) and run XP (10 + 5 per star) a
+## full three-star campaign lands around player level 12; 15 needs more play.
+const MAX_PLAYER_LEVEL_TARGET: int = 15
+const MAX_PERFECTS_TARGET: int = 520
+## Typical cosmetic price band from the economy balance (coins).
+const COIN_PRICE_RANGE: Vector2i = Vector2i(300, 1500)
 
 var _catalog: CosmeticCatalog = null
 var _en: Dictionary = {}
@@ -98,6 +108,9 @@ func test_every_item_and_product_name_translated() -> void:
 		keys.append("cos.rarity.%s" % rarity)
 	for type: String in CosmeticCatalog.UNLOCK_TYPES:
 		keys.append("cos.unlock.%s" % type)
+	keys.append("cos.unlock.perfects_tier")
+	for tier: String in _catalog.options("perfect_tiers"):
+		keys.append("cos.tier.%s" % tier)
 	for key: String in keys:
 		assert_true(_en.has(key) and not str(_en[key]).is_empty(), "en missing %s" % key)
 		assert_true(_tr.has(key) and not str(_tr[key]).is_empty(), "tr missing %s" % key)
@@ -123,6 +136,42 @@ func test_turkish_uses_turkish_characters() -> void:
 	var joined: String = " ".join(PackedStringArray(_tr.values()))
 	for ch: String in ["ç", "ş", "ğ", "ı", "ö", "ü", "İ"]:
 		assert_true(joined.contains(ch), "Turkish text contains %s" % ch)
+
+
+func test_unlock_targets_are_reachable_and_prices_in_band() -> void:
+	var limits: Dictionary = {
+		"stars": MAX_STARS,
+		"player_level": MAX_PLAYER_LEVEL_TARGET,
+		"perfects": MAX_PERFECTS_TARGET,
+	}
+	for it: Dictionary in _catalog.items:
+		var id: String = str(it["id"])
+		var unlock: Dictionary = _catalog.unlock_of(id)
+		var type: String = str(unlock["type"])
+		if limits.has(type) and typeof(unlock["value"]) == TYPE_INT:
+			assert_le(int(unlock["value"]), int(limits[type]), "%s %s target reachable" % [id, type])
+		if type == "coins":
+			var price: int = int(unlock["value"])
+			assert_true(price >= COIN_PRICE_RANGE.x and price <= COIN_PRICE_RANGE.y, "%s price %d" % [id, price])
+
+
+func test_achievement_ids_and_badges_match_meta_data() -> void:
+	if not FileAccess.file_exists(ACHIEVEMENTS_PATH):
+		assert_true(true, "meta achievements not merged into this tree yet")
+		return
+	var raw: Dictionary = JsonIO.read_dict(ACHIEVEMENTS_PATH)
+	var achievement_ids: PackedStringArray = PackedStringArray()
+	for entry: Variant in raw.get("achievements", []) as Array:
+		var a: Dictionary = entry as Dictionary
+		achievement_ids.append(str(a.get("id", "")))
+		var reward: Dictionary = a.get("reward", {}) as Dictionary
+		if reward.has("badge"):
+			var badge: String = str(reward["badge"])
+			assert_eq(_catalog.category_of(badge), "badge", "achievement %s rewards defined badge %s" % [a["id"], badge])
+	for it: Dictionary in _catalog.items:
+		var unlock: Dictionary = _catalog.unlock_of(str(it["id"]))
+		if str(unlock["type"]) == "achievement":
+			assert_has(achievement_ids, str(unlock["value"]), "%s unlock achievement exists" % it["id"])
 
 
 func _looks_like_gameplay(id: String) -> bool:

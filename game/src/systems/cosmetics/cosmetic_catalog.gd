@@ -78,6 +78,14 @@ const PRODUCT_TYPE: String = "non_consumable"
 ## is rejected so products can never grant currency or gameplay power.
 const PRODUCT_FIELDS: PackedStringArray = ["id", "type", "name_key", "desc_key", "items", "display_price_hint"]
 const ID_CHARS: String = "abcdefghijklmnopqrstuvwxyz0123456789_"
+const HEX_DIGITS: String = "0123456789abcdef"
+## The reward engine grants "badge_perfect_<tier>" on a tier's first perfect
+## run, so a tier-valued perfects unlock is only obtainable on that badge.
+const PERFECT_TIER_BADGE_PREFIX: String = "badge_perfect_"
+const KEY_PREFIX: String = "cos."
+const CONFIG_RANGES: String = "ranges"
+const CONFIG_MINIMUMS: String = "min_per_category"
+const CONFIG_TIERS: String = "perfect_tiers"
 
 ## Typed parameter schema per category.
 const PARAM_SCHEMA: Dictionary = {
@@ -269,20 +277,22 @@ func parse_params(category: String, raw: Variant) -> Dictionary:
 
 
 ## Returns every problem found in the data (empty when the catalog is sound):
-## load problems, duplicate ids, missing/duplicate defaults, unknown unlock
-## types or values, missing/invalid params, purchasable badges, premium items
-## that no product sells and products that reference unknown or non-premium
-## ids or carry anything but cosmetic items.
+## load problems, malformed config sections (option lists, ranges,
+## minimums), duplicate ids, missing/duplicate defaults, unknown unlock types
+## or values, tier perfects unlocks on anything but "badge_perfect_<tier>"
+## (and tiers without that badge), missing/invalid params or translation
+## keys, purchasable badges, premium items that no product sells and products
+## that reference unknown or non-premium ids or carry anything but cosmetic
+## items. Malformed data is reported, never fatal.
 func validate() -> PackedStringArray:
 	var errors: PackedStringArray = _load_errors.duplicate()
-	if int(_config.get("schema_version", 0)) != SUPPORTED_SCHEMA:
+	if CosmeticCatalog._to_int(_config.get("schema_version"), 0) != SUPPORTED_SCHEMA:
 		errors.append("unsupported cosmetics schema_version %s" % str(_config.get("schema_version")))
-	for list_name: String in OPTION_LISTS.values():
-		if options(list_name).is_empty():
-			errors.append("option list '%s' missing" % list_name)
+	errors.append_array(_config_errors())
 	for it: Dictionary in items:
 		errors.append_array(_item_errors(it))
 	errors.append_array(_category_errors())
+	errors.append_array(_tier_badge_errors())
 	errors.append_array(_product_errors())
 	return errors
 
@@ -295,14 +305,18 @@ static func parse_color(raw: Variant, fallback: Color = FALLBACK_COLOR) -> Color
 	return Color.html(raw as String)
 
 
-## True for "#rrggbb" / "#rrggbbaa" strings.
+## True for "#rrggbb" / "#rrggbbaa" strings (hex digits only: no sign, no
+## spaces).
 static func is_hex_color(text: String) -> bool:
 	if not text.begins_with("#"):
 		return false
-	var hex: String = text.substr(1)
+	var hex: String = text.substr(1).to_lower()
 	if hex.length() != 6 and hex.length() != 8:
 		return false
-	return hex.is_valid_hex_number(false)
+	for ch: String in hex:
+		if not HEX_DIGITS.contains(ch):
+			return false
+	return true
 
 
 func _ingest(cosmetics: Dictionary, products_data: Dictionary) -> void:
@@ -360,13 +374,29 @@ func _ingest_item(raw: Variant, known: PackedStringArray) -> void:
 		_defaults[category] = id
 
 
+## Shape problems of the top-level configuration (option lists, ranges and
+## per-category minimums).
+func _config_errors() -> PackedStringArray:
+	var errors: PackedStringArray = PackedStringArray()
+	for list_name: String in OPTION_LISTS.values():
+		if options(list_name).is_empty():
+			errors.append("option list '%s' missing" % list_name)
+	for section: String in [CONFIG_RANGES, CONFIG_MINIMUMS]:
+		if _config.has(section) and typeof(_config[section]) != TYPE_DICTIONARY:
+			errors.append("'%s' must be an object" % section)
+	var ranges: Dictionary = _config_dict(CONFIG_RANGES)
+	for key: Variant in ranges:
+		if _range_for(str(key)) == Vector2.ZERO:
+			errors.append("range '%s' must be [min, max] numbers with min < max" % str(key))
+	return errors
+
+
 func _item_errors(it: Dictionary) -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
 	var id: String = str(it["id"])
 	var category: String = str(it["category"])
-	var name_key: Variant = it.get("name_key")
-	if typeof(name_key) != TYPE_STRING or not (name_key as String).begins_with("cos."):
-		errors.append("%s: name_key missing or not a cos.* key" % id)
+	errors.append_array(CosmeticCatalog._key_errors(id, "name_key", it.get("name_key"), true))
+	errors.append_array(CosmeticCatalog._key_errors(id, "desc_key", it.get("desc_key"), false))
 	var rarities: PackedStringArray = options("rarities")
 	if rarities.is_empty():
 		rarities = FALLBACK_RARITIES
@@ -394,10 +424,13 @@ func _unlock_errors(id: String, category: String, raw: Variant) -> PackedStringA
 		errors.append("%s: unlock %s needs a positive integer value" % [id, type])
 	elif type == UNLOCK_ACHIEVEMENT and (typeof(value) != TYPE_STRING or (value as String).is_empty()):
 		errors.append("%s: achievement unlock needs an achievement id" % id)
-	elif type == UNLOCK_PERFECTS:
-		var tier_ok: bool = typeof(value) == TYPE_STRING and options("perfect_tiers").has(value as String)
-		if not tier_ok and CosmeticCatalog._to_int(value, 0) <= 0:
+	elif type == UNLOCK_PERFECTS and typeof(value) == TYPE_STRING:
+		if not options(CONFIG_TIERS).has(value as String):
 			errors.append("%s: perfects unlock needs a positive count or a known tier" % id)
+		elif id != PERFECT_TIER_BADGE_PREFIX + (value as String):
+			errors.append("%s: a tier perfects unlock is only granted to %s%s" % [id, PERFECT_TIER_BADGE_PREFIX, value])
+	elif type == UNLOCK_PERFECTS and CosmeticCatalog._to_int(value, 0) <= 0:
+		errors.append("%s: perfects unlock needs a positive count or a known tier" % id)
 	elif type == UNLOCK_PREMIUM and products_containing(id).is_empty():
 		errors.append("%s: premium item is not sold in any product" % id)
 	return errors
@@ -470,7 +503,7 @@ func _string_problem(key: String, value: Variant) -> String:
 
 func _category_errors() -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
-	var minimums: Dictionary = _config.get("min_per_category", {}) as Dictionary
+	var minimums: Dictionary = _config_dict(CONFIG_MINIMUMS)
 	for category: String in categories():
 		var defaults: int = 0
 		var count: int = 0
@@ -490,6 +523,17 @@ func _category_errors() -> PackedStringArray:
 	return errors
 
 
+## Every difficulty tier needs its "badge_perfect_<tier>" badge: the reward
+## engine grants exactly that id on the tier's first perfect run.
+func _tier_badge_errors() -> PackedStringArray:
+	var errors: PackedStringArray = PackedStringArray()
+	for tier: String in options(CONFIG_TIERS):
+		var badge_id: String = PERFECT_TIER_BADGE_PREFIX + tier
+		if category_of(badge_id) != BADGE:
+			errors.append("perfect tier '%s' has no badge %s" % [tier, badge_id])
+	return errors
+
+
 func _product_errors() -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
 	var sold: Dictionary = {}
@@ -499,8 +543,8 @@ func _product_errors() -> PackedStringArray:
 			errors.append("invalid product id '%s'" % pid)
 		if str(p.get("type", "")) != PRODUCT_TYPE:
 			errors.append("%s: product type must be %s" % [pid, PRODUCT_TYPE])
-		if typeof(p.get("name_key")) != TYPE_STRING or not str(p["name_key"]).begins_with("cos."):
-			errors.append("%s: name_key missing or not a cos.* key" % pid)
+		errors.append_array(CosmeticCatalog._key_errors(pid, "name_key", p.get("name_key"), true))
+		errors.append_array(CosmeticCatalog._key_errors(pid, "desc_key", p.get("desc_key"), false))
 		for field: Variant in p.keys():
 			if not PRODUCT_FIELDS.has(str(field)):
 				errors.append("%s: unexpected field '%s' (products hold cosmetic ids only)" % [pid, str(field)])
@@ -562,14 +606,34 @@ func _parse_option(key: String, value: Variant) -> String:
 	return allowed[0]
 
 
-## [x, y] range for a float param, or Vector2.ZERO when unconstrained.
+## [x, y] range for a float param, or Vector2.ZERO when unconstrained or the
+## configured range is malformed (reported by [method validate]).
 func _range_for(key: String) -> Vector2:
-	var ranges: Dictionary = _config.get("ranges", {}) as Dictionary
-	var raw: Variant = ranges.get(key)
+	var raw: Variant = _config_dict(CONFIG_RANGES).get(key)
 	if typeof(raw) != TYPE_ARRAY or (raw as Array).size() != 2:
 		return Vector2.ZERO
 	var pair: Array = raw as Array
-	return Vector2(float(pair[0]), float(pair[1]))
+	for bound: Variant in pair:
+		if typeof(bound) != TYPE_FLOAT and typeof(bound) != TYPE_INT:
+			return Vector2.ZERO
+	var r: Vector2 = Vector2(float(pair[0]), float(pair[1]))
+	return r if r.x < r.y else Vector2.ZERO
+
+
+## A top-level config object, or {} when it is missing or not an object.
+func _config_dict(section: String) -> Dictionary:
+	var raw: Variant = _config.get(section)
+	return raw as Dictionary if typeof(raw) == TYPE_DICTIONARY else {}
+
+
+## Problems with a translation key field ([param required] = must exist).
+static func _key_errors(owner: String, field: String, value: Variant, required: bool) -> PackedStringArray:
+	var errors: PackedStringArray = PackedStringArray()
+	if value == null and not required:
+		return errors
+	if typeof(value) != TYPE_STRING or not (value as String).begins_with(KEY_PREFIX):
+		errors.append("%s: %s missing or not a %s* key" % [owner, field, KEY_PREFIX])
+	return errors
 
 
 static func _parse_color_list(value: Variant) -> Array[Color]:
