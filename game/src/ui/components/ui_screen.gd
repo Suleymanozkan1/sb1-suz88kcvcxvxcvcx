@@ -12,7 +12,7 @@ var _tween: Tween
 
 
 func _init() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	theme = UiTheme.get_theme()
 
@@ -45,7 +45,7 @@ func make_safe_root() -> SafeAreaContainer:
 func add_scrim(alpha: float = 0.82) -> ColorRect:
 	var scrim: ColorRect = ColorRect.new()
 	scrim.color = Palette.with_alpha(UiTokens.SCRIM, alpha)
-	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(scrim)
 	move_child(scrim, 0)

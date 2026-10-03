@@ -17,7 +17,7 @@ var _summary: Label
 func build() -> void:
 	var bg: ColorRect = ColorRect.new()
 	bg.color = Palette.INK
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var root: SafeAreaContainer = make_safe_root()
 	var col: VBoxContainer = UiKit.vbox()
@@ -66,7 +66,7 @@ func _tile(l: Dictionary) -> Control:
 			level_selected.emit(id)
 	)
 	var col: VBoxContainer = UiKit.vbox(UiTokens.UNIT)
-	col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(col)

@@ -41,7 +41,7 @@ var _gems: Label
 func build() -> void:
 	var bg: ColorRect = ColorRect.new()
 	bg.color = Palette.INK
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var root: SafeAreaContainer = make_safe_root()
 	var col: VBoxContainer = UiKit.vbox()
@@ -203,7 +203,7 @@ func _tile(it: Dictionary) -> Control:
 	)
 	var swatch: CosmeticSwatch = CosmeticSwatch.new()
 	swatch.setup(str(it.get("category", "")), it.get("params", {}) as Dictionary, bool(it.get("owned", false)))
-	swatch.set_anchors_preset(Control.PRESET_FULL_RECT)
+	swatch.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(swatch)
 	if bool(it.get("equipped", false)):

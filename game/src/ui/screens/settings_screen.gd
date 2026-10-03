@@ -23,7 +23,7 @@ var _licenses_box: VBoxContainer
 func build() -> void:
 	var bg: ColorRect = ColorRect.new()
 	bg.color = Palette.INK
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var root: SafeAreaContainer = make_safe_root()
 	var col: VBoxContainer = UiKit.vbox()

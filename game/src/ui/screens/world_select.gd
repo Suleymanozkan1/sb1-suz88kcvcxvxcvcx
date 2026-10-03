@@ -15,7 +15,7 @@ var _list: VBoxContainer
 func build() -> void:
 	var bg: ColorRect = ColorRect.new()
 	bg.color = Palette.INK
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var root: SafeAreaContainer = make_safe_root()
 	var col: VBoxContainer = UiKit.vbox()
@@ -55,7 +55,7 @@ func _world_card(w: Dictionary) -> Control:
 			world_selected.emit(id)
 	)
 	var row: HBoxContainer = UiKit.hbox(UiTokens.GUTTER)
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(row)
 	var stripe: ColorRect = ColorRect.new()

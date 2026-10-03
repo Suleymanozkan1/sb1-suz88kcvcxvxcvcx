@@ -63,7 +63,7 @@ func build() -> void:
 	center.add_child(_combo_box)
 	_combo = UiKit.text("", &"h3", Palette.PRIMARY)
 	_combo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_combo.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_combo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_combo_box.add_child(_combo)
 	var right: HBoxContainer = UiKit.hbox(UiTokens.UNIT)
 	right.custom_minimum_size = Vector2(160, 0)

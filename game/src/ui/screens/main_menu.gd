@@ -27,7 +27,7 @@ var _daily_badge: Label
 func build() -> void:
 	var shade: ColorRect = ColorRect.new()
 	shade.color = Palette.with_alpha(Palette.INK, 0.35)
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
 	var root: SafeAreaContainer = make_safe_root()

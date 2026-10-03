@@ -169,7 +169,6 @@ func _boot_feel() -> void:
 
 
 func _wire() -> void:
-	bus.combo_reached.connect(missions.on_combo)
 	for sig: Signal in [
 		bus.currency_changed,
 		bus.reward_granted,

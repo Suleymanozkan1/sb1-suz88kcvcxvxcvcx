@@ -35,7 +35,7 @@ static func main_menu(s: AppServices) -> Dictionary:
 	var need: int = maxi(1, s.progression.xp_for_next(p.player_level))
 	var next_id: String = s.progression.next_level_to_play()
 	var loc: Dictionary = WorldCatalog.parse_level_id(next_id)
-	var world: Dictionary = s.catalog.world_at(int(loc.get("world", 1)))
+	var world: Dictionary = s.catalog.world_at(int(loc.get("world_index", 1)))
 	var hint: Dictionary = s.progression.next_unlock_hint()
 	var unlock: Dictionary = {}
 	if not hint.is_empty():
@@ -57,7 +57,7 @@ static func main_menu(s: AppServices) -> Dictionary:
 		"player_level": p.player_level,
 		"xp_progress": float(p.xp) / float(need),
 		"next_level_label":
-		t("menu.next_level").format({"world": str(world.get("name", "")), "n": int(loc.get("local", 1))}),
+		t("menu.next_level").format({"world": str(world.get("name", "")), "n": int(loc.get("local_index", 1))}),
 		"unlock": unlock,
 		"daily_badge": badge,
 	}
@@ -259,10 +259,14 @@ static func cosmetics(s: AppServices, mode: StringName) -> Dictionary:
 		for item: Dictionary in s.cosmetics_catalog.in_category(str(c2["id"])):
 			var id: String = str(item.get("id", ""))
 			var status: Dictionary = s.cosmetics.unlock_status(id)
-			var price: Dictionary = status.get("price", {}) as Dictionary
+			# The service reports {"currency", "amount"}; the screen shows {"coins": n} / {"gems": n}.
+			var raw_price: Dictionary = status.get("price", {}) as Dictionary
+			var price: Dictionary = {}
 			var affordable: bool = true
-			for cur: Variant in price.keys():
-				affordable = affordable and s.economy.can_afford(StringName(str(cur)), int(price[cur]))
+			if raw_price.has("currency") and int(raw_price.get("amount", 0)) > 0:
+				var cur: String = str(raw_price["currency"])
+				price[cur] = int(raw_price["amount"])
+				affordable = s.economy.can_afford(StringName(cur), int(raw_price["amount"]))
 			(
 				items
 				. append(

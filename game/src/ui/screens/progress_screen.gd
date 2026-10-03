@@ -40,7 +40,7 @@ var _board_ids: PackedStringArray = PackedStringArray()
 func build() -> void:
 	var bg: ColorRect = ColorRect.new()
 	bg.color = Palette.INK
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var root: SafeAreaContainer = make_safe_root()
 	var col: VBoxContainer = UiKit.vbox()
@@ -68,7 +68,7 @@ func build() -> void:
 
 func _page(stack: Control, content: Control) -> ScrollContainer:
 	var scroll: ScrollContainer = ScrollContainer.new()
-	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(content)

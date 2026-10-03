@@ -14,7 +14,7 @@ var debug_safe_rect: Rect2i = Rect2i()
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	get_viewport().size_changed.connect(apply_safe_area)
 	apply_safe_area()
