@@ -5,6 +5,9 @@ extends HBoxContainer
 
 signal selected(option_id: String)
 
+## Compact segments size to their label (for long, scrollable tab rows);
+## otherwise segments share the row equally.
+var compact: bool = false
 var options: PackedStringArray = PackedStringArray()
 var current: String = ""
 var _buttons: Dictionary = {}
@@ -16,8 +19,11 @@ func setup(option_ids: PackedStringArray, labels: PackedStringArray, initial: St
 	for i: int in option_ids.size():
 		var id: String = option_ids[i]
 		var b: UiButton = UiKit.button(labels[i] if i < labels.size() else id, UiKit.ButtonRole.CHOICE)
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.custom_minimum_size = Vector2(0, UiTokens.BUTTON_HEIGHT)
+		if compact:
+			b.custom_minimum_size = Vector2(UiTokens.u(14), UiTokens.BUTTON_HEIGHT)
+		else:
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			b.custom_minimum_size = Vector2(0, UiTokens.BUTTON_HEIGHT)
 		b.add_theme_font_size_override("font_size", UiTokens.CAPTION[0] + 2)
 		b.pressed.connect(func() -> void: select(id, true))
 		add_child(b)

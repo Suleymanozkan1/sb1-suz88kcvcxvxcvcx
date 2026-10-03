@@ -37,6 +37,9 @@ var _autopilot_index: int = 0
 
 var _accum: float = 0.0
 var _pending_taps: int = 0
+## Tick of the last applied player tap (queued taps keep the replay's minimum
+## spacing, so honest runs always pass server validation).
+var _last_tap_tick: int = -RunReplay.MIN_TAP_GAP_TICKS
 var _frame_events: PackedInt32Array = PackedInt32Array()
 
 
@@ -92,6 +95,7 @@ func _reset_run_state() -> void:
 	revived = false
 	_accum = 0.0
 	_pending_taps = 0
+	_last_tap_tick = -RunReplay.MIN_TAP_GAP_TICKS
 	_frame_events.clear()
 	_autopilot_index = 0
 	time_scale = 1.0
@@ -179,8 +183,9 @@ func _next_tap() -> bool:
 			_autopilot_index += 1
 			return true
 		return false
-	if _pending_taps > 0:
+	if _pending_taps > 0 and sim.tick - _last_tap_tick >= RunReplay.MIN_TAP_GAP_TICKS:
 		_pending_taps -= 1
+		_last_tap_tick = sim.tick
 		return true
 	return false
 

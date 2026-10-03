@@ -31,7 +31,7 @@ var _seq_tween: Tween
 
 func build() -> void:
 	is_overlay = true
-	add_scrim(0.86)
+	add_scrim(0.93)
 	var root: SafeAreaContainer = make_safe_root()
 	var col: VBoxContainer = UiKit.vbox(UiTokens.GUTTER)
 	root.add_child(col)
@@ -107,6 +107,8 @@ func enter(payload: Dictionary) -> void:
 func _animate(cells: Array[Control], labels: Array[Label], targets: Array[int]) -> void:
 	if _seq_tween != null:
 		_seq_tween.kill()
+	if cells.is_empty():
+		return
 	if reduce_motion:
 		for i: int in labels.size():
 			labels[i].text = "+" + UiKit.format_int(targets[i])

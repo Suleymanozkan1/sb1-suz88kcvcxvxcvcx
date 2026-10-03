@@ -72,7 +72,9 @@ func test_accepts_genuine_campaign_solution_replays() -> void:
 		assert_true(bool(verdict["valid"]), "%s valid: %s" % [level_id, str(verdict["details"])])
 		assert_empty(verdict["reasons"] as PackedStringArray)
 		assert_eq(int(verdict["score"]), int(submission["score"]), "%s authoritative score" % level_id)
-		assert_eq(int(verdict["score"]), int((level["solution"] as Dictionary)["score"]), "%s matches stored plan" % level_id)
+		assert_eq(
+			int(verdict["score"]), int((level["solution"] as Dictionary)["score"]), "%s matches stored plan" % level_id
+		)
 
 
 func test_accepts_every_ranked_board_for_the_run() -> void:
@@ -193,9 +195,20 @@ func test_rejects_malformed_submissions() -> void:
 func test_rejects_malformed_replay_fields_without_simulating() -> void:
 	var level: Dictionary = _repo.load_level("w03_l10")
 	var cases: Array[Array] = [
-		["seed", null], ["seed", "123"], ["seed", -1], ["seed", 1.5], ["taps", [null]], ["taps", ["30"]],
-		["taps", [30.5]], ["taps", [99999999]], ["taps", "30,90"], ["end_tick", "late"], ["end_tick", 0],
-		["mode", 7], ["level_id", null], ["sim_version", null],
+		["seed", null],
+		["seed", "123"],
+		["seed", -1],
+		["seed", 1.5],
+		["taps", [null]],
+		["taps", ["30"]],
+		["taps", [30.5]],
+		["taps", [99999999]],
+		["taps", "30,90"],
+		["end_tick", "late"],
+		["end_tick", 0],
+		["mode", 7],
+		["level_id", null],
+		["sim_version", null],
 	]
 	for pair: Array in cases:
 		var submission: Dictionary = _campaign_submission("w03_l10")
@@ -217,14 +230,24 @@ func test_rejects_malformed_replay_fields_without_simulating() -> void:
 func test_mode_must_fit_the_level_kind() -> void:
 	var level: Dictionary = _repo.load_level("w03_l10")
 	var endless: Dictionary = _submit(level, _replay(level, &"endless", _solution_taps(level)), "alltime:endless")
-	assert_has(_verifier.verify(endless, level)["reasons"], ReplayVerifier.REASON_MODE_MISMATCH, "campaign run on endless")
-	var rush: Dictionary = _submit(level, _replay(level, &"boss_rush", _solution_taps(level)), "alltime:boss_rush")
-	assert_has(_verifier.verify(rush, level)["reasons"], ReplayVerifier.REASON_MODE_MISMATCH, "boss rush, normal level")
+	assert_has(
+		_verifier.verify(endless, level)["reasons"], ReplayVerifier.REASON_MODE_MISMATCH, "campaign run on endless"
+	)
+	var daily_on_campaign: Dictionary = _submit(level, _replay(level, &"daily", _solution_taps(level)), "")
+	assert_has(
+		_verifier.verify(daily_on_campaign, level)["reasons"],
+		ReplayVerifier.REASON_MODE_MISMATCH,
+		"daily run, campaign level"
+	)
+	# Boss rush scores are a sum over several bosses with no single replay to
+	# re-simulate, so the mode is unranked rather than half-verified.
 	var boss: Dictionary = _repo.load_level("w01_l52")
 	assert_eq(str(boss["kind"]), "boss")
-	var real_rush: Dictionary = _submit(boss, _replay(boss, &"boss_rush", _solution_taps(boss)), "alltime:boss_rush")
-	var verdict: Dictionary = _verifier.verify(real_rush, boss)
-	assert_true(bool(verdict["valid"]), "boss level in boss rush: %s" % str(verdict["details"]))
+	var rush: Dictionary = _submit(boss, _replay(boss, &"boss_rush", _solution_taps(boss)), "alltime:boss_rush")
+	assert_has(_verifier.verify(rush, boss)["reasons"], ReplayVerifier.REASON_UNRANKED_MODE, "boss rush is unranked")
+	var hard: Dictionary = _submit(boss, _replay(boss, &"classic", _solution_taps(boss)), "alltime:classic")
+	var verdict: Dictionary = _verifier.verify(hard, boss)
+	assert_true(bool(verdict["valid"]), "boss level in classic: %s" % str(verdict["details"]))
 
 
 func test_daily_window_reason_uses_server_clock_only() -> void:
@@ -266,8 +289,13 @@ func test_daily_window_uses_server_clock() -> void:
 func test_mode_rules_are_data_driven() -> void:
 	var cfg: Dictionary = _config.duplicate(true)
 	(cfg["modes"] as Dictionary)["practice"] = {
-		"ranked": true, "requires_completion": false, "level_board": false, "shields": false, "zen": false,
-		"speed_scale": 1.0, "time_limit": 0.0,
+		"ranked": true,
+		"requires_completion": false,
+		"level_board": false,
+		"shields": false,
+		"zen": false,
+		"speed_scale": 1.0,
+		"time_limit": 0.0,
 	}
 	var verifier: ReplayVerifier = ReplayVerifier.new(_clock, cfg)
 	var level: Dictionary = _repo.load_level("w03_l10")
@@ -275,8 +303,12 @@ func test_mode_rules_are_data_driven() -> void:
 	var sim: FluxSim = verifier.simulate(level, replay, (cfg["modes"] as Dictionary)["practice"] as Dictionary)
 	replay.end_tick = sim.tick
 	var submission: Dictionary = {
-		"board": "alltime:practice", "score": sim.score, "replay": replay.to_dict(), "level_id": "w03_l10",
-		"mode": "practice", "sim_version": RunReplay.SIM_VERSION,
+		"board": "alltime:practice",
+		"score": sim.score,
+		"replay": replay.to_dict(),
+		"level_id": "w03_l10",
+		"mode": "practice",
+		"sim_version": RunReplay.SIM_VERSION,
 	}
 	assert_true(bool(verifier.verify(submission, level)["valid"]), "failed run allowed when completion not required")
 	var timed: Dictionary = {"shields": true, "time_limit": 2.0}

@@ -197,7 +197,7 @@ func _mission_row(m: Dictionary) -> PanelContainer:
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var target: int = maxi(1, int(m.get("target", 1)))
 	var progress: int = clampi(int(m.get("progress", 0)), 0, target)
-	var desc: Label = UiKit.text(tr(str(m.get("desc_key", ""))).format({"n": target}), &"body")
+	var desc: Label = UiKit.text(tr(str(m.get("desc_key", ""))).format({"n": target, "target": target}), &"body")
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(desc)
 	var meter_row: HBoxContainer = UiKit.hbox(UiTokens.UNIT)

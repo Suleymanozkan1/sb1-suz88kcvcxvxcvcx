@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS: Dictionary = {
 	"quality": "auto",
 	"battery_saver": false,
 	"language": "auto",
-	"analytics": true,
+	"analytics": false,
 	"reduce_motion": false,
 	"colorblind": false,
 }
@@ -74,22 +74,24 @@ func level_result(level_id: String) -> Dictionary:
 
 
 func stars_for(level_id: String) -> int:
-	return int(level_result(level_id).get("stars", 0))
+	return _int(level_result(level_id), "stars", 0)
 
 
 func is_cleared(level_id: String) -> bool:
-	return int(level_result(level_id).get("clears", 0)) > 0
+	return _int(level_result(level_id), "clears", 0) > 0
 
 
 func total_stars() -> int:
 	var total: int = 0
-	for id: String in levels:
-		total += int((levels[id] as Dictionary).get("stars", 0))
+	for id: Variant in levels:
+		var r: Variant = levels[id]
+		if typeof(r) == TYPE_DICTIONARY:
+			total += _int(r as Dictionary, "stars", 0)
 	return total
 
 
 func stat(name: String) -> int:
-	return int(stats.get(name, 0))
+	return _int(stats, name, 0)
 
 
 func setting(key: String) -> Variant:
@@ -170,6 +172,26 @@ static func _int(d: Dictionary, key: String, fallback: int) -> int:
 	return fallback
 
 
+## Hostile or corrupted saves can hold any JSON type: only real booleans (or
+## numbers) count as true, everything else falls back to false.
+static func _bool(d: Dictionary, key: String) -> bool:
+	var v: Variant = d.get(key, false)
+	match typeof(v):
+		TYPE_BOOL:
+			return v as bool
+		TYPE_INT, TYPE_FLOAT:
+			return float(v) != 0.0
+	return false
+
+
+static func _float(d: Dictionary, key: String) -> float:
+	var v: Variant = d.get(key, 0.0)
+	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
+		var f: float = float(v)
+		return f if is_finite(f) else 0.0
+	return 0.0
+
+
 static func _array(v: Variant) -> Array:
 	return v as Array if typeof(v) == TYPE_ARRAY else []
 
@@ -218,10 +240,10 @@ static func _sanitize_levels(v: Variant) -> Dictionary:
 		out[str(k)] = {
 			"stars": clampi(_int(r, "stars", 0), 0, 3),
 			"best_score": maxi(0, _int(r, "best_score", 0)),
-			"perfect": bool(r.get("perfect", false)),
+			"perfect": _bool(r, "perfect"),
 			"clears": maxi(0, _int(r, "clears", 0)),
 			"attempts": maxi(0, _int(r, "attempts", 0)),
 			"best_combo": maxi(0, _int(r, "best_combo", 0)),
-			"best_time": maxf(0.0, float(r.get("best_time", 0.0))),
+			"best_time": maxf(0.0, _float(r, "best_time")),
 		}
 	return out

@@ -11,7 +11,7 @@ signal equip_requested(item_id: String)
 signal pack_requested(product_id: String)
 signal back_requested
 
-const TILE: int = 152
+const TILE: int = 144
 const COLUMNS: int = 4
 const RARITY_KEYS: Dictionary = {
 	"common": "rarity.common",
@@ -28,9 +28,7 @@ var _detail_name: Label
 var _detail_info: Label
 var _action: UiButton
 var _packs: VBoxContainer
-var _preview_holder: SubViewportContainer
-var _viewport: SubViewport
-var _preview_core: CoreView
+var _preview_swatch: CosmeticSwatch
 var _payload: Dictionary = {}
 var _category: String = "core_skin"
 var _selected: String = ""
@@ -71,8 +69,16 @@ func build() -> void:
 	_action.pressed.connect(_on_action)
 	detail.add_child(_action)
 	col.add_child(detail)
+	# Nine categories never fit one row: the tab strip scrolls sideways
+	# instead of stretching the whole screen wider than the device.
+	var tab_scroll: ScrollContainer = ScrollContainer.new()
+	tab_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tab_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	tab_scroll.custom_minimum_size = Vector2(0, UiTokens.BUTTON_HEIGHT)
+	col.add_child(tab_scroll)
 	_tabs = UiSegmented.new()
-	col.add_child(_tabs)
+	_tabs.compact = true
+	tab_scroll.add_child(_tabs)
 	var scroll: ScrollContainer = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -92,31 +98,15 @@ func build() -> void:
 
 
 func _build_preview() -> Control:
-	_preview_holder = SubViewportContainer.new()
-	_preview_holder.stretch = true
-	_preview_holder.custom_minimum_size = Vector2(0, UiTokens.u(26))
-	_preview_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_viewport = SubViewport.new()
-	_viewport.own_world_3d = true
-	_viewport.transparent_bg = true
-	_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
-	_preview_holder.add_child(_viewport)
-	var cam: Camera3D = Camera3D.new()
-	cam.position = Vector3(0, 0.25, 1.8)
-	cam.fov = 40
-	_viewport.add_child(cam)
-	var env: WorldEnvironment = WorldEnvironment.new()
-	var e: Environment = Environment.new()
-	e.background_mode = Environment.BG_CLEAR_COLOR
-	e.glow_enabled = true
-	e.glow_hdr_threshold = 1.0
-	e.glow_intensity = 0.5
-	e.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.environment = e
-	_viewport.add_child(env)
-	_preview_core = CoreView.new()
-	_viewport.add_child(_preview_core)
-	return _preview_holder
+	# One quiet "stage" card with the large flat preview. Colours are drawn
+	# exactly as the item defines them (a 3D sub-viewport would shift them
+	# through a second colour-space conversion and misrepresent the purchase).
+	var stage: PanelContainer = UiKit.card()
+	stage.custom_minimum_size = Vector2(0, UiTokens.u(24))
+	_preview_swatch = CosmeticSwatch.new()
+	_preview_swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.add_child(_preview_swatch)
+	return stage
 
 
 ## payload: {"mode": "shop"|"collection", "coins", "gems", "categories": [{id, label}],
@@ -246,18 +236,7 @@ func _update_detail() -> void:
 		_detail_info.text = rarity + "  ·  " + str(it.get("requirement", ""))
 		_action.text = tr("shop.locked")
 		_action.disabled = true
-	if str(it.get("category", "")) == "core_skin":
-		var p: Dictionary = it.get("params", {}) as Dictionary
-		_preview_core.apply_skin(
-			int(p.get("style", 0)),
-			_color(p, "color_a", Palette.PRIMARY),
-			_color(p, "color_b", Palette.SECONDARY),
-			_color(p, "rim", Color.WHITE),
-			float(p.get("anim_speed", 1.0))
-		)
-		_preview_holder.visible = true
-	else:
-		_preview_holder.visible = str(it.get("category", "")) == "core_skin"
+	_preview_swatch.setup(str(it.get("category", "")), it.get("params", {}) as Dictionary, true)
 
 
 func _on_action() -> void:
@@ -289,8 +268,10 @@ func _build_packs() -> void:
 		info.add_child(desc)
 		row.add_child(info)
 		var owned: bool = bool(p.get("owned", false))
+		# Short state on the button; the honest "store unavailable" sentence is
+		# shown once under the list instead of truncated on every row.
 		var b: UiButton = UiKit.button(
-			tr("shop.owned") if owned else (tr("shop.view_store") if store_ok else tr("shop.store_unavailable")),
+			tr("shop.owned") if owned else (tr("shop.view_store") if store_ok else tr("shop.unavailable_short")),
 			UiKit.ButtonRole.SECONDARY
 		)
 		b.disabled = owned or not store_ok
@@ -298,6 +279,10 @@ func _build_packs() -> void:
 		b.pressed.connect(func() -> void: pack_requested.emit(pid))
 		row.add_child(b)
 		_packs.add_child(card)
+	if not store_ok:
+		var unavailable: Label = UiKit.text(tr("shop.store_unavailable"), &"caption", UiTokens.TEXT_MUTED)
+		unavailable.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_packs.add_child(unavailable)
 	var note: Label = UiKit.text(tr("shop.cosmetic_only_note"), &"caption", UiTokens.TEXT_MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_packs.add_child(note)

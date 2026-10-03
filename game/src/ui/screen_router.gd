@@ -75,6 +75,10 @@ func push_overlay(id: StringName, payload: Dictionary = {}) -> void:
 		GameLog.error("router", "unknown overlay %s" % id)
 		return
 	_overlays.erase(id)
+	# Only the top overlay is shown: stacked scrims would let the screen below
+	# bleed through and compete with the one the player is reading.
+	if not _overlays.is_empty():
+		screen(_overlays.back()).visible = false
 	_overlays.append(id)
 	move_child(o, get_child_count() - 1)
 	o.enter(payload)
@@ -88,20 +92,29 @@ func pop_overlay() -> void:
 	var o: UiScreen = screen(id)
 	o.exit()
 	o.transition_out(reduce_motion)
+	_reveal_top()
 
 
 func close_overlay(id: StringName) -> void:
 	if not _overlays.has(id):
 		return
+	var was_top: bool = _overlays.back() == id
 	_overlays.erase(id)
 	var o: UiScreen = screen(id)
 	o.exit()
 	o.transition_out(reduce_motion)
+	if was_top:
+		_reveal_top()
 
 
 func close_overlays() -> void:
 	while not _overlays.is_empty():
 		pop_overlay()
+
+
+func _reveal_top() -> void:
+	if not _overlays.is_empty():
+		screen(_overlays.back()).transition_in(reduce_motion)
 
 
 func top_id() -> StringName:

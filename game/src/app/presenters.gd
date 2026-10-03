@@ -30,6 +30,13 @@ static func t(key: String) -> String:
 	return TranslationServer.translate(key)
 
 
+## Localised world name ("world.<id>.name"), falling back to the data name.
+static func world_name(world: Dictionary) -> String:
+	var key: String = "world.%s.name" % str(world.get("id", ""))
+	var text: String = t(key)
+	return str(world.get("name", "")) if text == key or text.is_empty() else text
+
+
 static func main_menu(s: AppServices) -> Dictionary:
 	var p: PlayerProfile = s.profile
 	var need: int = maxi(1, s.progression.xp_for_next(p.player_level))
@@ -57,7 +64,7 @@ static func main_menu(s: AppServices) -> Dictionary:
 		"player_level": p.player_level,
 		"xp_progress": float(p.xp) / float(need),
 		"next_level_label":
-		t("menu.next_level").format({"world": str(world.get("name", "")), "n": int(loc.get("local_index", 1))}),
+		t("menu.next_level").format({"world": world_name(world), "n": int(loc.get("local_index", 1))}),
 		"unlock": unlock,
 		"daily_badge": badge,
 	}
@@ -67,7 +74,7 @@ static func _hint_title(s: AppServices, hint: Dictionary) -> String:
 	match str(hint.get("type", "")):
 		"world":
 			var w: Dictionary = s.catalog.world(str(hint.get("id", "")))
-			return t("menu.hint.world").format({"name": str(w.get("name", ""))})
+			return t("menu.hint.world").format({"name": world_name(w)})
 		"level":
 			return t("menu.hint.level")
 		"player_level":
@@ -81,14 +88,14 @@ static func worlds(s: AppServices) -> Dictionary:
 		var row: Dictionary = (w as Dictionary).duplicate()
 		var world: Dictionary = s.catalog.world(str(row.get("id", "")))
 		var art: Dictionary = world.get("art", {}) as Dictionary
-		row["name"] = str(world.get("name", row.get("id", "")))
+		row["name"] = world_name(world)
 		row["story"] = str(art.get("story", ""))
 		row["sink"] = Color(str(art.get("sink", "#46e6f0")))
 		if not bool(row.get("unlocked", false)):
 			row["requirement"] = t("worlds.requirement").format(
 				{
 					"stars": s.progression.stars_needed_for(str(row.get("id", ""))),
-					"prev": str(s.catalog.world_at(maxi(1, int(row.get("index", 1)) - 1)).get("name", ""))
+					"prev": world_name(s.catalog.world_at(maxi(1, int(row.get("index", 1)) - 1)))
 				}
 			)
 		rows.append(row)
@@ -118,7 +125,7 @@ static func level_grid(s: AppServices, world_id: String) -> Dictionary:
 			}
 		)
 	return {
-		"world_name": str(world.get("name", "")),
+		"world_name": world_name(world),
 		"summary": t("levels.summary").format({"stars": stars, "max": count * 3}),
 		"levels": levels
 	}
@@ -167,7 +174,7 @@ static func daily(s: AppServices) -> Dictionary:
 		missions[kind] = list
 	return {
 		"date_label": t("daily.date").format({"date": str(status.get("date_key", ""))}),
-		"world_name": str(world.get("name", "")),
+		"world_name": world_name(world),
 		"status": status,
 		"rank": rank,
 		"missions": missions,
@@ -182,7 +189,7 @@ static func progress(s: AppServices, tab: String, board: Dictionary) -> Dictiona
 	var perfect_count: int = 0
 	for w: Variant in summary.get("worlds", []) as Array:
 		var row: Dictionary = (w as Dictionary).duplicate()
-		row["name"] = str(s.catalog.world(str(row.get("id", ""))).get("name", ""))
+		row["name"] = world_name(s.catalog.world(str(row.get("id", ""))))
 		worlds_rows.append(row)
 	var achievements: Array = []
 	for a: Dictionary in s.achievements.list(false):
@@ -191,7 +198,10 @@ static func progress(s: AppServices, tab: String, board: Dictionary) -> Dictiona
 		achievements.append(
 			{
 				"name": t(str(a.get("name_key", id))),
-				"desc": t(str(a.get("desc_key", ""))),
+				"desc":
+				t(str(a.get("desc_key", ""))).format(
+					{"target": int(prog.get("target", 0)), "n": int(prog.get("target", 0))}
+				),
 				"value": int(prog.get("value", 0)),
 				"target": int(prog.get("target", 1)),
 				"unlocked": bool(prog.get("unlocked", false)),

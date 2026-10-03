@@ -70,10 +70,15 @@ func _run() -> void:
 	await _shot("11_pause")
 	_flow._resume()
 	await _until(func() -> bool: return _flow.router.has_overlay(&"complete"), 4000)
-	await _settle(90)
+	await _settle(20)
 	await _shot("12_complete")
+	await _until(func() -> bool: return _flow.router.has_overlay(&"reward"), 300)
 	if _flow.router.has_overlay(&"reward"):
+		await _settle(50)
 		await _shot("13_reward")
+		while _flow.router.has_overlay(&"reward"):
+			_flow._next_reveal()
+			await _settle(4)
 	# Fail screen: replay with no input.
 	_flow._restart()
 	_flow.session.lockstep = true
@@ -90,7 +95,9 @@ func _seed() -> void:
 	for local: int in range(1, 31):
 		var id: String = WorldCatalog.level_id(1, local)
 		var stars: int = 3 if local % 4 != 0 else 2
-		p.levels[id] = {"stars": stars, "best_score": 900 + local * 37, "perfect": stars == 3, "clears": 1, "attempts": 2}
+		p.levels[id] = {
+			"stars": stars, "best_score": 900 + local * 37, "perfect": stars == 3, "clears": 1, "attempts": 2
+		}
 	p.stats["unique_levels_cleared"] = 30
 	p.stats["levels_cleared"] = 34
 	p.stats["unique_perfects"] = 22

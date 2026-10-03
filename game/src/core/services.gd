@@ -33,6 +33,7 @@ var rewards: RewardEngine
 var achievements: AchievementService
 var missions: MissionService
 var daily: DailyChallengeService
+var online_config: Dictionary = {}
 var remote_config: RemoteConfig
 var transport: HttpTransport
 var network: NetworkMonitor
@@ -99,12 +100,16 @@ func _boot_save(storage: SaveStorage) -> void:
 
 func _boot_economy() -> void:
 	economy = EconomyService.new(profile, bus, clock)
+	economy.apply_starting_balance()
 	integrity = IntegrityMonitor.new(profile)
-	stats = StatsService.new(profile, bus)
-	progression = ProgressionService.new(profile, bus, catalog)
+	var progression_cfg: Dictionary = ProgressionService.load_config()
+	progression = ProgressionService.new(profile, bus, catalog, progression_cfg)
+	stats = StatsService.new(profile, bus, progression_cfg)
+	stats.connect_bus()
 	cosmetics_catalog = CosmeticCatalog.load_default()
 	cosmetics = CosmeticService.new(profile, bus, cosmetics_catalog, economy, _progress_query)
 	cosmetics.ensure_defaults()
+	stats.set_value("cosmetics_owned", cosmetics.owned_count())
 	rewards = RewardEngine.new(
 		profile,
 		bus,
@@ -115,10 +120,12 @@ func _boot_economy() -> void:
 
 
 func _boot_meta() -> void:
-	achievements = AchievementService.new(profile, bus, clock, grant_reward_spec)
-	missions = MissionService.new(profile, bus, clock, grant_reward_spec)
+	achievements = AchievementService.new(profile, bus, clock, rewards.grant_spec)
+	missions = MissionService.new(profile, bus, clock, rewards.grant_spec)
 	missions.refresh()
-	daily = DailyChallengeService.new(profile, bus, clock, catalog, grant_reward_spec)
+	online_config = DailyChallengeService.load_config()
+	daily = DailyChallengeService.new(profile, bus, clock, catalog, rewards.grant_table, online_config)
+	progression.refresh_world_unlocks()
 
 
 func _boot_platform() -> void:
@@ -137,14 +144,15 @@ func _boot_platform() -> void:
 	var endpoint: String = remote_config.get_string("analytics.endpoint")
 	if not endpoint.is_empty():
 		analytics.add_sink(HttpAnalyticsSink.new(endpoint, net))
+	var board_cfg: Dictionary = online_config.get("leaderboard", {}) as Dictionary
 	var local_board: LocalLeaderboardBackend = LocalLeaderboardBackend.new(
-		LocalLeaderboardBackend.profile_store(profile), {}, DEFAULT_PLAYER_NAME
+		LocalLeaderboardBackend.profile_store(profile), board_cfg, DEFAULT_PLAYER_NAME
 	)
 	var base_url: String = remote_config.get_string("leaderboard.base_url")
 	var remote_board: LeaderboardBackend = null
 	if not base_url.is_empty():
-		remote_board = HttpLeaderboardBackend.new(base_url, net, profile.install_id, AppInfo.version())
-	leaderboard = LeaderboardService.new(profile, bus, clock, local_board, remote_board)
+		remote_board = HttpLeaderboardBackend.new(base_url, net, profile.install_id, AppInfo.version(), board_cfg)
+	leaderboard = LeaderboardService.new(profile, bus, clock, local_board, remote_board, online_config)
 	var policy: Dictionary = AdsPolicy.merge_remote(AdsPolicy.load_default(), remote_config)
 	ads = AdsService.new(profile, bus, NullAdProvider.new(), policy, analytics.track, clock)
 	store = StoreService.new(
@@ -156,6 +164,9 @@ func _boot_platform() -> void:
 		analytics.track
 	)
 	notifications = NotificationService.new(profile, clock, NullNotificationProvider.new())
+	store.reconcile_owned()
+	analytics.track_error_reports(errors.collect_reports(true))
+	_fetch_remote_config.call_deferred(net)
 
 
 func _boot_feel() -> void:
@@ -192,6 +203,14 @@ func _wire() -> void:
 	)
 	bus.save_recovered.connect(func(source: String) -> void: analytics.track(&"save_recovered", {"source": source}))
 	bus.achievement_unlocked.connect(func(id: String) -> void: analytics.track(&"achievement_unlocked", {"id": id}))
+	bus.network_state_changed.connect(
+		func(online: bool) -> void:
+			if online:
+				leaderboard.flush_queue()
+	)
+	bus.cosmetic_unlocked.connect(
+		func(_id: String) -> void: stats.set_value("cosmetics_owned", cosmetics.owned_count())
+	)
 	UiKit.feedback_hook = ui_feedback
 
 
@@ -206,10 +225,7 @@ func _on_setting(key: StringName, value: Variant) -> void:
 		"analytics":
 			analytics.enabled = bool(value)
 		"notifications":
-			if bool(value):
-				notifications.schedule_daily_reminder()
-			else:
-				notifications.cancel_all()
+			notifications.refresh()
 		"quality":
 			quality.set_preset(StringName(str(value)))
 			quality.apply_to_viewport(get_viewport())
@@ -218,16 +234,23 @@ func _on_setting(key: StringName, value: Variant) -> void:
 	analytics.track(&"settings_changed", {"key": String(key)})
 
 
-## Reward specs from achievements, missions and the daily streak become real,
-## applied bundles (the returned bundle is exactly what was granted).
+## Reward specs ({"coins", "gems", "xp", "cosmetic", "badge"} or a table
+## request {"table", ...}) become real, applied bundles: the returned bundle is
+## exactly what was granted.
 func grant_reward_spec(spec: Dictionary, source: String = "reward") -> RewardBundle:
-	var bundle: RewardBundle
 	if spec.has(RewardEngine.REQUEST_TABLE):
-		bundle = rewards.compute(str(spec[RewardEngine.REQUEST_TABLE]), spec)
-	else:
-		bundle = rewards.bundle_from_spec(spec)
-	bundle.source = source
-	return rewards.grant(bundle)
+		return rewards.grant_table(spec)
+	return rewards.grant_spec(spec, source)
+
+
+## Remote overrides never block boot: applied, cached and pushed into the ad
+## policy when reachable; offline keeps the cached or default values.
+func _fetch_remote_config(net: Callable) -> void:
+	var url: String = remote_config.get_string("config.url")
+	if url.is_empty():
+		return
+	if await remote_config.fetch(net, url):
+		ads.set_policy(AdsPolicy.merge_remote(AdsPolicy.load_default(), remote_config))
 
 
 ## Facts the cosmetics service needs for automatic unlocks.
@@ -282,6 +305,8 @@ func _notification(what: int) -> void:
 	match what:
 		NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST:
 			flush_now()
+			if is_booted:
+				notifications.refresh()
 		NOTIFICATION_PREDELETE:
 			if errors != null:
 				errors.uninstall()

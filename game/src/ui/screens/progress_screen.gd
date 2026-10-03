@@ -125,7 +125,10 @@ func _total_tile(icon_name: StringName, color: Color, value: String, caption: St
 	var v: VBoxContainer = UiKit.vbox(UiTokens.UNIT / 2)
 	card.add_child(v)
 	v.add_child(UiKit.stat_chip(icon_name, value, color))
-	v.add_child(UiKit.text(caption, &"caption", UiTokens.TEXT_MUTED))
+	var cap: Label = UiKit.text(caption, &"caption", UiTokens.TEXT_MUTED)
+	# Wrapping keeps three tiles inside the column on narrow phones.
+	cap.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(cap)
 	return card
 
 
@@ -161,6 +164,7 @@ func _world_row(w: Dictionary) -> HBoxContainer:
 	h.add_child(value)
 	if bool(w.get("perfect", false)):
 		h.add_child(UiKit.icon(&"check", 20, Palette.SUCCESS))
+	h.add_child(UiKit.spacer(false, UiTokens.GUTTER))
 	return h
 
 

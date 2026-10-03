@@ -21,6 +21,10 @@ extends SceneTree
 ## unexpected script error can never turn into "valid". A daily outside the
 ## server's date window is refused before its level is regenerated.
 
+## Upper bound on a streamed replay (30 minutes) and on how far it can travel
+## relative to the course's base speed (ramp + surge + dash headroom).
+const MAX_STREAM_TICKS: int = 60 * 60 * 30
+const STREAM_REACH_FACTOR: float = 3.0
 const EXIT_VALID: int = 0
 const EXIT_ERROR: int = 1
 const EXIT_INVALID: int = 2
@@ -80,7 +84,12 @@ func run(args: PackedStringArray) -> int:
 			"details": PackedStringArray([detail]),
 		}
 	else:
-		var level: Dictionary = load_level(level_id, config)
+		var end_tick: int = 0
+		if typeof(submission.get("replay", null)) == TYPE_DICTIONARY:
+			var raw_end: Variant = (submission["replay"] as Dictionary).get("end_tick", 0)
+			if typeof(raw_end) == TYPE_INT or typeof(raw_end) == TYPE_FLOAT:
+				end_tick = clampi(int(raw_end), 0, MAX_STREAM_TICKS)
+		var level: Dictionary = load_level(level_id, config, end_tick)
 		if level.is_empty():
 			return _fail("unknown or unloadable level '%s'" % level_id)
 		verdict = verifier.verify(submission, level)
@@ -107,7 +116,7 @@ func parse_args(args: PackedStringArray) -> Dictionary:
 
 
 ## Authoritative level data for [param level_id] ({} when unknown).
-func load_level(level_id: String, config: Dictionary) -> Dictionary:
+func load_level(level_id: String, config: Dictionary, end_tick: int = 0) -> Dictionary:
 	var catalog: WorldCatalog = WorldCatalog.load_default()
 	var date_key: String = DailyChallengeService.date_key_from_level_id(level_id)
 	if not date_key.is_empty():
@@ -117,6 +126,16 @@ func load_level(level_id: String, config: Dictionary) -> Dictionary:
 			PlayerProfile.new(), EventBus.new(), fixed, catalog, Callable(), config
 		)
 		return daily.level_for(date_key)
+	# Streamed courses (endless, time attack) are rebuilt from their seed with
+	# the client's exact generator and release sequence, up to the distance the
+	# replay could possibly have reached.
+	var stream: Dictionary = ModeCatalog.shared().parse_stream_id(level_id)
+	if not stream.is_empty():
+		var streamer: EndlessStreamer = ModeCatalog.shared().make_streamer(
+			stream["mode"] as StringName, int(stream["seed"]), catalog, DifficultyModel.new(catalog)
+		)
+		var reach: float = float(end_tick) * SimConst.DT * streamer.spec.speed * STREAM_REACH_FACTOR
+		return streamer.course_until(reach)
 	if WorldCatalog.parse_level_id(level_id).is_empty():
 		return {}
 	return LevelRepository.new(catalog).load_level(level_id)

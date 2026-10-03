@@ -136,8 +136,14 @@ static func recent_week_keys(today: int, weeks_back: int) -> PackedStringArray:
 static func mode_rules_in(cfg: Dictionary, mode: String) -> Dictionary:
 	var modes: Variant = cfg.get("modes", null)
 	var table: Dictionary = modes as Dictionary if typeof(modes) == TYPE_DICTIONARY else DEFAULT_MODES
-	var rules: Variant = table.get(mode, {})
-	return rules as Dictionary if typeof(rules) == TYPE_DICTIONARY else {}
+	var raw: Variant = table.get(mode, {})
+	if typeof(raw) != TYPE_DICTIONARY:
+		return {}
+	var rules: Dictionary = (raw as Dictionary).duplicate()
+	# Sim modifiers come from the one shared mode table (data/modes/modes.json)
+	# so client runs and server re-simulation can never disagree.
+	rules.merge(ModeCatalog.shared().verifier_modifiers(StringName(mode)), true)
+	return rules
 
 
 ## Ranking rules of [param mode] in this service's configuration.
@@ -300,14 +306,20 @@ func _enqueue(board: String, entry: Dictionary) -> void:
 	for item: Dictionary in profile.pending_submissions:
 		if str(item.get("kind", "")) == QUEUE_KIND and str(item.get("id", "")) == id:
 			return
-	profile.pending_submissions.append({
-		"kind": QUEUE_KIND,
-		"id": id,
-		"board": board,
-		"entry": entry.duplicate(true),
-		"queued_at": clock.now_unix(),
-		"attempts": 0,
-	})
+	(
+		profile
+		. pending_submissions
+		. append(
+			{
+				"kind": QUEUE_KIND,
+				"id": id,
+				"board": board,
+				"entry": entry.duplicate(true),
+				"queued_at": clock.now_unix(),
+				"attempts": 0,
+			}
+		)
+	)
 	var limit: int = maxi(1, int(_lb_cfg.get("queue_limit", DEFAULT_QUEUE_LIMIT)))
 	while pending_count() > limit:
 		_drop_oldest_queued()

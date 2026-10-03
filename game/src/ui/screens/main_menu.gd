@@ -30,6 +30,10 @@ func build() -> void:
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
+	# Ink falls off behind the top bar and the bottom controls so the live run
+	# behind the menu never competes with text (visual priority: UI > decor).
+	add_child(_edge_fade(true, 0.22))
+	add_child(_edge_fade(false, 0.46))
 	var root: SafeAreaContainer = make_safe_root()
 	var col: VBoxContainer = UiKit.vbox(UiTokens.GUTTER)
 	root.add_child(col)
@@ -69,6 +73,27 @@ func build() -> void:
 	col.add_child(row)
 	col.add_child(UiKit.spacer(true, UiTokens.UNIT))
 	col.add_child(_tab_bar())
+
+
+func _edge_fade(top: bool, fraction: float) -> TextureRect:
+	var g: Gradient = Gradient.new()
+	g.set_color(0, Palette.with_alpha(Palette.INK, 0.92))
+	g.set_color(1, Palette.with_alpha(Palette.INK, 0.0))
+	var tex: GradientTexture2D = GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill_from = Vector2(0.5, 0.0 if top else 1.0)
+	tex.fill_to = Vector2(0.5, 1.0 if top else 0.0)
+	tex.width = 4
+	tex.height = 256
+	var rect: TextureRect = TextureRect.new()
+	rect.texture = tex
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.anchor_left = 0.0
+	rect.anchor_right = 1.0
+	rect.anchor_top = 0.0 if top else 1.0 - fraction
+	rect.anchor_bottom = fraction if top else 1.0
+	return rect
 
 
 func _top_bar() -> HBoxContainer:

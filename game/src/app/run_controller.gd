@@ -11,6 +11,8 @@ extends RefCounted
 const MODE_BEST_FLAG: String = "mode_best"
 const LAST_LEVEL_FLAG: String = "last_level"
 const BOSS_LOCAL_INDEX: int = 52
+const TUTORIAL_DONE_FLAG: String = "tutorial_done"
+const TUTORIAL_LAST_LEVEL: String = "w01_l05"
 
 var services: AppServices
 var session: GameplaySession
@@ -73,14 +75,9 @@ func _load(data: Dictionary) -> bool:
 
 
 func _prepare_stream(mode_id: StringName) -> Dictionary:
-	var week: String = services.clock.week_key()
-	var seed_value: int = ModeCatalog.endless_seed(mode_id, week)
-	var world: Dictionary = services.catalog.world_at(1 + (seed_value % services.catalog.world_count()))
-	var spec: LevelSpec = services.modes.stream_spec(mode_id, seed_value, world, services.difficulty)
-	streamer = EndlessStreamer.new(spec)
-	var data: Dictionary = streamer.begin()
-	data["world"] = str(world.get("id", "neon_core"))
-	return data
+	var seed_value: int = ModeCatalog.endless_seed(mode_id, services.clock.week_key())
+	streamer = services.modes.make_streamer(mode_id, seed_value, services.catalog, services.difficulty)
+	return streamer.begin()
 
 
 ## Bosses of every world whose boss the player has already beaten, in order.
@@ -127,6 +124,8 @@ func finish(result: RunResult) -> Dictionary:
 	if src == "boss_rush":
 		result.score += int(context.get("rush_score", 0))
 	var outcome: Dictionary = {"result": result, "reveals": [], "has_next": false, "next_level_id": ""}
+	# Missions track the best combo of the day from this fact.
+	services.bus.combo_reached.emit(result.max_combo)
 	var reward: RewardBundle = RewardBundle.new("run")
 	var stat_ctx: Dictionary = {
 		"kind": str(context.get("kind", "normal")),
@@ -137,10 +136,11 @@ func finish(result: RunResult) -> Dictionary:
 	}
 	match src:
 		"campaign":
-			reward = _finish_campaign(result, stat_ctx, outcome)
+			reward = _finish_campaign(result, outcome)
 		"daily":
 			services.stats.record_run(result, stat_ctx)
 			var daily_out: Dictionary = services.daily.record_result(result)
+			services.stats.record_daily(bool(daily_out.get("first_completion", false)), int(daily_out.get("streak", 0)))
 			outcome["daily"] = daily_out
 			outcome["new_best"] = bool(daily_out.get("best", false))
 			outcome["best"] = int(services.daily.status().get("best_score", result.score))
@@ -169,18 +169,15 @@ func finish(result: RunResult) -> Dictionary:
 	return outcome
 
 
-func _finish_campaign(result: RunResult, stat_ctx: Dictionary, outcome: Dictionary) -> RewardBundle:
+func _finish_campaign(result: RunResult, outcome: Dictionary) -> RewardBundle:
 	var level_id: String = str(context["level_id"])
 	var before: Dictionary = services.profile.level_result(level_id).duplicate()
-	var meta: Dictionary = {
-		"kind": context.get("kind", "normal"),
-		"world": context.get("world_id", ""),
-		"duration": context.get("design_duration", 0.0)
-	}
-	var prog: Dictionary = services.progression.record_level_result(result, meta)
-	stat_ctx["first_clear"] = bool(prog.get("first_clear", false))
-	stat_ctx["first_perfect"] = bool(prog.get("first_perfect", false))
-	services.stats.record_run(result, stat_ctx)
+	var level_data: Dictionary = session.level_data
+	var prog: Dictionary = services.progression.record_level_result(result, level_data)
+	services.stats.record_run(result, StatsService.build_context(result, level_data, prog))
+	if result.completed and (str(level_data.get("tier", "")) != "tutorial" or level_id == TUTORIAL_LAST_LEVEL):
+		# Onboarding is over: optional interstitials may now be considered.
+		services.profile.flags[TUTORIAL_DONE_FLAG] = true
 	outcome["best"] = maxi(int(before.get("best_score", 0)), result.score)
 	outcome["new_best"] = bool(prog.get("new_best", false))
 	var next_id: String = services.levels.next_level_id(level_id)
@@ -268,7 +265,7 @@ func _collect_reveals(outcome: Dictionary) -> void:
 		reveals.append(
 			{
 				"eyebrow": tr_key("reveal.world_unlocked"),
-				"title": str(world.get("name", world_id)),
+				"title": Presenters.world_name(world),
 				"subtitle": str((world.get("art", {}) as Dictionary).get("story", "")),
 				"bundle": null
 			}
@@ -284,7 +281,10 @@ func _collect_reveals(outcome: Dictionary) -> void:
 			{
 				"eyebrow": tr_key("reveal.achievement"),
 				"title": tr_key(str(def.get("name_key", ach_id))),
-				"subtitle": tr_key(str(def.get("desc_key", ""))),
+				"subtitle":
+				tr_key(str(def.get("desc_key", ""))).format(
+					{"target": int(def.get("target", 0)), "n": int(def.get("target", 0))}
+				),
 				"bundle": _granted_for(granted, ach_id)
 			}
 		)

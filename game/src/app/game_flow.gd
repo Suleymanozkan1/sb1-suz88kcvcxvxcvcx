@@ -6,6 +6,8 @@ extends Node
 ## come from [Presenters]; run bookkeeping lives in [RunController].
 
 const RESULT_DELAY: float = 0.55
+const REVEAL_DELAY_COMPLETE: float = 2.2
+const REVEAL_DELAY_FAIL: float = 1.2
 const READY_FIRST: float = 0.8
 const READY_RESTART: float = 0.35
 const ATTRACT_READY: float = 0.2
@@ -18,6 +20,7 @@ var runs: RunController
 var router: ScreenRouter
 var fsm: GameStateMachine = GameStateMachine.new()
 var hud: Hud
+var toast: ToastView
 var attract: bool = true
 
 var _pick_mode: StringName = &""
@@ -65,6 +68,17 @@ func _ready() -> void:
 	fsm.transition_to(GameStateMachine.State.MAIN_MENU)
 	_start_attract()
 	_show_main()
+	_announce_save_state()
+
+
+## Tells the player, calmly, when their progress came from the backup copy or
+## had to start fresh, and when a newer-version save was kept aside.
+func _announce_save_state() -> void:
+	var source: String = s.save.last_load_source
+	if SaveService.RECOVERY_TEXT_KEYS.has(source) and not s.save.last_errors.is_empty():
+		toast.show_message(Presenters.t(str(SaveService.RECOVERY_TEXT_KEYS[source])), &"restore")
+	if not s.save.preserved_future.is_empty():
+		toast.show_message(Presenters.t(SaveService.FUTURE_TEXT_KEY), &"info")
 
 
 # --- UI construction -------------------------------------------------------------
@@ -76,6 +90,13 @@ func _build_ui() -> void:
 	add_child(layer)
 	router = ScreenRouter.new()
 	layer.add_child(router)
+	toast = ToastView.new()
+	layer.add_child(toast)
+	s.bus.toast_requested.connect(toast.show_message)
+	s.bus.network_state_changed.connect(
+		func(online: bool) -> void:
+			toast.show_message(Presenters.t("toast.back_online" if online else "toast.offline"), &"info")
+	)
 	hud = Hud.new()
 	hud.bind(session)
 	router.register(&"hud", hud)
@@ -173,6 +194,8 @@ func _show_main() -> void:
 	router.show_screen(&"main", Presenters.main_menu(s))
 	if not attract:
 		_start_attract()
+	if not _reveals.is_empty():
+		_next_reveal()
 
 
 func _show_worlds() -> void:
@@ -355,7 +378,9 @@ func _on_run_ended(result: RunResult) -> void:
 	_last_outcome = runs.finish(result)
 	await get_tree().create_timer(RESULT_DELAY).timeout
 	_ending = false
-	_reveals = (_last_outcome.get("reveals", []) as Array).duplicate()
+	# The result card owns the screen: the HUD steps away underneath it.
+	router.clear_screen()
+	_reveals.append_array(_last_outcome.get("reveals", []) as Array)
 	if result.completed:
 		s.audio.play_stinger(&"perfect" if result.perfect else &"complete")
 		_go(GameStateMachine.State.COMPLETE)
@@ -384,6 +409,15 @@ func _on_run_ended(result: RunResult) -> void:
 			}
 		)
 	if not _reveals.is_empty():
+		_schedule_reveals(REVEAL_DELAY_COMPLETE if result.completed else REVEAL_DELAY_FAIL)
+
+
+## Reveals wait until the result sequence (stars, count-up) has played; if the
+## player moves on first they stay queued for the next calm moment (menu).
+func _schedule_reveals(delay: float) -> void:
+	var host: StringName = router.top_id()
+	await get_tree().create_timer(delay).timeout
+	if router.top_id() == host and not attract:
 		_next_reveal()
 
 
@@ -466,6 +500,7 @@ func _load_board(board_id: String) -> void:
 func _buy(item_id: String) -> void:
 	if s.cosmetics.purchase(item_id):
 		s.cosmetics.equip(item_id)
+		s.achievements.evaluate()
 	router.show_screen(router.current_id, Presenters.cosmetics(s, router.current_id))
 
 

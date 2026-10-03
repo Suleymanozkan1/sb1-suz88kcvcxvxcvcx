@@ -137,7 +137,9 @@ func verify(submission: Dictionary, level_data: Dictionary) -> Dictionary:
 	elif not bool(rules.get("ranked", false)):
 		out.reject(REASON_UNRANKED_MODE, "mode '%s' is not ranked" % mode)
 	elif not _level_kind_ok(rules, level_data):
-		out.reject(REASON_MODE_MISMATCH, "mode '%s' is not played on %s levels" % [mode, str(level_data.get("kind", ""))])
+		out.reject(
+			REASON_MODE_MISMATCH, "mode '%s' is not played on %s levels" % [mode, str(level_data.get("kind", ""))]
+		)
 	_check_daily_window(level_id, out)
 	var board: String = _text_or(submission.get("board", ""), "")
 	if not board.is_empty() and not _board_ok(board, mode, level_id, rules):
@@ -179,6 +181,7 @@ func simulate(level_data: Dictionary, replay: RunReplay, rules: Dictionary) -> F
 	sim.zen = bool(rules.get("zen", false))
 	sim.speed_scale = float(rules.get("speed_scale", 1.0))
 	sim.shields_allowed = bool(rules.get("shields", true))
+	sim.strict = bool(rules.get("strict", false))
 	sim.setup(lvl)
 	replay.play_on(sim, _max_replay_ticks())
 	return sim
@@ -230,7 +233,9 @@ func verify_reward_claim(claim: Dictionary, history: Dictionary) -> Dictionary:
 func _check_versions(submission: Dictionary, replay: RunReplay, out: Verdict) -> void:
 	var claimed: int = int(submission.get("sim_version", -1)) if _is_number(submission.get("sim_version", null)) else -1
 	if claimed != RunReplay.SIM_VERSION or replay.sim_version != RunReplay.SIM_VERSION:
-		out.reject(REASON_SIM_VERSION, "sim_version %d/%d, server %d" % [claimed, replay.sim_version, RunReplay.SIM_VERSION])
+		out.reject(
+			REASON_SIM_VERSION, "sim_version %d/%d, server %d" % [claimed, replay.sim_version, RunReplay.SIM_VERSION]
+		)
 	var problems: PackedStringArray = PackedStringArray()
 	for p: String in replay.validate_structure():
 		if not p.begins_with("sim_version"):

@@ -22,8 +22,14 @@ func setup(label: String, button_role: UiKit.ButtonRole, icon_name: StringName =
 		glyph = UiKit.icon(icon_name, UiTokens.ICON_SIZE, _icon_color())
 		add_child(glyph)
 		if label.is_empty():
+			# Centred by anchors + symmetric offsets so it stays centred when the
+			# container resizes the button.
+			var half: Vector2 = glyph.custom_minimum_size * 0.5
 			glyph.set_anchors_preset(Control.PRESET_CENTER)
-			glyph.position = -glyph.custom_minimum_size * 0.5
+			glyph.offset_left = -half.x
+			glyph.offset_top = -half.y
+			glyph.offset_right = half.x
+			glyph.offset_bottom = half.y
 		else:
 			# Reserve real padding for the glyph so it never overlaps the label.
 			var pad: int = UiTokens.ICON_SIZE + UiTokens.UNIT
@@ -60,9 +66,9 @@ func _layout_glyph() -> void:
 	if glyph == null:
 		return
 	var gs: Vector2 = glyph.custom_minimum_size
-	if text.is_empty():
-		glyph.position = (size - gs) * 0.5
-	else:
+	# Icon-only glyphs are centred by their anchors/offsets (see setup); setting
+	# position on a centre-anchored control would add the anchor point again.
+	if not text.is_empty():
 		glyph.position = Vector2(float(UiTokens.u(3)), (size.y - gs.y) * 0.5)
 
 

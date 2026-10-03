@@ -77,6 +77,22 @@ func extend_to(sim: FluxSim, distance: float) -> void:
 		guard += 1
 
 
+## The whole course up to [param distance] as one level dictionary, built with
+## exactly the client's release sequence (begin, then one slot per pump), so a
+## server re-simulation meets the same entities the player met.
+func course_until(distance: float) -> Dictionary:
+	var data: Dictionary = begin()
+	var entities: Array = data["entities"] as Array
+	var guard: int = 0
+	while not failed and _gen.frontier() < distance + AHEAD_DISTANCE and guard < 100000:
+		_gen.build_slots(SLOTS_PER_STEP)
+		if not _gen.errors.is_empty():
+			failed = true
+		entities.append_array(_take_releasable())
+		guard += 1
+	return data
+
+
 func pump_headless(sim: FluxSim) -> void:
 	_gen.build_slots(SLOTS_PER_STEP)
 	if not _gen.errors.is_empty():

@@ -12,9 +12,18 @@ const SOURCES: PackedStringArray = ["campaign", "campaign_pick", "daily", "endle
 const UNLOCK_TYPES: PackedStringArray = ["none", "levels_cleared", "perfects", "bosses_cleared", "world_cleared"]
 const ENDLESS_SEED_SALT: String = "fluxdrop-endless-v1:"
 
+static var _shared: ModeCatalog
+
 var modes: Array[Dictionary] = []
 var score_rewards: Dictionary = {}
 var _by_id: Dictionary = {}
+
+
+## Process-wide read-only instance (client and server read the same rules).
+static func shared() -> ModeCatalog:
+	if _shared == null:
+		_shared = load_default()
+	return _shared
 
 
 static func load_default() -> ModeCatalog:
@@ -68,6 +77,21 @@ func sim_modifiers(mode_id: StringName) -> Dictionary:
 	return out
 
 
+## Sim modifiers in the verifier's rule vocabulary ("shields" instead of
+## "shields_allowed"); merged over the ranking rules by [LeaderboardService].
+func verifier_modifiers(mode_id: StringName) -> Dictionary:
+	if not has(mode_id):
+		return {}
+	var mods: Dictionary = sim_modifiers(mode_id)
+	return {
+		"zen": bool(mods.get("zen", false)),
+		"speed_scale": float(mods.get("speed_scale", 1.0)),
+		"shields": bool(mods.get("shields_allowed", true)),
+		"strict": bool(mods.get("strict", false)),
+		"time_limit": float(mods.get("time_limit", 0.0)),
+	}
+
+
 ## progress: {"levels_cleared", "perfects", "bosses_cleared", "worlds_cleared"}.
 func is_unlocked(mode_id: StringName, progress: Dictionary) -> bool:
 	var unlock: Dictionary = mode(mode_id).get("unlock", {}) as Dictionary
@@ -102,12 +126,43 @@ static func endless_seed(mode_id: StringName, week_key: String) -> int:
 	return DetRng.hash_string(ENDLESS_SEED_SALT + String(mode_id) + ":" + week_key)
 
 
+## Level id of a streamed course: "<mode>_<seed>" (see [method parse_stream_id]).
+static func stream_id(mode_id: StringName, stream_seed: int) -> String:
+	return "%s_%d" % [String(mode_id), stream_seed]
+
+
+## {"mode": StringName, "seed": int} for a streamed course id, {} otherwise.
+func parse_stream_id(level_id: String) -> Dictionary:
+	var cut: int = level_id.rfind("_")
+	if cut <= 0:
+		return {}
+	var mode_id: StringName = StringName(level_id.substr(0, cut))
+	var seed_text: String = level_id.substr(cut + 1)
+	if not has(mode_id) or source(mode_id) != "endless" or not seed_text.is_valid_int():
+		return {}
+	return {"mode": mode_id, "seed": seed_text.to_int()}
+
+
+## The world a streamed course is themed in (derived from the seed only).
+static func stream_world_index(stream_seed: int, world_count: int) -> int:
+	return 1 + absi(stream_seed) % maxi(1, world_count)
+
+
+## A ready streamer for [param mode_id] / [param stream_seed]; the client and
+## the replay verifier both build courses through this one function.
+func make_streamer(
+	mode_id: StringName, stream_seed: int, catalog: WorldCatalog, model: DifficultyModel
+) -> EndlessStreamer:
+	var world: Dictionary = catalog.world_at(ModeCatalog.stream_world_index(stream_seed, catalog.world_count()))
+	return EndlessStreamer.new(stream_spec(mode_id, stream_seed, world, model))
+
+
 ## LevelSpec for an endless stream (endless, time attack, zen).
 func stream_spec(mode_id: StringName, stream_seed: int, world: Dictionary, model: DifficultyModel) -> LevelSpec:
 	var cfg: Dictionary = mode(mode_id).get("stream", {}) as Dictionary
 	var base_number: int = clampi(int(cfg.get("difficulty_number", 120)), 1, 520)
 	var spec: LevelSpec = model.build_spec(base_number)
-	spec.id = "%s_%d" % [String(mode_id), stream_seed]
+	spec.id = ModeCatalog.stream_id(mode_id, stream_seed)
 	spec.kind = "endless"
 	spec.seed = stream_seed
 	spec.endless = true

@@ -13,12 +13,41 @@ const SUITE_DIRS: PackedStringArray = [
 ]
 
 var _total: int = 0
+var _errors: ScriptErrorCounter = ScriptErrorCounter.new()
 var _failed: int = 0
 var _assertions: int = 0
 var _failure_lines: PackedStringArray = PackedStringArray()
 
 
+## Counts GDScript runtime errors (Logger, Godot 4.5+): a test whose body hits a
+## script error is aborted by the engine without raising anything, so the
+## runner fails it explicitly instead of reporting a silent "ok".
+class ScriptErrorCounter:
+	extends Logger
+	var count: int = 0
+	var last: String = ""
+	var _mutex: Mutex = Mutex.new()
+
+	func _log_error(
+		function: String,
+		file: String,
+		line: int,
+		code: String,
+		rationale: String,
+		_editor_notify: bool,
+		error_type: int,
+		_script_backtraces: Array[ScriptBacktrace]
+	) -> void:
+		if error_type != Logger.ERROR_TYPE_SCRIPT:
+			return
+		_mutex.lock()
+		count += 1
+		last = "%s (%s:%d %s)" % [rationale if not rationale.is_empty() else code, file.get_file(), line, function]
+		_mutex.unlock()
+
+
 func _initialize() -> void:
+	OS.add_logger(_errors)
 	_run.call_deferred()
 
 
@@ -80,9 +109,12 @@ func _run_file(path: String) -> void:
 		test.current_test = "%s::%s" % [path.get_file(), method_name]
 		_total += 1
 		var t0: int = Time.get_ticks_usec()
+		var errors_before: int = _errors.count
 		await test.before_each()
 		await test.call(method_name)
 		await test.after_each()
+		if _errors.count > errors_before:
+			test.fail("script error during the test: %s" % _errors.last)
 		var ms: float = float(Time.get_ticks_usec() - t0) / 1000.0
 		_assertions += test.assertions
 		if test.failures.is_empty():
