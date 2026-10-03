@@ -195,6 +195,7 @@ func test_status_next_tier_after_completion_today() -> void:
 	var before: Dictionary = svc.status()
 	assert_eq(int(before["tier"]), 0, "no tier yet")
 	assert_eq(int(before["next_tier"]), 1)
+	assert_eq(int(before["max_tier"]), 7, "fills {max} in online.daily.tier")
 	assert_false(bool(before["played"]))
 	assert_eq(str(before["date_key"]), BASE_DATE)
 	assert_eq(int(before["seconds_to_reset"]), SECONDS_PER_DAY - NOON)
@@ -229,6 +230,25 @@ func test_run_crossing_midnight_still_counts_for_its_date() -> void:
 	var out: Dictionary = svc.record_result(_daily_result(BASE_DATE, true, 777))
 	assert_true(bool(out["first_completion"]), "yesterday's daily within grace window")
 	assert_eq(_grant.calls.size(), 1)
+	# Today's daily after the late one: still a normal first completion.
+	var today: Dictionary = svc.record_result(_daily_result(GameClock.date_key_for_day(d + 1), true, 800))
+	assert_true(bool(today["first_completion"]))
+	assert_eq(_grant.calls.size(), 2)
+
+
+func test_turning_the_clock_back_does_not_pay_old_dailies() -> void:
+	var svc: DailyChallengeService = _service()
+	var d: int = _base_day()
+	_complete_days(svc, [d, d + 1, d + 2])
+	assert_eq(_grant.calls.size(), 3)
+	for back: int in [5, 9]:
+		_set_day(d - back)
+		var out: Dictionary = svc.record_result(_daily_result(GameClock.date_key_for_day(d - back), true, 999))
+		assert_false(bool(out["first_completion"]), "%d days back: no reward" % back)
+	assert_eq(_grant.calls.size(), 3, "no extra rewards")
+	_set_day(d + 3)
+	var honest: Dictionary = svc.record_result(_daily_result(GameClock.date_key_for_day(d + 3), true, 999))
+	assert_eq(int(honest["tier"]), 4, "streak intact once the clock is right again")
 
 
 func test_corrupted_daily_slice_is_tolerated() -> void:
@@ -239,6 +259,20 @@ func test_corrupted_daily_slice_is_tolerated() -> void:
 	assert_true(bool(out["first_completion"]))
 	assert_eq(int(out["tier"]), 1)
 	assert_eq(typeof(_profile.daily["results"]), TYPE_DICTIONARY)
+	# Null / wrongly typed fields inside entries (hand-edited or damaged saves).
+	var results: Dictionary = _profile.daily["results"] as Dictionary
+	results["2026-10-01"] = {"completed": true, "best": null, "attempts": "two"}
+	results["2026-10-02"] = {"completed": "yes", "best": 9000}
+	(results[BASE_DATE] as Dictionary)["attempts"] = null
+	(results[BASE_DATE] as Dictionary)["best"] = [1]
+	var again: Dictionary = svc.record_result(_daily_result(BASE_DATE, true, 800))
+	assert_true(again.has("streak") and again.has("reward"), "record_result completed normally")
+	assert_true(bool(again["best"]), "unreadable best replaced")
+	assert_eq(int((results[BASE_DATE] as Dictionary)["attempts"]), 1)
+	var status: Dictionary = svc.status()
+	assert_eq(int(status["best_score"]), 800)
+	var rank: Dictionary = svc.rank_text_local(100)
+	assert_eq(int(rank["total"]), 2, "only real completions count (\"yes\" is not true)")
 
 
 func test_state_survives_profile_round_trip() -> void:
@@ -256,12 +290,15 @@ func test_state_survives_profile_round_trip() -> void:
 func test_history_is_bounded() -> void:
 	var svc: DailyChallengeService = _service()
 	var d: int = _base_day()
+	# Malformed keys sort after real dates; they must not survive in place of them.
+	_profile.daily["results"] = {"garbage": {}, "2026-13-40": 5}
 	var days: Array = []
 	for i: int in 70:
 		days.append(d + i)
 	_complete_days(svc, days)
 	var results: Dictionary = _profile.daily["results"] as Dictionary
 	assert_eq(results.size(), 60)
+	assert_false(results.has("garbage") or results.has("2026-13-40"), "malformed history dropped first")
 	assert_false(results.has(GameClock.date_key_for_day(d)), "oldest pruned")
 	assert_true(results.has(GameClock.date_key_for_day(d + 69)), "newest kept")
 

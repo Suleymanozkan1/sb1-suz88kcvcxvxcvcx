@@ -6,14 +6,19 @@ extends LeaderboardBackend
 ## returned by [method profile_store], so they are saved with the profile).
 ## It never fabricates other players: every entry is one of the player's own
 ## runs, and fetch() marks each one with "is_player": true. Each board keeps
-## the best [member entries_per_board] runs; the least recently updated boards
-## are dropped beyond [member board_limit] (daily boards accumulate daily).
+## the best [member entries_per_board] runs. Beyond [member board_limit]
+## boards, the least recently *played* board is dropped (every submit touches
+## its board, even when the run is not a personal top score); all-time boards
+## ("alltime:<mode>", one per mode) are never dropped, so long-held personal
+## records survive any number of daily / weekly / level boards.
 ##
 ## Store layout: {board_id: {"updated": unix, "entries": [{"score",
 ## "level_id", "mode", "at"}, ...]}} sorted by score, best first.
 
 const STORE_KEY: String = "boards"
 const NAME_KEY: String = "online.lb.you"
+## Boards with this prefix are kept regardless of [member board_limit].
+const PINNED_PREFIX: String = "alltime:"
 const DEFAULT_ENTRIES_PER_BOARD: int = 10
 const DEFAULT_BOARD_LIMIT: int = 120
 const ERROR_INVALID_BOARD: String = "invalid_board"
@@ -66,9 +71,12 @@ func submit(board_id: String, entry: Dictionary) -> Dictionary:
 	var result: Dictionary = LeaderboardBackend.submit_result(true, true, false)
 	result["stored"] = false
 	result["personal_best"] = false
+	var raw_at: Variant = entry.get("at", 0)
+	var at: int = int(raw_at) if _is_number(raw_at) else 0
+	# Touch the board on every run so a full board is not mistaken for unused.
+	board["updated"] = maxi(int(board["updated"]), at)
 	if pos >= entries_per_board:
 		return result
-	var at: int = int(entry.get("at", 0))
 	entries.insert(pos, {
 		"score": score,
 		"level_id": str(entry.get("level_id", "")),
@@ -77,7 +85,6 @@ func submit(board_id: String, entry: Dictionary) -> Dictionary:
 	})
 	while entries.size() > entries_per_board:
 		entries.pop_back()
-	board["updated"] = maxi(int(board.get("updated", 0)), at)
 	result["stored"] = true
 	result["personal_best"] = pos == 0
 	result["rank"] = pos + 1
@@ -98,9 +105,9 @@ func fetch(board_id: String, limit: int) -> Dictionary:
 			"rank": i + 1,
 			"name": player_name,
 			"name_key": NAME_KEY,
-			"score": int(e.get("score", 0)),
+			"score": _int_or(e.get("score", 0), 0),
 			"level_id": str(e.get("level_id", "")),
-			"at": int(e.get("at", 0)),
+			"at": _int_or(e.get("at", 0), 0),
 			"is_player": true,
 		})
 	var player: Dictionary = (entries[0] as Dictionary).duplicate() if not entries.is_empty() else {}
@@ -150,10 +157,12 @@ func _prune_boards(keep: String) -> void:
 		var oldest_t: int = 0
 		for k: Variant in store:
 			var id: String = str(k)
-			if id == keep:
+			if id == keep or id.begins_with(PINNED_PREFIX):
 				continue
 			var raw: Variant = store[k]
-			var t: int = int((raw as Dictionary).get("updated", 0)) if typeof(raw) == TYPE_DICTIONARY else -1
+			var t: int = -1
+			if typeof(raw) == TYPE_DICTIONARY and _is_number((raw as Dictionary).get("updated", null)):
+				t = int((raw as Dictionary)["updated"])
 			if oldest.is_empty() or t < oldest_t or (t == oldest_t and id < oldest):
 				oldest = id
 				oldest_t = t
@@ -164,6 +173,11 @@ func _prune_boards(keep: String) -> void:
 
 static func _is_number(v: Variant) -> bool:
 	return typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT
+
+
+## int() of a stored value, [param fallback] when it is not a number.
+static func _int_or(v: Variant, fallback: int) -> int:
+	return int(v) if _is_number(v) else fallback
 
 
 static func _score_desc(a: Variant, b: Variant) -> bool:

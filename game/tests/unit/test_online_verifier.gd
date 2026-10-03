@@ -190,6 +190,54 @@ func test_rejects_malformed_submissions() -> void:
 	assert_has(broken["reasons"], ReplayVerifier.REASON_INVALID_LEVEL)
 
 
+func test_rejects_malformed_replay_fields_without_simulating() -> void:
+	var level: Dictionary = _repo.load_level("w03_l10")
+	var cases: Array[Array] = [
+		["seed", null], ["seed", "123"], ["seed", -1], ["seed", 1.5], ["taps", [null]], ["taps", ["30"]],
+		["taps", [30.5]], ["taps", [99999999]], ["taps", "30,90"], ["end_tick", "late"], ["end_tick", 0],
+		["mode", 7], ["level_id", null], ["sim_version", null],
+	]
+	for pair: Array in cases:
+		var submission: Dictionary = _campaign_submission("w03_l10")
+		(submission["replay"] as Dictionary)[pair[0]] = pair[1]
+		var verdict: Dictionary = _verifier.verify(submission, level)
+		var label: String = "%s=%s" % [str(pair[0]), str(pair[1])]
+		assert_false(bool(verdict.get("valid", true)), label)
+		var reasons: Variant = verdict.get("reasons", PackedStringArray())
+		assert_eq(reasons, PackedStringArray([ReplayVerifier.REASON_STRUCTURE]), label)
+		assert_eq(int(verdict.get("score", -1)), 0, "%s never simulated" % label)
+	var fractional: Dictionary = _campaign_submission("w03_l10")
+	fractional["score"] = float(fractional["score"]) + 0.5
+	assert_has(_verifier.verify(fractional, level)["reasons"], ReplayVerifier.REASON_INVALID_SCORE, "fractional score")
+	var wire: Dictionary = JSON.parse_string(JSON.stringify(_campaign_submission("w03_l10"))) as Dictionary
+	var from_json: Dictionary = _verifier.verify(wire, level)
+	assert_true(bool(from_json["valid"]), "JSON numbers (floats) still verify: %s" % str(from_json["details"]))
+
+
+func test_mode_must_fit_the_level_kind() -> void:
+	var level: Dictionary = _repo.load_level("w03_l10")
+	var endless: Dictionary = _submit(level, _replay(level, &"endless", _solution_taps(level)), "alltime:endless")
+	assert_has(_verifier.verify(endless, level)["reasons"], ReplayVerifier.REASON_MODE_MISMATCH, "campaign run on endless")
+	var rush: Dictionary = _submit(level, _replay(level, &"boss_rush", _solution_taps(level)), "alltime:boss_rush")
+	assert_has(_verifier.verify(rush, level)["reasons"], ReplayVerifier.REASON_MODE_MISMATCH, "boss rush, normal level")
+	var boss: Dictionary = _repo.load_level("w01_l52")
+	assert_eq(str(boss["kind"]), "boss")
+	var real_rush: Dictionary = _submit(boss, _replay(boss, &"boss_rush", _solution_taps(boss)), "alltime:boss_rush")
+	var verdict: Dictionary = _verifier.verify(real_rush, boss)
+	assert_true(bool(verdict["valid"]), "boss level in boss rush: %s" % str(verdict["details"]))
+
+
+func test_daily_window_reason_uses_server_clock_only() -> void:
+	var day: int = DailyChallengeService.day_for_date_key(DATE)
+	assert_eq(_verifier.daily_window_reason("w01_l01"), "", "campaign levels have no date window")
+	assert_eq(_verifier.daily_window_reason("daily_" + DATE), "")
+	assert_eq(_verifier.daily_window_reason("daily_" + GameClock.date_key_for_day(day - 1)), "", "yesterday")
+	var old: String = "daily_" + GameClock.date_key_for_day(day - 2)
+	assert_eq(_verifier.daily_window_reason(old), ReplayVerifier.REASON_STALE_DAILY)
+	var ahead: String = "daily_" + GameClock.date_key_for_day(day + 1)
+	assert_eq(_verifier.daily_window_reason(ahead), ReplayVerifier.REASON_FUTURE_DAILY)
+
+
 func test_daily_window_uses_server_clock() -> void:
 	var day: int = DailyChallengeService.day_for_date_key(DATE)
 	var daily: DailyChallengeService = DailyChallengeService.new(

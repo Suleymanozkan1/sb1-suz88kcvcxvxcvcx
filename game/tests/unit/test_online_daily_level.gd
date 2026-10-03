@@ -25,8 +25,11 @@ func test_date_key_parsing_round_trips_and_rejects_garbage() -> void:
 		var key: String = GameClock.date_key_for_day(day)
 		assert_eq(DailyChallengeService.day_for_date_key(key), day, "round trip %s" % key)
 	for bad: String in ["", "2026-13-01", "2026-02-30", "2025-02-29", "26-10-03", "2026/10/03", "2026-1-03", "abcd-ef-gh",
-		"1969-12-31", "2026-10-03x", "+026-10-03"]:
+		"1969-12-31", "2026-10-03x", "+026-10-03", "2026-11-+5", "2026-+1-05", "2026-10- 3", "2026-10-3 "]:
 		assert_eq(DailyChallengeService.day_for_date_key(bad), -1, "rejects '%s'" % bad)
+	# Non-canonical spellings must not create a second daily (level + board) for a day.
+	assert_eq(DailyChallengeService.date_key_from_level_id("daily_2026-11-+5"), "")
+	assert_empty(LeaderboardService.parse_board("daily:2026-11-+5"))
 	var leap: int = DailyChallengeService.day_for_date_key("2024-02-29")
 	assert_eq(leap, DailyChallengeService.day_for_date_key("2024-02-28") + 1, "leap day")
 
@@ -193,7 +196,7 @@ func test_i18n_parts_match_and_cover_code_keys() -> void:
 		assert_true(tr.has(key), "tr has %s" % key)
 		assert_false(str(tr.get(key, "")).is_empty(), "tr %s non-empty" % key)
 		if str(en[key]).contains("{"):
-			for token: String in ["{score}", "{count}", "{tier}", "{rank}", "{total}", "{time}"]:
+			for token: String in ["{score}", "{count}", "{tier}", "{max}", "{rank}", "{total}", "{time}"]:
 				assert_eq(str(en[key]).contains(token), str(tr[key]).contains(token), "%s keeps %s" % [key, token])
 	var used: Array[String] = [
 		"online.rank.first_daily", "online.rank.personal", "online.rank.personal_best", "online.lb.you",

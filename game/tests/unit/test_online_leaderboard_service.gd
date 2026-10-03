@@ -9,13 +9,15 @@ const SECONDS_PER_DAY: int = 86400
 
 
 ## Test double for the HTTP transport contract. Offline -> ok=false/status 0;
-## online -> answers with [member status] and [member reply]. With [member
-## tree] set it behaves like the real coroutine transport (awaits a frame).
+## online -> answers with [member status] and [member reply], except HTTP 500
+## for submissions to [member fail_board]. With [member tree] set it behaves
+## like the real coroutine transport (awaits a frame).
 class ScriptedTransport:
 	extends RefCounted
 	var online: bool = false
 	var status: int = 200
 	var reply: Dictionary = {"accepted": true, "rank": 7}
+	var fail_board: String = ""
 	var calls: Array[Dictionary] = []
 	var tree: SceneTree = null
 
@@ -25,6 +27,8 @@ class ScriptedTransport:
 		calls.append({"method": method, "url": url, "body": body.duplicate(true)})
 		if not online:
 			return {"ok": false, "status": 0, "body": null, "error": "offline"}
+		if not fail_board.is_empty() and str(body.get("board", "")) == fail_board:
+			return {"ok": false, "status": 500, "body": {}, "error": ""}
 		return {"ok": status >= 200 and status < 300, "status": status, "body": reply.duplicate(true), "error": ""}
 
 
@@ -98,6 +102,8 @@ func test_revived_zen_incomplete_and_unknown_runs_not_ranked() -> void:
 		_run("w01_l10", &"classic", false, 900),
 		_run("w01_l10", &"made_up_mode", true, 900),
 		_run("daily_bad-date", &"daily", true, 900),
+		_run("daily_" + DATE, &"classic", true, 900),
+		_run("w01_l10", &"daily", true, 900),
 	]
 	for r: RunResult in cases:
 		assert_empty(svc.board_ids_for(r, DATE), "%s/%s not ranked" % [r.mode, r.level_id])
@@ -143,10 +149,13 @@ func test_offline_queues_then_flushes_when_transport_recovers() -> void:
 	assert_eq(_transport.calls.size(), 1, "stops calling after the first offline answer")
 	assert_empty(_signals, "no outcome yet")
 	assert_eq(_local().best_score("level:w03_l10"), 4115, "local record still happens offline")
+	var head_id: String = str(_profile.pending_submissions[0]["id"])
 	var still_offline: int = await svc.flush_queue()
 	assert_eq(still_offline, 0)
 	assert_eq(svc.pending_count(), 3, "kept while offline")
-	assert_eq(int(_profile.pending_submissions[0]["attempts"]), 1)
+	var tail: Dictionary = _profile.pending_submissions[_profile.pending_submissions.size() - 1]
+	assert_eq(str(tail["id"]), head_id, "failed item rotated to the back")
+	assert_eq(int(tail["attempts"]), 1)
 	_transport.online = true
 	var delivered: int = await svc.flush_queue()
 	assert_eq(delivered, 3)
@@ -225,6 +234,73 @@ func test_stale_queue_entries_are_pruned() -> void:
 	_transport.online = true
 	assert_eq(await svc.flush_queue(), 0, "entries older than the max age dropped")
 	assert_eq(svc.pending_count(), 0)
+
+
+func test_weekly_entries_outside_server_window_are_pruned() -> void:
+	var svc: LeaderboardService = _service(true)
+	await svc.submit_run(_run("daily_" + DATE, &"daily", true, 800))
+	assert_eq(svc.pending_count(), 3)
+	# Nine days later is ISO week 42: the daily and the week-40 board are
+	# outside the server window; only the all-time entry is still accepted.
+	_clock.set_fixed_unix(_clock.now_unix() + 9 * SECONDS_PER_DAY)
+	_transport.online = true
+	var before: int = _transport.calls.size()
+	assert_eq(await svc.flush_queue(), 1)
+	assert_eq(_transport.calls.size() - before, 1, "stale boards never sent")
+	assert_eq(str((_transport.calls[before]["body"] as Dictionary)["board"]), "alltime:daily")
+	assert_eq(svc.pending_count(), 0)
+
+
+func test_failing_item_does_not_block_the_queue() -> void:
+	var svc: LeaderboardService = _service(true)
+	await svc.submit_run(_run("w01_l10", &"classic", true, 500))
+	assert_eq(str(_profile.pending_submissions[0]["board"]), "weekly:2026-W40:classic", "queue head")
+	_transport.online = true
+	_transport.fail_board = "weekly:2026-W40:classic"
+	assert_eq(await svc.flush_queue(), 0, "head keeps failing and moves to the back")
+	assert_eq(await svc.flush_queue(), 2, "the other submissions still go through")
+	assert_eq(svc.pending_count(), 1)
+	assert_eq(str(_profile.pending_submissions[0]["board"]), "weekly:2026-W40:classic")
+	_transport.fail_board = ""
+	assert_eq(await svc.flush_queue(), 1)
+	assert_eq(svc.pending_count(), 0)
+
+
+func test_corrupted_queue_items_do_not_break_flushing() -> void:
+	var svc: LeaderboardService = _service(true)
+	var now: int = _clock.now_unix()
+	var entry: Dictionary = {"score": 10, "level_id": "w01_l10", "mode": "classic", "replay": {"level_id": "w01_l10"}}
+	var items: Array[Dictionary] = [
+		{"id": "a", "board": "alltime:classic", "entry": entry, "queued_at": now, "attempts": null},
+		{"id": "b", "board": "alltime:classic", "entry": entry},
+		{"id": "c", "board": "nonsense", "queued_at": now},
+		{"id": "d", "board": "alltime:classic", "entry": "junk", "queued_at": now},
+	]
+	for item: Dictionary in items:
+		item["kind"] = LeaderboardService.QUEUE_KIND
+		_profile.pending_submissions.append(item)
+	assert_eq(await svc.flush_queue(), 0, "offline")
+	assert_eq(svc.pending_count(), 2, "undated and malformed-board items dropped")
+	var a: Dictionary = _profile.pending_submissions[_profile.pending_submissions.size() - 1]
+	assert_eq(str(a["id"]), "a")
+	assert_eq(int(a["attempts"]), 1, "null attempts counted from zero")
+	_transport.online = true
+	assert_eq(await svc.flush_queue(), 1, "flushing still works afterwards")
+	assert_eq(svc.pending_count(), 0, "junk entry dropped")
+
+
+func test_remote_without_replay_is_not_reported_as_accepted() -> void:
+	_transport.online = true
+	var svc: LeaderboardService = _service(true)
+	var run: RunResult = _run("w03_l10", &"classic", true, 4115)
+	run.replay = null
+	await svc.submit_run(run)
+	assert_empty(_transport.calls, "nothing the server could verify was sent")
+	assert_eq(_signals.size(), 3)
+	for s: Dictionary in _signals:
+		assert_false(bool(s["accepted"]), "never announced as accepted")
+	assert_eq(svc.pending_count(), 0)
+	assert_eq(_local().best_score("alltime:classic"), 4115, "still a personal best")
 
 
 func test_fetch_prefers_remote_and_falls_back_offline() -> void:

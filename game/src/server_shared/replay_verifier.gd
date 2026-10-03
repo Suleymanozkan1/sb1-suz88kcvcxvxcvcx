@@ -5,15 +5,18 @@ extends RefCounted
 ## for comparison; the verdict comes from re-simulating the submitted input
 ## replay with the same deterministic [FluxSim] the game uses.
 ##
-## [method verify] checks, in order: replay present, sim_version, replay
-## structure (RunReplay.validate_structure), level/seed identity, mode
-## (known, ranked, matches the replay and the level kind), daily date window
-## (today or up to daily_accept_days_back days ago on the *server* clock),
-## board consistency, human tap rate (max_taps_per_second within any
+## [method verify] checks, in order: replay present and well-typed (every
+## field of the untrusted JSON is type- and range-checked before it is
+## used; a malformed replay is rejected, never simulated), sim_version,
+## replay structure (RunReplay.validate_structure), level/seed identity, mode
+## (known, ranked, matches the replay and the level kind — optional per-mode
+## "level_kinds" list), daily date window (today or up to
+## daily_accept_days_back days ago on the *server* clock), board
+## consistency, human tap rate (max_taps_per_second within any
 ## tap_window_ticks window), then re-simulation with the mode's rules
 ## (shields, zen, speed_scale, time_limit — data/daily/daily.json "modes"):
 ## end_tick must match, completion is required for classic/daily-like modes,
-## and the claimed score must equal the recomputed score.
+## and the claimed (integral) score must equal the recomputed score.
 ##
 ## Result: {"valid": bool, "score": int (authoritative recomputed score, 0
 ## when the run could not be simulated), "reasons": PackedStringArray (stable
@@ -58,12 +61,13 @@ const CLAIM_IMPLAUSIBLE_TIER: String = "implausible_tier"
 const CLAIM_DAILY: String = "daily"
 const CLAIM_LEVEL: String = "level"
 const DAILY_MODE: String = "daily"
-const DAYS_PER_WEEK: int = 7
 const DEFAULT_MAX_TAPS_PER_SECOND: int = 12
 const DEFAULT_TAP_WINDOW_TICKS: int = 60
 const DEFAULT_DAILY_DAYS_BACK: int = 1
 const DEFAULT_WEEKS_BACK: int = 1
 const DEFAULT_MAX_TICKS: int = 36000
+## Largest valid level seed (seeds are unsigned 32-bit hashes).
+const MAX_SEED: int = 0xFFFFFFFF
 
 var clock: GameClock
 var config: Dictionary = {}
@@ -116,9 +120,15 @@ func verify(submission: Dictionary, level_data: Dictionary) -> Dictionary:
 	if level_data.is_empty() or str(level_data.get("id", "")).is_empty():
 		out.reject(REASON_INVALID_LEVEL, "no authoritative level data")
 		return out.to_dict()
+	# The replay is untrusted JSON: type-check every field before RunReplay
+	# converts it (a null or non-numeric field must never reach int()).
+	var malformed: PackedStringArray = _replay_type_problems(raw_replay as Dictionary)
+	if not malformed.is_empty():
+		out.reject(REASON_STRUCTURE, ", ".join(malformed))
+		return out.to_dict()
 	var replay: RunReplay = RunReplay.from_dict(raw_replay as Dictionary)
-	var mode: String = str(submission.get("mode", String(replay.mode)))
-	var level_id: String = str(submission.get("level_id", replay.level_id))
+	var mode: String = _text_or(submission.get("mode", null), String(replay.mode))
+	var level_id: String = _text_or(submission.get("level_id", null), replay.level_id)
 	_check_versions(submission, replay, out)
 	_check_identity(replay, mode, level_id, level_data, out)
 	var rules: Dictionary = LeaderboardService.mode_rules_in(config, mode)
@@ -126,16 +136,18 @@ func verify(submission: Dictionary, level_data: Dictionary) -> Dictionary:
 		out.reject(REASON_UNKNOWN_MODE, "mode '%s' is unknown" % mode)
 	elif not bool(rules.get("ranked", false)):
 		out.reject(REASON_UNRANKED_MODE, "mode '%s' is not ranked" % mode)
+	elif not _level_kind_ok(rules, level_data):
+		out.reject(REASON_MODE_MISMATCH, "mode '%s' is not played on %s levels" % [mode, str(level_data.get("kind", ""))])
 	_check_daily_window(level_id, out)
-	var board: String = str(submission.get("board", ""))
+	var board: String = _text_or(submission.get("board", ""), "")
 	if not board.is_empty() and not _board_ok(board, mode, level_id, rules):
 		out.reject(REASON_BOARD_MISMATCH, "board '%s' does not match %s/%s" % [board, mode, level_id])
 	if not tap_rate_ok(replay.tap_ticks):
 		out.reject(REASON_TAP_RATE, "more than %d taps within %d ticks" % [_max_taps(), _tap_window()])
 	var claimed_v: Variant = submission.get("score", null)
-	var claimed_ok: bool = (typeof(claimed_v) == TYPE_INT or typeof(claimed_v) == TYPE_FLOAT) and int(claimed_v) >= 0
+	var claimed_ok: bool = _is_whole(claimed_v) and int(claimed_v) >= 0
 	if not claimed_ok:
-		out.reject(REASON_INVALID_SCORE, "claimed score missing or negative")
+		out.reject(REASON_INVALID_SCORE, "claimed score missing, negative or not a whole number")
 	var sim: FluxSim = simulate(level_data, replay, rules)
 	if sim == null:
 		out.reject(REASON_INVALID_LEVEL, "level data could not be simulated")
@@ -168,7 +180,7 @@ func simulate(level_data: Dictionary, replay: RunReplay, rules: Dictionary) -> F
 	sim.speed_scale = float(rules.get("speed_scale", 1.0))
 	sim.shields_allowed = bool(rules.get("shields", true))
 	sim.setup(lvl)
-	replay.play_on(sim, maxi(1, int(_cfg.get("max_replay_ticks", DEFAULT_MAX_TICKS))))
+	replay.play_on(sim, _max_replay_ticks())
 	return sim
 
 
@@ -209,7 +221,8 @@ func verify_reward_claim(claim: Dictionary, history: Dictionary) -> Dictionary:
 			out.reject(CLAIM_INVALID, "level claim without level_id")
 		elif not verified.has(level_id):
 			out.reject(CLAIM_LEVEL_NOT_VERIFIED, "%s was never verified as completed" % level_id)
-		if bool(claim.get("first_clear", false)) and _key_set(history.get("level_claims", [])).has(level_id):
+		var first_clear: bool = ReplayVerifier._is_true(claim.get("first_clear", false))
+		if first_clear and _key_set(history.get("level_claims", [])).has(level_id):
 			out.reject(CLAIM_DUPLICATE_LEVEL, "first-clear reward for %s already claimed" % level_id)
 	return out.to_claim_dict()
 
@@ -242,16 +255,27 @@ func _check_identity(replay: RunReplay, mode: String, level_id: String, level_da
 		out.reject(REASON_MODE_MISMATCH, "mode %s / replay %s on level %s" % [mode, String(replay.mode), data_id])
 
 
-func _check_daily_window(level_id: String, out: Verdict) -> void:
+## Daily date-window check on the server clock: "" when [param level_id]
+## is not a daily level or its date is accepted, otherwise
+## [constant REASON_FUTURE_DAILY] / [constant REASON_STALE_DAILY]. Cheap, so
+## a backend can refuse a stale daily before regenerating its level.
+func daily_window_reason(level_id: String) -> String:
 	var date_key: String = DailyChallengeService.date_key_from_level_id(level_id)
 	if date_key.is_empty():
-		return
+		return ""
 	var day: int = DailyChallengeService.day_for_date_key(date_key)
 	var today: int = clock.day_number()
 	if day > today:
-		out.reject(REASON_FUTURE_DAILY, "daily %s is in the future (server %s)" % [date_key, clock.date_key()])
-	elif day < today - _days_back():
-		out.reject(REASON_STALE_DAILY, "daily %s is too old (server %s)" % [date_key, clock.date_key()])
+		return REASON_FUTURE_DAILY
+	if day < today - _days_back():
+		return REASON_STALE_DAILY
+	return ""
+
+
+func _check_daily_window(level_id: String, out: Verdict) -> void:
+	var reason: String = daily_window_reason(level_id)
+	if not reason.is_empty():
+		out.reject(reason, "daily %s is outside the accepted window (server %s)" % [level_id, clock.date_key()])
 
 
 func _board_ok(board: String, mode: String, level_id: String, rules: Dictionary) -> bool:
@@ -271,12 +295,45 @@ func _board_ok(board: String, mode: String, level_id: String, rules: Dictionary)
 
 ## True for the server's current ISO week or one of the accepted previous ones.
 func _recent_week(week_key: String) -> bool:
-	var today: int = clock.day_number()
 	var weeks_back: int = maxi(0, int(_cfg.get("weekly_accept_weeks_back", DEFAULT_WEEKS_BACK)))
-	for k: int in weeks_back + 1:
-		if GameClock.week_key_for_day(today - k * DAYS_PER_WEEK) == week_key:
-			return true
-	return false
+	return LeaderboardService.recent_week_keys(clock.day_number(), weeks_back).has(week_key)
+
+
+## True when [param rules] has no "level_kinds" list or it contains the
+## authoritative level's kind (e.g. endless boards only take endless runs).
+static func _level_kind_ok(rules: Dictionary, level_data: Dictionary) -> bool:
+	var kinds: Variant = rules.get("level_kinds", null)
+	if typeof(kinds) != TYPE_ARRAY:
+		return true
+	return (kinds as Array).has(str(level_data.get("kind", "")))
+
+
+## Type and range problems of an untrusted replay dictionary (empty = safe
+## to hand to RunReplay.from_dict).
+func _replay_type_problems(raw: Dictionary) -> PackedStringArray:
+	var problems: PackedStringArray = PackedStringArray()
+	var max_ticks: int = _max_replay_ticks()
+	if not _is_text(raw.get("level_id", null)):
+		problems.append("level_id must be a string")
+	if not _is_text(raw.get("mode", null)):
+		problems.append("mode must be a string")
+	if not _whole_in(raw.get("seed", null), 0, MAX_SEED):
+		problems.append("seed must be an unsigned 32-bit integer")
+	if not _whole_in(raw.get("sim_version", null), 0, MAX_SEED):
+		problems.append("sim_version must be a whole number")
+	if not _whole_in(raw.get("end_tick", null), 1, max_ticks):
+		problems.append("end_tick must be within 1..%d" % max_ticks)
+	var taps: Variant = raw.get("taps", null)
+	if typeof(taps) != TYPE_ARRAY:
+		problems.append("taps must be an array")
+	elif (taps as Array).size() > max_ticks:
+		problems.append("more taps than ticks")
+	else:
+		for t: Variant in taps as Array:
+			if not _whole_in(t, 0, max_ticks):
+				problems.append("tap ticks must be whole numbers within 0..%d" % max_ticks)
+				break
+	return problems
 
 
 func _check_daily_claim(claim: Dictionary, history: Dictionary, verified: Dictionary, out: Verdict) -> void:
@@ -333,7 +390,7 @@ func _check_deltas(raw: Variant, caps: Dictionary, out: Verdict) -> void:
 		var v: Variant = deltas[k]
 		if not caps.has(currency):
 			out.reject(CLAIM_UNKNOWN_CURRENCY, "currency '%s'" % currency)
-		elif not _is_number(v) or float(v) != floorf(float(v)):
+		elif not _is_whole(v):
 			out.reject(CLAIM_INVALID_DELTA, "%s delta %s" % [currency, str(v)])
 		elif int(v) < 0:
 			out.reject(CLAIM_NEGATIVE_DELTA, "%s delta %d" % [currency, int(v)])
@@ -353,8 +410,31 @@ func _days_back() -> int:
 	return maxi(0, int(_cfg.get("daily_accept_days_back", DEFAULT_DAILY_DAYS_BACK)))
 
 
+func _max_replay_ticks() -> int:
+	return maxi(1, int(_cfg.get("max_replay_ticks", DEFAULT_MAX_TICKS)))
+
+
 static func _is_number(v: Variant) -> bool:
 	return typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT
+
+
+## Finite number without a fractional part (JSON numbers arrive as floats).
+static func _is_whole(v: Variant) -> bool:
+	if typeof(v) == TYPE_INT:
+		return true
+	return typeof(v) == TYPE_FLOAT and is_finite(float(v)) and float(v) == floorf(float(v))
+
+
+static func _whole_in(v: Variant, lo: int, hi: int) -> bool:
+	return _is_whole(v) and float(v) >= float(lo) and float(v) <= float(hi)
+
+
+static func _is_text(v: Variant) -> bool:
+	return typeof(v) == TYPE_STRING or typeof(v) == TYPE_STRING_NAME
+
+
+static func _text_or(v: Variant, fallback: String) -> String:
+	return str(v) if _is_text(v) else fallback
 
 
 static func _dict(v: Variant) -> Dictionary:
@@ -375,3 +455,9 @@ static func _key_set(v: Variant) -> Dictionary:
 		for item: Variant in v:
 			out[str(item)] = true
 	return out
+
+
+## True only for a real boolean true (untrusted data: comparing a string or
+## number with == true is a script error in Godot 4).
+static func _is_true(v: Variant) -> bool:
+	return typeof(v) == TYPE_BOOL and bool(v)
