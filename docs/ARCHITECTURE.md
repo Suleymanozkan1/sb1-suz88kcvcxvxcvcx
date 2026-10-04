@@ -231,8 +231,8 @@ and objects never below the preset under it):
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Low | 165 → **210** | 61 312 → **77 000** | 186 → **235** | 716 → **900** | 73.7 → **95** | 34.5 → **45** | 18–44 |
 | Medium | 210 → **265** | 71 080 → **89 000** | 231 → **290** | 716 → **900** | 73.9 → **95** | 42.2 → **55** | 28–88 |
-| High | 210 → **265** | 71 098 → **89 000** | 227 → **290** | 716 → **900** | 76.3 → **100** | 308.2 → **390** | 41–63 |
-| Ultra | 210 → **265** | 71 098 → **89 000** | 217 → **290** | 716 → **900** | 76.8 → **100** | 313.6 → **395** | 46–126 |
+| High | 210 → **265** | 71 098 → **89 000** | 227 → **290** | 716 → **900** | 76.3 → **100** | 75.5 → **95** | 41–63 |
+| Ultra | 210 → **265** | 71 098 → **89 000** | 217 → **290** | 716 → **900** | 76.8 → **100** | 80.9 → **105** | 46–126 |
 
 * Draw calls and objects peak on w08_l20 (Desert Reactor), primitives on w10_l52 (Candy Reactor),
   nodes on both; a 200-frame sample of w08_l20 read at most 211 draw calls and 232 objects, inside
@@ -243,14 +243,13 @@ and objects never below the preset under it):
   High and Ultra add MSAA and the reflection probe but no draw calls here: the probe re-captures its
   cubemap outside the viewport's counters (the 200-frame sample spans several re-captures and shows
   the same peak), so its cost shows only in frame time and video memory.
-* **Outlier: video memory on High/Ultra** (308–314 MB against 34–42 MB). The first visible
-  `ReflectionProbe` allocates the reflection atlas, which the project leaves at Godot's default of 64
-  cubemaps (`rendering/reflections/reflection_atlas/reflection_count`) although the view uses one
-  probe: 64 × 6 faces × 256² × RGBA16F with mipmaps ≈ 268 MB at the desktop atlas size, the
-  measured jump. With the count overridden to 2 the same High run measured 66 MB; on a phone
-  (`reflection_size.mobile` = 128) the default atlas would be ≈ 67 MB. The budgets record the
-  measured state; lowering `reflection_count` (then the High/Ultra video budgets) is the fix and is
-  not applied here.
+* **Video memory on High/Ultra, fixed.** The first full matrix measured 308–314 MB on High/Ultra against
+  34–42 MB on Low/Medium: the first visible `ReflectionProbe` allocates the reflection atlas, which the
+  project left at Godot's default of 64 cubemaps although the view uses one probe (64 × 6 faces × 256²
+  × RGBA16F with mipmaps ≈ 268 MB). `project.godot` now sets
+  `rendering/reflections/reflection_atlas/reflection_count=2`; the High/Ultra re-measure
+  (`--worlds=all --presets=high,ultra`, 40 runs) read 75.5 / 80.9 MB and the budgets were tightened
+  to 95 / 105 MB.
 * Nodes are 412–716 on every preset (pooled hazard views on dense stretches, plus HUD and screens).
   Static memory grows ≈ 0.07 MB per probed run because each run boots a fresh isolated service
   graph; the headless test measures 52 MB on its own and 67 MB at its place in the full suite.
