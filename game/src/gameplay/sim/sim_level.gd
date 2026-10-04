@@ -136,6 +136,11 @@ func _append_one(ent: Dictionary) -> void:
 			p0 = float(SimConst.form_from_name(str(ent.get("form", "hop"))))
 		SimConst.EntityType.PHASE_GATE:
 			mask = (1 << lane_count) - 1
+		SimConst.EntityType.GRAVITY:
+			# A gravity well spans every lane from d to d + span.
+			mask = (1 << lane_count) - 1
+			p0 = maxf(float(ent.get("span", 0.0)), 0.0)
+			p1 = float(ent.get("g", 1.0))
 		SimConst.EntityType.SPARK:
 			spark_total += 1
 		SimConst.EntityType.PRISM:

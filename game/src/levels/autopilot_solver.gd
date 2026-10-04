@@ -95,17 +95,16 @@ func _prune(nodes: Array) -> Array[SearchNode]:
 	if typed.size() <= beam_width:
 		return typed
 	typed.sort_custom(func(a: SearchNode, b: SearchNode) -> bool: return _rank(a.sim, a.taps) > _rank(b.sim, b.taps))
-	# Keep diversity first: the best state per (lane, phase, heavy, speed band,
-	# distance band). Distance matters for timing-driven forms (surge): states
-	# that differ only in how far they have travelled meet moving hazards at
-	# different moments, so they must not crowd each other out.
+	# Keep diversity first: the best state per (lane, phase, heavy, plates,
+	# airborne, speed band, distance band). Distance matters for timing-driven
+	# forms (surge): states that differ only in how far they have travelled meet
+	# moving hazards at different moments, so they must not crowd each other out.
 	var reps: Array[SearchNode] = []
 	var seen: Dictionary = {}
 	for n: SearchNode in typed:
-		var k: int = (
-			((n.sim.lane * 4 + n.sim.phase * 2 + (1 if n.sim.heavy else 0)) * 1000 + int(n.sim.speed * 2.0)) * 100000
-			+ int(n.sim.d * DISTANCE_BANDS_PER_M)
-		)
+		var cls: int = (n.sim.lane * 4 + n.sim.phase * 2 + (1 if n.sim.heavy else 0)) * 8
+		cls += n.sim.plates * 2 + (1 if n.sim.airborne else 0)
+		var k: int = (cls * 1000 + int(n.sim.speed * 2.0)) * 100000 + int(n.sim.d * DISTANCE_BANDS_PER_M)
 		if not seen.has(k):
 			seen[k] = true
 			reps.append(n)

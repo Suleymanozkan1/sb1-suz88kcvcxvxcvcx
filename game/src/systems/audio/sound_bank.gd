@@ -42,6 +42,11 @@ const REQUIRED_KINDS: Array[StringName] = [
 	&"coin",
 	&"level_up",
 	&"unlock",
+	&"launch",
+	&"land",
+	&"gravity",
+	&"plate",
+	&"stack_crash",
 ]
 const REQUIRED_STINGERS: Array[StringName] = [&"level_complete", &"perfect_fanfare"]
 const MENU_TRACK: String = "menu"

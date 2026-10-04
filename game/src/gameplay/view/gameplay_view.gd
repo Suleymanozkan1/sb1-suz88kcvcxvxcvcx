@@ -35,6 +35,11 @@ const FOG_END: float = 115.0
 const SHAKE_FAIL: float = 0.6
 const SHAKE_SHIELD: float = 0.35
 const SHAKE_SHATTER: float = 0.12
+const SHAKE_LAND: float = 0.08
+## Ground shadow under the core: shrinks and fades as a launch carries it up.
+const CORE_SHADOW_SIZE: float = 0.9
+const CORE_SHADOW_ALPHA: float = 0.32
+const CORE_SHADOW_FALLOFF: float = 0.5
 const HOP_LEAN: float = 0.15
 const NEAR_MISS_SLOWMO_COMBO: int = 10
 
@@ -51,6 +56,8 @@ var world_env: WorldEnvironment
 var key_light: DirectionalLight3D
 var post_rect: ColorRect
 var post_layer: CanvasLayer
+var core_shadow: MeshInstance3D
+var ripples: TapRipple
 
 ## Quality / accessibility toggles.
 var post_fx_enabled: bool = true
@@ -155,6 +162,10 @@ func _ensure_built() -> void:
 	add_child(sparks)
 	core_view = CoreView.new()
 	add_child(core_view)
+	core_shadow = _make_core_shadow()
+	add_child(core_shadow)
+	ripples = TapRipple.new()
+	add_child(ripples)
 	trail = TrailRibbon.new()
 	add_child(trail)
 	bursts = BurstPool.new()
@@ -457,8 +468,12 @@ func _update_frame(delta: float) -> void:
 	var d: float = session.interpolated_d()
 	var x: float = session.interpolated_x()
 	var t: float = session.interpolated_time()
-	var core_pos: Vector3 = Vector3(x, CORE_Y, -d)
+	var lift: float = session.interpolated_y()
+	var core_pos: Vector3 = Vector3(x, CORE_Y + lift, -d)
 	core_view.position = core_pos
+	core_shadow.position = Vector3(x, 0.008, -d)
+	core_shadow.scale = Vector3.ONE / (1.0 + lift * CORE_SHADOW_FALLOFF)
+	core_shadow.visible = core_view.visible
 	core_view.set_form(sim.form, sim.phase, sim.heavy)
 	core_view.set_direction_hint(sim.form == SimConst.Form.HOP and lvl.lane_count > 2, sim.hop_dir)
 	core_view.update_visuals(delta, sim)
@@ -470,7 +485,7 @@ func _update_frame(delta: float) -> void:
 	trail.width = 0.12 + clampf(float(sim.combo) / 40.0, 0.0, 1.0) * 0.06 + (0.05 if sim.overdrive_timer > 0.0 else 0.0)
 	if core_view.visible:
 		trail.push_point(core_pos + Vector3(0.0, -0.02, 0.16))
-	camera_rig.follow(core_pos, delta)
+	camera_rig.follow(core_pos, delta, lift)
 	trail.rebuild(camera_rig.camera)
 	_floor.position = Vector3(0.0, 0.0, -d - FLOOR_LENGTH * 0.5 + 12.0)
 	_floor_mat.set_shader_parameter("scroll", d + FLOOR_LENGTH * 0.5 - 12.0)
@@ -502,7 +517,7 @@ func _update_frame(delta: float) -> void:
 		var i: int = int(idx)
 		var view: EntityView = _active[idx] as EntityView
 		var consumed_pickup: bool = (sim.ent_flags[i] & FluxSim.FLAG_CONSUMED) != 0 and _is_pickup(view.entity_type)
-		if lvl.e_d[i] < d - VIEW_BEHIND or consumed_pickup:
+		if _entity_end(lvl, i) < d - VIEW_BEHIND or consumed_pickup:
 			_to_release.append(i)
 			continue
 		view.animate(delta, lvl, t, d)
@@ -514,7 +529,34 @@ func _update_frame(delta: float) -> void:
 
 
 func _is_pickup(type: int) -> bool:
-	return type == SimConst.EntityType.SHIELD or type == SimConst.EntityType.MAGNET
+	return (
+		type == SimConst.EntityType.SHIELD or type == SimConst.EntityType.MAGNET or type == SimConst.EntityType.PLATE
+	)
+
+
+## Where an entity ends along the track: gravity wells span a stretch, every
+## other entity sits at one distance.
+static func _entity_end(lvl: SimLevel, index: int) -> float:
+	if lvl.e_type[index] == SimConst.EntityType.GRAVITY:
+		return lvl.e_d[index] + lvl.e_p0[index]
+	return lvl.e_d[index]
+
+
+func _make_core_shadow() -> MeshInstance3D:
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	var quad: QuadMesh = QuadMesh.new()
+	quad.size = Vector2(CORE_SHADOW_SIZE, CORE_SHADOW_SIZE)
+	quad.orientation = PlaneMesh.FACE_Y
+	mi.mesh = quad
+	var m: StandardMaterial3D = StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_texture = ViewKit.soft_dot_texture()
+	m.albedo_color = Color(0, 0, 0, CORE_SHADOW_ALPHA)
+	m.render_priority = -1
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
 
 
 func _spawn_entities(lvl: SimLevel, d: float) -> void:
@@ -527,7 +569,7 @@ func _spawn_entities(lvl: SimLevel, d: float) -> void:
 			continue
 		if type == SimConst.EntityType.SHIELD and not session.sim.shields_allowed:
 			continue
-		if lvl.e_d[i] < d - VIEW_BEHIND:
+		if _entity_end(lvl, i) < d - VIEW_BEHIND:
 			continue
 		var view: EntityView = _pool.acquire() as EntityView
 		view.configure(i, type, lvl, kit)
@@ -675,25 +717,13 @@ func _handle_event(type: int, ent: int, value: int) -> void:
 	var sim: FluxSim = session.sim
 	var core: Vector3 = core_view.position
 	match type:
-		SimConst.EventType.TAP_HOP:
-			var target_x: float = SimConst.lane_x(value, session.sim_level.lane_count)
-			core_view.hop_motion(signf(target_x - core.x))
-			camera_rig.impulse(Vector3(HOP_LEAN * signf(target_x - core.x), 0.0, 0.0))
-			feedback.emit(&"tap", 0.4, value)
-		SimConst.EventType.TAP_PHASE:
-			core_view.phase_motion()
-			feedback.emit(&"phase", 0.5, value)
-		SimConst.EventType.TAP_DASH:
-			core_view.squash(Vector3(0, 0, 1), 0.45)
-			camera_rig.fov_punch(4.0)
-			feedback.emit(&"dash", 0.6, 0)
+		SimConst.EventType.TAP_HOP, SimConst.EventType.TAP_PHASE, SimConst.EventType.TAP_DASH, SimConst.EventType.TAP_SURGE:
+			ripples.emit(core, Palette.form_color(sim.form, sim.phase, sim.heavy))
+			_handle_tap(type, value)
 		SimConst.EventType.TAP_DASH_DENIED:
+			ripples.emit(core, Palette.FOG)
 			core_view.punch(-0.12)
 			feedback.emit(&"denied", 0.2, 0)
-		SimConst.EventType.TAP_SURGE:
-			core_view.squash(Vector3(0, 1, 0), -0.3 if value == 1 else 0.25)
-			camera_rig.fov_punch(3.0 if value == 1 else 0.0)
-			feedback.emit(&"surge", 0.5, value)
 		SimConst.EventType.SPARK, SimConst.EventType.PRISM:
 			var pos: Vector3 = sparks.position_of(ent)
 			sparks.hide_entity(ent)
@@ -773,6 +803,59 @@ func _handle_event(type: int, ent: int, value: int) -> void:
 		SimConst.EventType.COMBO_STEP:
 			bursts.emit("ring", core, Palette.form_color(sim.form, sim.phase, sim.heavy))
 			feedback.emit(&"combo", clampf(float(value) / 30.0, 0.3, 1.0), value)
+		_:
+			_handle_mass_event(type, ent, value)
+
+
+## Accepted taps: the form's own motion, camera cue and sound/haptic.
+func _handle_tap(type: int, value: int) -> void:
+	var core: Vector3 = core_view.position
+	match type:
+		SimConst.EventType.TAP_HOP:
+			var target_x: float = SimConst.lane_x(value, session.sim_level.lane_count)
+			core_view.hop_motion(signf(target_x - core.x))
+			camera_rig.impulse(Vector3(HOP_LEAN * signf(target_x - core.x), 0.0, 0.0))
+			feedback.emit(&"tap", 0.4, value)
+		SimConst.EventType.TAP_PHASE:
+			core_view.phase_motion()
+			feedback.emit(&"phase", 0.5, value)
+		SimConst.EventType.TAP_DASH:
+			core_view.squash(Vector3(0, 0, 1), 0.45)
+			camera_rig.fov_punch(4.0)
+			feedback.emit(&"dash", 0.6, 0)
+		SimConst.EventType.TAP_SURGE:
+			core_view.squash(Vector3(0, 1, 0), -0.3 if value == 1 else 0.25)
+			camera_rig.fov_punch(3.0 if value == 1 else 0.0)
+			feedback.emit(&"surge", 0.5, value)
+
+
+## Launch pads, gravity wells and mass plates.
+func _handle_mass_event(type: int, ent: int, value: int) -> void:
+	var core: Vector3 = core_view.position
+	match type:
+		SimConst.EventType.LAUNCH:
+			core_view.squash(Vector3(0, 1, 0), 0.4)
+			_flash_entity(ent, 1.0)
+			bursts.emit("ring", core, Palette.PRIMARY)
+			feedback.emit(&"launch", 0.6, value)
+		SimConst.EventType.LAND:
+			core_view.squash(Vector3(0, 1, 0), -0.35)
+			camera_rig.add_trauma(SHAKE_LAND)
+			feedback.emit(&"land", 0.4, 0)
+		SimConst.EventType.VAULT:
+			bursts.emit("streak", _entity_pos(ent), _particle_color(2, Palette.BONE))
+			feedback.emit(&"near_miss", 0.5, session.sim.combo)
+		SimConst.EventType.STACK_CRASH:
+			hit_stop(0.05)
+			core_view.punch(0.3)
+			feedback.emit(&"stack_crash", 0.8, 0)
+		SimConst.EventType.GRAVITY_ENTER:
+			var heavy: bool = value > 100
+			edge_tint(Palette.FORM_SURGE_HEAVY if heavy else Palette.FORM_SURGE_LIGHT, 0.18)
+			feedback.emit(&"gravity", 0.4, 1 if heavy else 0)
+		SimConst.EventType.PLATE_UP:
+			core_view.punch(0.15)
+			feedback.emit(&"plate", 0.4, value)
 
 
 func _flash_entity(index: int, amount: float) -> void:

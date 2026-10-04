@@ -2,7 +2,8 @@ extends SceneTree
 ## Renders a level with the autopilot (stored solution) and saves screenshots.
 ## Needs a display (use xvfb-run):
 ##   xvfb-run -a godot --path game --rendering-driver opengl3 --resolution 540x960 \
-##       -s res://tools/capture_level.gd -- --level=w01_l05 --out=/tmp/shots --at=1.5,4,7
+##       -s res://tools/capture_level.gd -- --level=w01_l05 --out=/tmp/shots --at=1.5,4,7 [--stop] [--fail]
+## --stop quits after the last --at shot instead of playing the level to its end.
 
 var _session: GameplaySession
 var _view: GameplayView
@@ -14,6 +15,7 @@ var _shot_index: int = 0
 var _frames: int = 0
 var _done: bool = false
 var _fail_on_purpose: bool = false
+var _stop_after_shots: bool = false
 
 
 func _initialize() -> void:
@@ -25,6 +27,8 @@ func _initialize() -> void:
 		elif arg.begins_with("--at="):
 			for s: String in arg.get_slice("=", 1).split(","):
 				_shots.append(s.to_float())
+		elif arg == "--stop":
+			_stop_after_shots = true
 		elif arg == "--fail":
 			_fail_on_purpose = true
 	if _shots.is_empty():
@@ -67,7 +71,8 @@ func _process(_delta: float) -> bool:
 	if _shot_index < _shots.size() and _session.sim.time() >= _shots[_shot_index]:
 		_capture("t%05.1f" % _shots[_shot_index])
 		_shot_index += 1
-	if _shot_index >= _shots.size() and _session.phase == GameplaySession.Phase.ENDED:
+	var shots_done: bool = _shot_index >= _shots.size()
+	if shots_done and (_stop_after_shots or _session.phase == GameplaySession.Phase.ENDED):
 		_done = true
 		quit(0)
 	if _frames > 60 * 200:

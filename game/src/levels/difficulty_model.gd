@@ -160,11 +160,28 @@ func _apply_chapter(spec: LevelSpec, chapter: Dictionary) -> void:
 	spec.speed_ramp = float(chapter.get("speed_ramp", 0.0))
 	spec.form_segment = int(chapter.get("form_segment", 6))
 	spec.spark_density = minf(1.0, spec.spark_density + float(chapter.get("spark_bonus", 0.0)))
+	_apply_mass_gravity(spec, chapter)
 	if spec.chapter_phase == "introduction":
 		# Teach the new idea safely: slower, fewer simultaneous threats.
 		spec.speed *= 0.94
 		spec.change_prob *= 0.8
 	spec.start_form = _first_form(spec)
+
+
+## Launch pads, gravity wells and mass plates from chapter or special data
+## (missing keys switch them off).
+static func _apply_mass_gravity(spec: LevelSpec, source: Dictionary) -> void:
+	spec.gravity_chance = float(source.get("gravity", 0.0))
+	spec.launch_chance = float(source.get("launch", 0.0))
+	spec.plate_chance = float(source.get("plate", 0.0))
+	var values: Array = source.get("gravity_g", []) as Array
+	if not values.is_empty():
+		spec.gravity_values.clear()
+		for g: Variant in values:
+			spec.gravity_values.append(float(g))
+	var slots: Array = source.get("gravity_slots", []) as Array
+	if slots.size() == 2:
+		spec.gravity_slots = Vector2i(int(slots[0]), int(slots[1]))
 
 
 func _first_form(spec: LevelSpec) -> String:
@@ -208,6 +225,8 @@ func _apply_special(spec: LevelSpec, special: Dictionary) -> void:
 	spec.cluster_chance = float(special.get("cluster", spec.cluster_chance))
 	spec.hop_time = float(special.get("hop_time", spec.hop_time))
 	spec.form_segment = int(special.get("form_segment", spec.form_segment))
+	# Set pieces opt in to the mass & gravity family explicitly.
+	_apply_mass_gravity(spec, special)
 	spec.density = 1.0
 	match spec.pattern:
 		"color_cascade":

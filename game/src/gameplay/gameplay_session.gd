@@ -249,5 +249,10 @@ func interpolated_x() -> float:
 	return lerpf(sim.prev_x, sim.x, alpha)
 
 
+## Height of a launched core above its resting line.
+func interpolated_y() -> float:
+	return lerpf(sim.prev_y, sim.y, alpha)
+
+
 func interpolated_time() -> float:
 	return (float(sim.tick) + alpha) * SimConst.DT

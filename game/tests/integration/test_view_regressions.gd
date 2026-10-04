@@ -71,6 +71,82 @@ func test_revive_brings_the_core_back_and_removes_the_barrier() -> void:
 	assert_false(view._active.has(killer), "the barrier that was hit is gone")
 
 
+func _solution_taps() -> PackedInt32Array:
+	var taps: PackedInt32Array = PackedInt32Array()
+	for t: Variant in (_session.level_data["solution"] as Dictionary)["taps"] as Array:
+		taps.append(int(t))
+	return taps
+
+
+func test_a_launch_lifts_the_core_and_shrinks_its_shadow() -> void:
+	var view: GameplayView = _view_for("w09_l14", "void_space")
+	_session.begin(0.0)
+	var taps: PackedInt32Array = _solution_taps()
+	var guard: int = 0
+	while _session.sim.is_running() and not _session.sim.airborne and guard < 6000:
+		_session.step_ticks(1, taps)
+		guard += 1
+	_session.step_ticks(12, taps)
+	assert_true(_session.sim.airborne, "the core is in the air")
+	view._update_frame(0.016)
+	assert_gt(view.core_view.position.y, GameplayView.CORE_Y + 0.3, "the core is drawn at its height")
+	assert_lt(view.core_shadow.scale.x, 1.0, "its ground shadow shrinks")
+	assert_near(view.core_shadow.position.y, 0.008, 0.001, "and stays on the floor")
+
+
+func test_a_gravity_well_stays_drawn_until_its_far_end() -> void:
+	var view: GameplayView = _view_for("w09_l40", "void_space")
+	var lvl: SimLevel = _session.sim_level
+	var well: int = -1
+	for i: int in lvl.entity_count():
+		if lvl.e_type[i] == SimConst.EntityType.GRAVITY:
+			well = i
+			break
+	assert_ge(float(well), 0.0, "level has a gravity well")
+	_session.begin(0.0)
+	var taps: PackedInt32Array = _solution_taps()
+	var past_start: float = lvl.e_d[well] + GameplayView.VIEW_BEHIND + 1.0
+	var guard: int = 0
+	while _session.sim.is_running() and _session.sim.d < past_start and guard < 20000:
+		_session.step_ticks(1, taps)
+		guard += 1
+	view._update_frame(0.016)
+	assert_lt(past_start, lvl.e_d[well] + lvl.e_p0[well], "still inside the well")
+	assert_true(view._active.has(well), "the well is not released by its start")
+
+
+func test_plates_stack_on_the_core() -> void:
+	var view: GameplayView = _view_for("w10_l02", "candy_reactor")
+	_session.begin(0.0)
+	var taps: PackedInt32Array = _solution_taps()
+	var guard: int = 0
+	while _session.sim.is_running() and _session.sim.plates < 2 and guard < 20000:
+		_session.step_ticks(1, taps)
+		guard += 1
+	assert_eq(_session.sim.plates, 2)
+	view.core_view.update_visuals(0.016, _session.sim)
+	var shown: int = 0
+	for disc: MeshInstance3D in view.core_view.stack_discs:
+		if disc.visible:
+			shown += 1
+	assert_eq(shown, 2, "one disc per stacked plate")
+	assert_true(view._is_pickup(SimConst.EntityType.PLATE), "a collected plate is released like a pickup")
+
+
+func test_every_tap_ripples_the_floor() -> void:
+	var ripples: TapRipple = _keep(TapRipple.new()) as TapRipple
+	ripples.set_process(false)
+	ripples.emit(Vector3(0.8, 0.38, -10.0), Palette.PRIMARY)
+	assert_eq(ripples.active_count(), 1, "a tap starts a ripple")
+	ripples.advance(TapRipple.LIFE * 0.5)
+	assert_eq(ripples.active_count(), 1, "still spreading")
+	ripples.advance(TapRipple.LIFE)
+	assert_eq(ripples.active_count(), 0, "gone after its life")
+	for _i: int in TapRipple.POOL_SIZE + 2:
+		ripples.emit(Vector3.ZERO, Palette.PRIMARY)
+	assert_eq(ripples.active_count(), TapRipple.POOL_SIZE, "fast taps reuse a fixed pool")
+
+
 func test_leftward_current_is_drawn_over_its_own_lanes() -> void:
 	_view_for("w03_l14", "molten_grid")
 	var lvl: SimLevel = _session.sim_level

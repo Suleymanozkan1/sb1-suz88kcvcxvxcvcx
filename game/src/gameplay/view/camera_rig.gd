@@ -13,6 +13,9 @@ const IMPULSE_DAMPING: float = 9.0
 const IMPULSE_STIFFNESS: float = 140.0
 const SPRING_STEP: float = 1.0 / 120.0
 const MAX_SPRING_DELTA: float = 0.1
+## How much the camera rises with a launched core (and how much its aim does).
+const LIFT_FOLLOW: float = 0.4
+const LIFT_LOOK: float = 0.25
 
 var camera: Camera3D
 var shake_scale: float = 1.0
@@ -51,7 +54,8 @@ func start_reveal(strength: float = 1.0) -> void:
 	reveal = strength
 
 
-func follow(core_pos: Vector3, delta: float) -> void:
+## [param lift]: height of a launched core above its resting line (0 on the floor).
+func follow(core_pos: Vector3, delta: float, lift: float = 0.0) -> void:
 	_noise_t += delta
 	# Spring back impulses in fixed sub-steps (stable on slow frames).
 	var remaining: float = minf(delta, MAX_SPRING_DELTA)
@@ -66,7 +70,7 @@ func follow(core_pos: Vector3, delta: float) -> void:
 	_lateral = lerpf(_lateral, core_pos.x * 0.35, 1.0 - exp(-6.0 * delta))
 	var r: float = ease(reveal, 2.2)
 	var offset: Vector3 = BASE_OFFSET + Vector3(0.0, 6.0 * r, 9.0 * r)
-	var target: Vector3 = Vector3(_lateral, 0.0, core_pos.z)
+	var target: Vector3 = Vector3(_lateral, lift * LIFT_FOLLOW, core_pos.z)
 	var shake: float = trauma * trauma * MAX_SHAKE * shake_scale
 	var shake_v: Vector3 = (
 		Vector3(
@@ -75,7 +79,8 @@ func follow(core_pos: Vector3, delta: float) -> void:
 		* shake
 	)
 	global_position = target + offset + _impulse * shake_scale + shake_v
-	camera.look_at(Vector3(_lateral * 0.6, LOOK_HEIGHT, core_pos.z - LOOK_AHEAD) + shake_v * 0.5, Vector3.UP)
+	var look_y: float = LOOK_HEIGHT + lift * LIFT_LOOK
+	camera.look_at(Vector3(_lateral * 0.6, look_y, core_pos.z - LOOK_AHEAD) + shake_v * 0.5, Vector3.UP)
 	camera.rotate_object_local(Vector3.FORWARD, deg_to_rad(-_impulse.x * 3.0 * shake_scale))
 	camera.fov = BASE_FOV + (_fov_punch + 8.0 * r) * shake_scale
 

@@ -10,6 +10,8 @@ const MAX_PARTS: int = 7
 const SHUTTER_RAMP: float = 0.12
 const LAMP_WARN_TIME: float = 0.35
 const PICKUP_BOB: float = 0.05
+## Mass plates float at collect height like the other pickups.
+const PLATE_Y: float = 0.4
 
 var entity_index: int = -1
 var entity_type: int = -1
@@ -189,6 +191,32 @@ func configure(index: int, type: int, lvl: SimLevel, kit: ViewKit) -> void:
 		SimConst.EntityType.MAGNET:
 			_body = _part(0, kit.magnet_mesh, kit.magnet_material, Vector3(lane_x, 0.42, 0.0), false)
 			_body.rotation_degrees = Vector3(0, 0, 90)
+		SimConst.EntityType.LAUNCH_PAD:
+			# Matte slab (matter) with an energy insert pointing down the track.
+			_body = _part(0, kit.pad_mesh, kit.structure_material, Vector3(lane_x, ViewKit.PAD_SIZE.y * 0.5, 0.0), true)
+			_membrane = _part(
+				1, kit.pad_insert_mesh, kit.pad_material, Vector3(lane_x, ViewKit.PAD_SIZE.y + 0.006, 0.0), false
+			)
+			_membrane.rotation_degrees = Vector3(0, 90, 0)
+			_membrane.set_instance_shader_parameter("tiles", 2.0)
+		SimConst.EntityType.PLATE:
+			_body = _part(0, kit.plate_mesh, kit.ballast_material, Vector3(lane_x, PLATE_Y, 0.0), true)
+			_membrane = _part(1, kit.plate_ring_mesh, kit.plate_ring_material, Vector3(lane_x, PLATE_Y, 0.0), false)
+			_part(2, kit.blob_mesh, kit.blob_material, Vector3(lane_x, 0.006, 0.0), false).scale = Vector3.ONE * 0.5
+		SimConst.EntityType.GRAVITY:
+			var span: float = lvl.e_p0[index]
+			var strip: MeshInstance3D = _part(
+				0,
+				kit.gravity_strip_mesh(lanes, span),
+				kit.gravity_material(lvl.e_p1[index] > 1.0),
+				Vector3(0.0, 0.016, -span * 0.5),
+				false
+			)
+			strip.rotation_degrees = Vector3(0, 90, 0)
+			strip.set_instance_shader_parameter("tiles", maxf(2.0, roundf(span / ViewKit.GRAVITY_ARROW_LENGTH)))
+			# Matte rails mark where the well begins and ends.
+			_part(1, kit.rail_mesh(lanes), kit.structure_material, Vector3(0.0, 0.025, 0.0), true)
+			_part(2, kit.rail_mesh(lanes), kit.structure_material, Vector3(0.0, 0.025, -span), true)
 
 
 func flash(amount: float) -> void:
@@ -218,6 +246,15 @@ func animate(delta: float, lvl: SimLevel, sim_time: float, core_d: float = 0.0) 
 			_bob_phase += delta * 2.4
 			_body.position.y = 0.42 + sin(_bob_phase) * PICKUP_BOB
 			_body.rotation.y += delta * 1.4
+		SimConst.EntityType.PLATE:
+			# Heavy ballast: a slow bob and turn (lighter pickups move quicker).
+			_bob_phase += delta * 1.6
+			var y: float = PLATE_Y + sin(_bob_phase) * PICKUP_BOB
+			_body.position.y = y
+			_membrane.position.y = y
+			_body.rotation.y += delta * 0.7
+		SimConst.EntityType.LAUNCH_PAD:
+			_membrane.set_instance_shader_parameter("ripple", _ripple * 2.0)
 	# Appear: matter rises out of the floor (mechanical ease-out, no overshoot).
 	var a: float = ease(appear, 0.4)
 	position.y = (a - 1.0) * 0.6

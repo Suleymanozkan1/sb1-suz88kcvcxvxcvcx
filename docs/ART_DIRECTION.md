@@ -65,6 +65,13 @@ contrast, but stay within the saturation cap. Each world defines `sky_top`, `sky
   is a panel that physically drops into the floor when open; a *breakable* is the same block in glass
   with fracture lines.
 * **Gates:** a chamfered arch spanning all lanes; the membrane inside is energy.
+* **Mass & gravity:** a *launch pad* is a matte slab in the structure material with a PRIMARY chevron
+  insert pointing down the track (a force, like a current); a *plate* is matte ballast (heavy-surge
+  violet, darkened, metallic) with a thin energy ring because it is collected, and stacks as discs on
+  the core; a *gravity well* is a chevron strip across the lanes between two matte rails: heavy-surge
+  colour with arrows rushing forward for high gravity, light-surge colour drifting back for low gravity
+  (direction is the second cue for colour-blind players). A launched core is drawn at its height with
+  a soft ground shadow that shrinks as it rises.
 * **Environment:** repeating ribs (frames) on a 7 u rhythm, built from the same chamfered profile.
   Each world picks one rib profile (gate, arch, hex, monolith pair, lattice) and one material.
 
@@ -125,6 +132,7 @@ nothing stretches or tiles visibly.
 
 | Event | Job | Effect budget |
 |---|---|---|
+| Tap | feedback | Flat floor ripple ring under the core (180 ms, form colour; grey when a dash is refused) and a 1.03 score nudge; no shake |
 | Collect | information | 6 shard motes + 120 ms ring; no shake |
 | Near miss | information / skill reward | Thin streak on the hazard edge; slow-motion only at combo ≥ 10 (80 ms × 0.75) |
 | Shatter | impact | 10–14 glass shards with gravity, 30 ms hit-stop, small shake |
@@ -136,7 +144,7 @@ nothing stretches or tiles visibly.
 | Complete / Perfect | reward | Slow-down, core dives into the sink; Perfect adds a gold ring sweep and ≤ 30 rising motes |
 
 The camera shakes only on impacts: fail (0.6 trauma), shield hit (0.35), a Zen-mode bump (0.15, Zen's
-stand-in for a hit) and a shatter (0.12, small). Collecting, near misses and taps never shake. Hops get a
+stand-in for a hit), a shatter (0.12, small) and a landing after a launch pad (0.08, smallest). Collecting, near misses and taps never shake. Hops get a
 0.15 u lean, and dash or heavy surge get a small FOV kick (meaning: speed). Reduce motion scales all of
 it to 20 %.
 

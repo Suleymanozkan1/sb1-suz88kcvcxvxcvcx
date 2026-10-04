@@ -180,6 +180,29 @@ func test_locked_daily_button_fits_the_screen() -> void:
 			assert_le(daily._play.get_combined_minimum_size().x, limit, "%s %s fits" % [locale, key])
 
 
+func test_intro_levels_name_their_new_mechanic() -> void:
+	var intros: Array[String] = []
+	for w: Dictionary in WorldCatalog.load_default().worlds:
+		for c: Variant in w.get("chapters", []) as Array:
+			intros.append(str((c as Dictionary).get("intro", "")))
+	assert_eq(intros.size(), 40, "four chapters in each of ten worlds")
+	for locale: String in ["en", "tr"]:
+		TranslationServer.set_locale(locale)
+		for intro: String in intros:
+			var key: String = Hud.intro_hint_key(intro)
+			assert_ne(TranslationServer.translate(key), key, "%s hint for %s" % [locale, intro])
+	TranslationServer.set_locale("en")
+	var hud: Hud = _screen(Hud.new()) as Hud
+	hud.bind(_session)
+	_session.level_data = {"intro_mechanic": "launch_pads", "mechanics": ["hop", "launch"]}
+	hud.enter({})
+	assert_eq(hud._intro_hint.text, str(TranslationServer.translate("hint.mechanic.launch_pads")), "named at the start")
+	assert_gt(hud._intro_hint.modulate.a, 0.5, "and visible")
+	_session.level_data = {"intro_mechanic": "", "mechanics": ["hop"]}
+	hud.enter({})
+	assert_eq(hud._intro_hint.text, "", "regular levels show no caption")
+
+
 func test_durations_use_localized_units() -> void:
 	TranslationServer.set_locale("tr")
 	assert_eq(DailyScreen.format_duration(2 * 86400 + 3 * 3600), "2 g 03 sa")

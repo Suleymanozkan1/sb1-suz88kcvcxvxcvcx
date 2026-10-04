@@ -42,6 +42,11 @@ validation, the autopilot, the replay verifier and the tests, so "solvable in th
   every 13 levels (40 introductions: hop, shield, slider, pulse, phase, form gate, moving colours,
   3 lanes, currents, dash, chains, surge, portals, overdrive, ice, beat lock, speed ramp, …).
 * The tutorial (1–5) uses fixed gentle parameters, a forgiving first hit and on-screen tap hints.
+* **Teaching:** every chapter's introduction levels name the new idea in one short HUD line at the
+  start (`hint.mechanic.<intro>`, EN/TR, tested for all 40 chapters).
+* **Mass & gravity chapters** (W9 L14–25 launch pads, W9 L40–51 gravity wells, W10 L1–13 plates,
+  W10 L27–39 all three): chapter keys `launch`, `gravity`, `plate` (chances), optional `gravity_g`
+  and `gravity_slots`. Set pieces never inherit them (they opt in explicitly).
 * **Set pieces.** Each world's challenge (L26) and boss (L52) names a pattern that changes how the
   level is built, not just its label:
 
@@ -81,6 +86,20 @@ around it:
 The planned taps are stored in the level as `solution.taps`. They drive the attract mode, the tutorial
 hints and the autopilot tests — and they are the generator's proof of solvability.
 
+Mass & gravity slots are planned the same way, never assumed:
+
+* **Launch slot** – the pad goes on the lane the plan reaches (a measured hop onto it, or the lane the
+  core rides). The flight is simulated; a wall row across every lane goes in the middle of the stretch
+  where the core is really above block height (≥ 1.64 m, else the slot falls back to a normal one, so
+  heavy stacks and high gravity are handled by measurement). Nothing is placed under the arc, and the
+  next slot waits for the landing plus the reaction room.
+* **Gravity well** – spans 3–5 slots; the following slots are measured with the new gravity.
+* **Plate slot** – a calm slot with the plate on the ridden lane; once three plates are carried, the
+  next slot is a **crash row** (crystal on the path, crystal or blocks elsewhere).
+* Levels without these chapters draw exactly the same random numbers as before (the new bands reuse
+  the special-slot roll and exist only when their chance is above zero), so the other 470 levels are
+  byte-identical.
+
 Endless/time-attack courses use the same generator in streaming mode (`EndlessStreamer`): slots are
 built one per frame when the core gets within 70 m of the frontier and released once safely behind it,
 so entity order stays monotonic and the course depends only on the seed (the server rebuilds it to
@@ -96,12 +115,12 @@ Independent of the generator. Error codes (stable, used by CI and reports):
 | `missing_objective` | objective type/target present and achievable |
 | `invalid_mechanic` | every entity/mechanic is known in `mechanics.json` |
 | `missing_asset` | world music track exists |
-| `spawn_collision` | no overlapping hazards / impossible stacks |
-| `broken_trigger` | form gates, portals, currents reference valid targets |
+| `spawn_collision` | no overlapping hazards / impossible stacks; pads on clear floor; gravity wells inside the level, never overlapping |
+| `broken_trigger` | form gates, portals, currents reference valid targets; gravity factor 0.5–2 (≠ 1), span ≥ 2 m |
 | `invalid_sequence` | entities ordered by distance; nothing before the safe lead-in (10 m) |
 | `impossible_level` | the stored solution completes the level without damage |
 | `unreachable_state` | the planned path never needs a state the core cannot reach |
-| `dead_end` | currents/portals never push the core into an unavoidable hit |
+| `dead_end` | currents, portals and launch flights never push the core into an unavoidable hit |
 | `unfair_window` | every required tap tolerates the tier's minimum window early/late (re-simulated) |
 | `duration` | duration inside the tier band (special bands for challenge/boss) |
 | `solver` | optional: the independent beam-search autopilot also finds a path (warning) |

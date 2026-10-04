@@ -31,6 +31,15 @@ const STRUCTURE_PRESETS: Dictionary = {
 }
 ## Hazards use a bolder chamfer (same family) so blocks read as machined parts.
 const HAZARD_CHAMFER: float = 0.16
+## Launch pad slab and mass plate dimensions (world units).
+const PAD_SIZE: Vector3 = Vector3(1.0, 0.08, 0.9)
+const PLATE_SIZE: Vector3 = Vector3(0.46, 0.07, 0.46)
+## Gravity-well arrows are about this long, whatever the well's span.
+const GRAVITY_ARROW_LENGTH: float = 1.6
+## Floor force fields stay below the gameplay: a gravity well is a large area,
+## so its arrows are dimmer than a pad's (the pale low-g colour dimmer still).
+const PAD_CHEVRON_INTENSITY: float = 0.45
+const GRAVITY_CHEVRON_INTENSITY: float = 0.2
 
 static var _soft_dot: GradientTexture2D
 
@@ -47,6 +56,10 @@ var floor_disc_mesh: QuadMesh
 var shield_mesh: TorusMesh
 var magnet_mesh: CapsuleMesh
 var blob_mesh: QuadMesh
+var pad_mesh: ArrayMesh
+var pad_insert_mesh: QuadMesh
+var plate_mesh: ArrayMesh
+var plate_ring_mesh: TorusMesh
 
 var hazard_material: StandardMaterial3D
 var structure_material: StandardMaterial3D
@@ -60,6 +73,11 @@ var exit_material: ShaderMaterial
 var chevron_material: ShaderMaterial
 var shield_material: StandardMaterial3D
 var magnet_material: ShaderMaterial
+## Launch pad insert: an energy force pointing down the track.
+var pad_material: ShaderMaterial
+## Mass plate: matte ballast (matter) with a thin energy ring (collectible).
+var ballast_material: StandardMaterial3D
+var plate_ring_material: StandardMaterial3D
 
 ## Colour-blind aid: phase gates carry a shape marker (A = ring, B = diamond).
 var colorblind: bool = false
@@ -74,6 +92,9 @@ var _chevron_meshes: Dictionary = {}
 var _form_materials: Dictionary = {}
 var _form_icon_meshes: Dictionary = {}
 var _form_icon_materials: Dictionary = {}
+var _gravity_strips: Dictionary = {}
+var _gravity_materials: Array[ShaderMaterial] = []
+var _rail_meshes: Dictionary = {}
 
 
 func _init(world_theme: WorldTheme) -> void:
@@ -110,6 +131,16 @@ func _init(world_theme: WorldTheme) -> void:
 	blob_mesh = QuadMesh.new()
 	blob_mesh.size = Vector2(bw * 1.25, SimConst.HAZARD_HALF_DEPTH * 4.0)
 	blob_mesh.orientation = PlaneMesh.FACE_Y
+	pad_mesh = MeshFactory.chamfered_box(PAD_SIZE)
+	pad_insert_mesh = QuadMesh.new()
+	pad_insert_mesh.size = Vector2(PAD_SIZE.z * 0.8, PAD_SIZE.x * 0.7)
+	pad_insert_mesh.orientation = PlaneMesh.FACE_Y
+	plate_mesh = MeshFactory.chamfered_box(PLATE_SIZE, HAZARD_CHAMFER)
+	plate_ring_mesh = TorusMesh.new()
+	plate_ring_mesh.inner_radius = 0.3
+	plate_ring_mesh.outer_radius = 0.33
+	plate_ring_mesh.rings = 24
+	plate_ring_mesh.ring_segments = 4
 	_build_materials()
 
 
@@ -164,6 +195,28 @@ func _build_materials() -> void:
 	magnet_material.set_shader_parameter("color_b", Palette.SECONDARY)
 	magnet_material.set_shader_parameter("style", 8)
 	magnet_material.set_shader_parameter("intensity", 1.3)
+	pad_material = _chevrons(Palette.PRIMARY, 1.0, 3.0, PAD_CHEVRON_INTENSITY)
+	ballast_material = StandardMaterial3D.new()
+	ballast_material.albedo_color = Palette.FORM_SURGE_HEAVY.darkened(0.45)
+	ballast_material.roughness = 0.45
+	ballast_material.metallic = 0.6
+	plate_ring_material = StandardMaterial3D.new()
+	plate_ring_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	plate_ring_material.albedo_color = Palette.FORM_SURGE_HEAVY * Palette.ENERGY_SPARK
+	# Gravity wells: heavy arrows rush down the track, light ones drift back
+	# towards the player (direction is the second cue besides the colour).
+	_gravity_materials.append(_chevrons(Palette.FORM_SURGE_LIGHT, -1.0, 1.0, GRAVITY_CHEVRON_INTENSITY * 0.6))
+	_gravity_materials.append(_chevrons(Palette.FORM_SURGE_HEAVY, 1.0, 3.5, GRAVITY_CHEVRON_INTENSITY))
+
+
+func _chevrons(color: Color, direction: float, speed: float, intensity: float) -> ShaderMaterial:
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = CHEVRON_SHADER
+	m.set_shader_parameter("energy", color)
+	m.set_shader_parameter("direction", direction)
+	m.set_shader_parameter("speed", speed)
+	m.set_shader_parameter("intensity", intensity)
+	return m
 
 
 func _structure(albedo: Color, kind: String) -> StandardMaterial3D:
@@ -298,6 +351,29 @@ func chevron_mesh(lanes: int, from_lane: int, to_lane: int) -> QuadMesh:
 		q.center_offset = Vector3((x0 + x1) * 0.5, 0.015, 0.0)
 		_chevron_meshes[key] = q
 	return _chevron_meshes[key] as QuadMesh
+
+
+## Floor strip of a gravity well: [param span] long, across every lane. Its
+## local +x runs along the strip (rotate it 90° about Y to point down the track).
+func gravity_strip_mesh(lanes: int, span: float) -> QuadMesh:
+	var key: String = "%d:%.2f" % [lanes, span]
+	if not _gravity_strips.has(key):
+		var q: QuadMesh = QuadMesh.new()
+		q.size = Vector2(span, float(lanes) * SimConst.LANE_WIDTH + 0.3)
+		q.orientation = PlaneMesh.FACE_Y
+		_gravity_strips[key] = q
+	return _gravity_strips[key] as QuadMesh
+
+
+func gravity_material(heavy: bool) -> ShaderMaterial:
+	return _gravity_materials[1 if heavy else 0]
+
+
+## Matte rail across every lane marking where a gravity well begins and ends.
+func rail_mesh(lanes: int) -> ArrayMesh:
+	if not _rail_meshes.has(lanes):
+		_rail_meshes[lanes] = MeshFactory.chamfered_box(Vector3(float(lanes) * SimConst.LANE_WIDTH + 0.4, 0.05, 0.1))
+	return _rail_meshes[lanes] as ArrayMesh
 
 
 func form_material(form: int) -> ShaderMaterial:

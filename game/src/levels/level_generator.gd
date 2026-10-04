@@ -29,6 +29,11 @@ const PATTERN_MEMORY: String = "pattern_memory"
 ## Hazard-type motif length of a pattern_memory level.
 const MOTIF_LENGTH: int = 4
 const MIN_DASH_GAP_FACTOR: float = 1.3
+## Shortest stretch (m) a launched core must stay above block height for a wall
+## row to be placed under it: the wall's depth on both sides plus a margin.
+const MIN_AIR_STRETCH: float = 2.0 * (SimConst.HAZARD_HALF_DEPTH + SimConst.CORE_RADIUS) + 0.6
+## Ticks a launch flight is followed at most while planning.
+const FLIGHT_GUARD_TICKS: int = 600
 const GENERATOR_VERSION: int = 1
 
 ## Codes from [LevelValidator] that make the generator retry with the next
@@ -58,6 +63,8 @@ var _window_min_seen: float = INF
 var _dropped: int = 0
 var _motif: Array[String] = []
 var _motif_row: int = -1
+## End of the last gravity well placed (wells never overlap).
+var _zone_end: float = -INF
 
 
 ## Generates a complete level dictionary (or an empty dictionary on failure).
@@ -111,6 +118,7 @@ func start(level_spec: LevelSpec, attempt: int = 0) -> void:
 	_window_min_seen = INF
 	_motif.clear()
 	_motif_row = -1
+	_zone_end = -INF
 	_base = {
 		"id": spec.id,
 		"lanes": spec.lanes,
@@ -200,7 +208,7 @@ func stream_header() -> Dictionary:
 func finish() -> Dictionary:
 	if not errors.is_empty():
 		return {}
-	var length: float = snappedf(_cursor_d + TAIL, 0.01)
+	var length: float = snappedf(maxf(_cursor_d, _zone_end) + TAIL, 0.01)
 	var data: Dictionary = _base.duplicate(true)
 	data["length"] = length
 	data["entities"] = _entities.duplicate(true)
@@ -285,6 +293,7 @@ func _mechanics_used(data: Dictionary) -> Array:
 	var used: Dictionary = {}
 	used["spark"] = true
 	var forms_seen: Dictionary = {str(data["start_form"]): true}
+	var breakables: bool = false
 	for ent: Variant in data["entities"] as Array:
 		var e: Dictionary = ent as Dictionary
 		match str(e["t"]):
@@ -297,7 +306,13 @@ func _mechanics_used(data: Dictionary) -> Array:
 			"phase_gate":
 				used["phase"] = true
 			"breakable":
-				used["dash"] = true
+				breakables = true
+			"gravity":
+				used["gravity"] = true
+			"launch_pad":
+				used["launch"] = true
+			"plate":
+				used["stack"] = true
 			"current":
 				used["current"] = true
 			"portal":
@@ -313,6 +328,9 @@ func _mechanics_used(data: Dictionary) -> Array:
 				used["magnet"] = true
 	for f: String in forms_seen:
 		used[f] = true
+	# Glass is broken by a dash, or (with plates and no dash form) by a full stack.
+	if breakables and (forms_seen.has("dash") or not used.has("stack")):
+		used["dash"] = true
 	if int(data["lanes"]) == 3:
 		used["lanes3"] = true
 	var mods: Dictionary = data["modifiers"] as Dictionary
@@ -417,13 +435,8 @@ func _build_next_slot() -> void:
 			_place_form_gate(gap)
 			_segment_left = _segment_length()
 			return
-	var specials_roll: float = _rng.next_float()
-	if _form == SimConst.Form.HOP and specials_roll < spec.current_chance and _slot_index > 1:
-		if _try_current_slot(gap):
-			return
-	elif _form == SimConst.Form.HOP and specials_roll < spec.current_chance + spec.portal_chance and _slot_index > 1:
-		if _try_portal_slot(gap):
-			return
+	if _try_special_slot(_rng.next_float(), gap):
+		return
 	for retry: int in SLOT_RETRIES:
 		var change: bool = _rng.chance(spec.change_prob) or (_slot_index == 0 and spec.tutorial)
 		if _try_slot(gap * (1.0 + 0.25 * float(retry)), change):
@@ -431,6 +444,47 @@ func _build_next_slot() -> void:
 	# Fallback: a calm slot that never needs a tap.
 	if not _try_slot(gap * 1.6, false):
 		_advance_empty(gap)
+
+
+## Special slots by one roll: currents, portals and launch pads take the low
+## bands (hop form), gravity wells and plates the high bands. Each band only
+## exists when its chapter chance is above zero, so levels without them draw
+## exactly the same random numbers as before.
+func _try_special_slot(roll: float, gap: float) -> bool:
+	# A full stack of plates is spent on the next glass row.
+	if _checkpoint.plates >= SimConst.MAX_PLATES and _try_crash_slot(gap):
+		return true
+	var placed: bool = false
+	match _special_kind(roll):
+		"current":
+			placed = _try_current_slot(gap)
+		"portal":
+			placed = _try_portal_slot(gap)
+		"launch":
+			placed = _try_launch_slot(gap)
+		"gravity":
+			placed = _try_gravity_zone(gap)
+		"plate":
+			placed = _try_plate_slot(gap)
+	return placed
+
+
+## Which special slot [param roll] selects ("" for a regular slot).
+func _special_kind(roll: float) -> String:
+	var hop_ready: bool = _form == SimConst.Form.HOP and _slot_index > 1
+	var forced_chance: float = spec.current_chance + spec.portal_chance
+	var kind: String = ""
+	if hop_ready and roll < spec.current_chance:
+		kind = "current"
+	elif hop_ready and roll < forced_chance:
+		kind = "portal"
+	elif hop_ready and spec.launch_chance > 0.0 and roll < forced_chance + spec.launch_chance:
+		kind = "launch"
+	elif spec.gravity_chance > 0.0 and roll >= 1.0 - spec.gravity_chance:
+		kind = "gravity"
+	elif spec.plate_chance > 0.0 and roll >= 1.0 - spec.gravity_chance - spec.plate_chance:
+		kind = "plate"
+	return kind
 
 
 func _advance_empty(gap: float) -> void:
@@ -685,6 +739,8 @@ func _measure_window(lvl: SimLevel, d_slot: float, target: Dictionary) -> Dictio
 
 
 func _state_matches(sim: FluxSim, target: Dictionary) -> bool:
+	if bool(target.get("launch", false)) and sim.launches <= _checkpoint.launches:
+		return false
 	match _form:
 		SimConst.Form.HOP:
 			return sim.lane == int(target["lane"])
@@ -716,7 +772,8 @@ func _commit(slot_entities: Array[Dictionary], trial_level: SimLevel, tap_tick: 
 	var guard: int = 0
 	while path.is_running() and path.d < d_slot + CLEAR_AFTER and guard < 4000:
 		path.step(path.tick == tap_tick)
-		samples.append(Vector3(path.d, path.x, path.hop_t))
+		# Nothing is placed under a launch arc (a flying core cannot collect it).
+		samples.append(Vector3(path.d, path.x, 0.0 if path.airborne else path.hop_t))
 		guard += 1
 	if not path.is_running():
 		errors.append("commit failed at slot %d" % _slot_index)
@@ -846,6 +903,153 @@ func _try_portal_slot(gap: float) -> bool:
 		return false
 	_commit([portal, wall], lvl, -1, d_slot + 1.4)
 	_reserve_reaction_room()
+	return true
+
+
+## Launch pad + wall row. The pad sits on the lane the plan reaches (a measured
+## hop onto it, or the lane the core already rides); the flight is simulated and
+## the wall goes into the middle of the stretch where the core is really above
+## block height, so heavy cores and high gravity simply fall back to normal slots.
+func _try_launch_slot(gap: float) -> bool:
+	var change: bool = _rng.chance(spec.change_prob)
+	var target: Dictionary = _desired_state(change)
+	target["launch"] = true
+	var pad_lane: int = int(target["lane"])
+	var d_pad: float = snappedf(_cursor_d + gap, 0.01)
+	var pad: Dictionary = {"t": "launch_pad", "d": d_pad, "lane": pad_lane}
+	var pad_only: Array[Dictionary] = _entities.duplicate()
+	pad_only.append(pad)
+	var pad_level: SimLevel = _level_with(pad_only)
+	var tap_tick: int = -1
+	if change:
+		var window: Dictionary = _measure_window(pad_level, d_pad, target)
+		if float(window["length"]) < spec.min_window:
+			return false
+		tap_tick = int(window["center"])
+	var flight: Dictionary = _simulate_flight(pad_level, tap_tick, d_pad)
+	if float(flight["to"]) - float(flight["from"]) < MIN_AIR_STRETCH:
+		return false
+	var d_wall: float = snappedf((float(flight["from"]) + float(flight["to"])) * 0.5, 0.01)
+	var all_lanes: Array = []
+	for l: int in spec.lanes:
+		all_lanes.append(l)
+	var wall: Dictionary = {"t": "barrier", "d": d_wall, "lanes": all_lanes}
+	var trial: Array[Dictionary] = pad_only.duplicate()
+	trial.append(wall)
+	var lvl: SimLevel = _level_with(trial)
+	if change:
+		var full: Dictionary = _measure_window(lvl, d_pad, target)
+		if float(full["length"]) < spec.min_window:
+			return false
+		tap_tick = int(full["center"])
+		_window_min_seen = minf(_window_min_seen, float(full["length"]))
+	elif not _survives_without_tap(lvl, d_wall, target):
+		return false
+	_commit([pad, wall], lvl, tap_tick, d_wall)
+	if not errors.is_empty():
+		return true
+	# Nothing may demand an input before the core is back on the floor.
+	_cursor_d = maxf(_cursor_d, snappedf(float(flight["land"]), 0.01))
+	_reserve_reaction_room()
+	return true
+
+
+## Follows a launch from the checkpoint (tapping at [param tap_tick] if >= 0)
+## and returns {"from", "to"}: the longest stretch above block height, and
+## {"land"}: where the core touches down. All zero when it never launches.
+func _simulate_flight(lvl: SimLevel, tap_tick: int, d_pad: float) -> Dictionary:
+	var sim: FluxSim = _retarget(_checkpoint, lvl)
+	var launches: int = sim.launches
+	var guard: int = 0
+	while sim.is_running() and sim.d < d_pad + 1.0 and sim.launches == launches and guard < FLIGHT_GUARD_TICKS:
+		sim.step(sim.tick == tap_tick)
+		guard += 1
+	var out: Dictionary = {"from": 0.0, "to": 0.0, "land": 0.0}
+	if sim.launches == launches:
+		return out
+	var run_from: float = -1.0
+	var best_len: float = 0.0
+	while sim.is_running() and sim.airborne and guard < FLIGHT_GUARD_TICKS * 2:
+		sim.step(false)
+		guard += 1
+		if sim.y >= SimConst.AIR_CLEARANCE:
+			if run_from < 0.0:
+				run_from = sim.d
+			if sim.d - run_from > best_len:
+				best_len = sim.d - run_from
+				out["from"] = run_from
+				out["to"] = sim.d
+		else:
+			run_from = -1.0
+	out["land"] = sim.d
+	return out
+
+
+## A gravity well spanning the next few slots (they are measured with the
+## new gravity, which the checkpoint carries).
+func _try_gravity_zone(gap: float) -> bool:
+	var d_zone: float = snappedf(_cursor_d + gap * 0.8, 0.01)
+	if d_zone < _zone_end or _checkpoint.grav != 1.0:
+		return false
+	var slots: int = _rng.range_int(spec.gravity_slots.x, spec.gravity_slots.y)
+	var g: float = spec.gravity_values[_rng.range_int(0, spec.gravity_values.size() - 1)]
+	var span: float = snappedf(spec.spacing * float(slots), 0.01)
+	var zone: Dictionary = {"t": "gravity", "d": d_zone, "span": span, "g": g}
+	var trial: Array[Dictionary] = _entities.duplicate()
+	trial.append(zone)
+	var lvl: SimLevel = _level_with(trial)
+	var probe: FluxSim = _retarget(_checkpoint, lvl)
+	probe.advance_to_distance(d_zone + CLEAR_AFTER)
+	if not probe.is_running() or probe.grav == 1.0:
+		return false
+	_commit([zone], lvl, -1, d_zone)
+	_zone_end = d_zone + span
+	return true
+
+
+## A mass plate in a calm slot on the lane the core rides, with blocks on
+## other lanes by density.
+func _try_plate_slot(gap: float) -> bool:
+	if _form == SimConst.Form.DASH or _checkpoint.plates >= SimConst.MAX_PLATES:
+		return false
+	var d_slot: float = snappedf(_cursor_d + gap, 0.01)
+	var lane: int = _checkpoint.lane
+	var slot: Array[Dictionary] = [{"t": "plate", "d": d_slot, "lane": lane}]
+	for l: int in spec.lanes:
+		if l != lane and _rng.chance(spec.density * 0.6):
+			slot.append({"t": "barrier", "d": d_slot, "lanes": [l]})
+	var trial: Array[Dictionary] = _entities.duplicate()
+	trial.append_array(slot)
+	var lvl: SimLevel = _level_with(trial)
+	var probe: FluxSim = _retarget(_checkpoint, lvl)
+	probe.advance_to_distance(d_slot + CLEAR_AFTER)
+	if not probe.is_running() or probe.plates != _checkpoint.plates + 1:
+		return false
+	_commit(slot, lvl, -1, d_slot)
+	return true
+
+
+## A glass row the full stack smashes on contact (others glass by cluster
+## chance, so chains still happen, or blocks).
+func _try_crash_slot(gap: float) -> bool:
+	var d_slot: float = snappedf(_cursor_d + gap, 0.01)
+	var lane: int = _checkpoint.lane
+	var slot: Array[Dictionary] = [{"t": "breakable", "d": d_slot, "lane": lane}]
+	for l: int in spec.lanes:
+		if l == lane:
+			continue
+		if _rng.chance(spec.cluster_chance):
+			slot.append({"t": "breakable", "d": d_slot, "lane": l})
+		else:
+			slot.append({"t": "barrier", "d": d_slot, "lanes": [l]})
+	var trial: Array[Dictionary] = _entities.duplicate()
+	trial.append_array(slot)
+	var lvl: SimLevel = _level_with(trial)
+	var probe: FluxSim = _retarget(_checkpoint, lvl)
+	probe.advance_to_distance(d_slot + CLEAR_AFTER)
+	if not probe.is_running() or probe.stack_crashes != _checkpoint.stack_crashes + 1:
+		return false
+	_commit(slot, lvl, -1, d_slot)
 	return true
 
 

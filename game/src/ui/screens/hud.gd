@@ -10,6 +10,15 @@ const FORM_HINT_TIME: float = 1.6
 const FORM_KEYS: Array[String] = ["form.hop.hint", "form.phase.hint", "form.dash.hint", "form.surge.hint"]
 const FORM_ICONS: Array[StringName] = [&"form_orb", &"form_prism", &"form_comet", &"form_surge"]
 const TUTORIAL_HINT_LEAD: int = 40
+## A chapter's new mechanic is named for this long when its introduction
+## levels start (teaching through play, one short line).
+const INTRO_HINT_TIME: float = 2.8
+const INTRO_HINT_FADE: float = 0.4
+## Score nudge on every accepted tap (the score punch on points is 1.06).
+const TAP_NUDGE_SCALE: float = 1.03
+const STACK_PIP_SIZE: Vector2 = Vector2(12, 12)
+const STACK_PIP_GAP: int = 4
+const STACK_PIP_EMPTY_ALPHA: float = 0.25
 
 var session: GameplaySession
 var _score: Label
@@ -24,6 +33,13 @@ var _form_label: Label
 var _tap_hint: Control
 var _tap_ring: IconGlyph
 var _shield: IconGlyph
+## Mass plates stacked on the core (one pip per plate, full = smashes glass).
+var _stack: HBoxContainer
+var _stack_pips: Array[ColorRect] = []
+var _last_plates: int = -1
+var _last_taps: int = 0
+var _intro_hint: Label
+var _intro_left: float = 0.0
 var _last_score: int = -1
 var _last_combo_mult: float = 1.0
 var _last_form: int = -1
@@ -78,6 +94,19 @@ func build() -> void:
 	_shield = UiKit.icon(&"shield", 24, Palette.SUCCESS)
 	_shield.visible = false
 	right.add_child(_shield)
+	_stack = UiKit.hbox(STACK_PIP_GAP)
+	_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for _i: int in SimConst.MAX_PLATES:
+		var pip: ColorRect = ColorRect.new()
+		pip.custom_minimum_size = STACK_PIP_SIZE
+		pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		pip.color = Palette.FORM_SURGE_HEAVY
+		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_stack.add_child(pip)
+		_stack_pips.append(pip)
+	_stack.visible = false
+	right.add_child(_stack)
 	var pause: UiButton = UiKit.icon_button(&"pause", tr("hud.pause"))
 	pause.pressed.connect(func() -> void: pause_requested.emit())
 	right.add_child(pause)
@@ -87,6 +116,12 @@ func build() -> void:
 	_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_progress.max_value = 1.0
 	col.add_child(_progress)
+	_intro_hint = UiKit.text("", &"button", Palette.BONE)
+	_intro_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_intro_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_intro_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_intro_hint.modulate.a = 0.0
+	col.add_child(_intro_hint)
 	col.add_child(UiKit.expand())
 	_tap_hint = CenterContainer.new()
 	_tap_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -129,6 +164,10 @@ func enter(payload: Dictionary) -> void:
 	var level: Dictionary = session.level_data if session != null else {}
 	var obj: Dictionary = level.get("objective", {}) as Dictionary
 	_objective.visible = str(obj.get("type", "reach_end")) in ["collect", "shatter"]
+	_stack.visible = (level.get("mechanics", []) as Array).has("stack")
+	_last_plates = -1
+	_last_taps = 0
+	_show_intro_hint(str(level.get("intro_mechanic", "")))
 
 
 func _process(delta: float) -> void:
@@ -140,6 +179,12 @@ func _process(delta: float) -> void:
 			_punch_score()
 		_last_score = sim.score
 		_score.text = UiKit.format_int(sim.score)
+	if sim.taps != _last_taps:
+		# Feedback chain: every accepted tap gives the score a small nudge
+		# (score events punch harder).
+		if sim.taps > _last_taps:
+			_nudge_score()
+		_last_taps = sim.taps
 	var mult: float = SimConst.combo_multiplier(sim.combo)
 	if mult != _last_combo_mult:
 		_combo.text = "" if mult <= 1.0 else "×%s  ·  %d" % [_mult_text(mult), sim.combo]
@@ -150,6 +195,10 @@ func _process(delta: float) -> void:
 	_progress.value = clampf(sim.d / maxf(sim.level.length, 1.0), 0.0, 1.0) if not sim.level.endless else 0.0
 	_progress.visible = not sim.level.endless
 	_shield.visible = sim.shields > 0
+	if _stack.visible and sim.plates != _last_plates:
+		_last_plates = sim.plates
+		for i: int in _stack_pips.size():
+			_stack_pips[i].modulate.a = 1.0 if i < sim.plates else STACK_PIP_EMPTY_ALPHA
 	if _objective.visible:
 		_objective_label.text = "%d / %d" % [sim.objective_progress(), sim.level.objective_target]
 	if sim.form != _last_form:
@@ -163,7 +212,23 @@ func _process(delta: float) -> void:
 			if _form_hint_left < 0.3
 			else minf(1.0, _form_hint.modulate.a + delta * 6.0)
 		)
+	if _intro_left > 0.0:
+		_intro_left -= delta
+		_intro_hint.modulate.a = clampf(_intro_left / INTRO_HINT_FADE, 0.0, 1.0)
 	_update_tap_hint()
+
+
+## Names the chapter's new mechanic on its introduction levels.
+func _show_intro_hint(mechanic: String) -> void:
+	var key: String = intro_hint_key(mechanic)
+	var text: String = tr(key) if not mechanic.is_empty() else ""
+	_intro_left = INTRO_HINT_TIME if not text.is_empty() and text != key else 0.0
+	_intro_hint.text = text if _intro_left > 0.0 else ""
+	_intro_hint.modulate.a = 1.0 if _intro_left > 0.0 else 0.0
+
+
+static func intro_hint_key(mechanic: String) -> String:
+	return "hint.mechanic." + mechanic
 
 
 func _mult_text(mult: float) -> String:
@@ -202,6 +267,15 @@ func _punch_score() -> void:
 	_score_tween = create_tween()
 	_score_tween.tween_property(_score, "scale", Vector2(1.06, 1.06), 0.05)
 	_score_tween.tween_property(_score, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_SINE)
+
+
+func _nudge_score() -> void:
+	if _score_tween != null and _score_tween.is_running():
+		return
+	_score.pivot_offset = _score.size * 0.5
+	_score_tween = create_tween()
+	_score_tween.tween_property(_score, "scale", Vector2(TAP_NUDGE_SCALE, TAP_NUDGE_SCALE), 0.04)
+	_score_tween.tween_property(_score, "scale", Vector2.ONE, 0.08).set_trans(Tween.TRANS_SINE)
 
 
 func _punch_combo() -> void:

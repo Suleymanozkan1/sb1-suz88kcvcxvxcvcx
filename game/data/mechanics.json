@@ -1,7 +1,7 @@
 {
 	"schema_version": 1,
 	"forms": ["hop", "phase", "dash", "surge"],
-	"entity_types": ["barrier", "phase_gate", "slider", "pulse_gate", "breakable", "current", "portal", "form_gate", "spark", "prism", "shield", "magnet"],
+	"entity_types": ["barrier", "phase_gate", "slider", "pulse_gate", "breakable", "current", "portal", "form_gate", "spark", "prism", "shield", "magnet", "gravity", "launch_pad", "plate"],
 	"mechanics": {
 		"hop": {"family": ["tapping", "lane_switching", "dodging", "timing"], "forms": ["hop"], "entities": ["barrier"]},
 		"spark": {"family": ["collecting", "combo"], "entities": ["spark"]},
@@ -21,6 +21,9 @@
 		"portal": {"family": ["portals", "teleport"], "entities": ["portal"]},
 		"overdrive": {"family": ["stacking", "temporary_power_states", "combo"], "entities": ["spark"]},
 		"ice": {"family": ["momentum", "precision"], "entities": []},
-		"speed_ramp": {"family": ["momentum", "physics"], "entities": []}
+		"speed_ramp": {"family": ["momentum", "physics"], "entities": []},
+		"gravity": {"family": ["gravity_changes", "physics"], "entities": ["gravity"]},
+		"launch": {"family": ["physics", "momentum", "timing"], "entities": ["launch_pad"]},
+		"stack": {"family": ["stacking", "destructible_objects", "physics"], "entities": ["plate"]}
 	}
 }

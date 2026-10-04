@@ -32,12 +32,27 @@ A typical early level lasts 8–15 s, late levels 30–60 s; specials (mid-world
 The form is always visible from **shape first, colour second** (colour-blind safe). A form change is
 announced by a form gate, a morph animation, a HUD hint (`TAP = …`) and a distinct sound.
 
-## 3. Elements (12 entity types)
+## 3. Elements (15 entity types)
 
 `barrier`, `phase_gate`, `slider` (moves between lanes), `pulse_gate` (opens/closes on the beat),
 `breakable` (dash through), `current` (forced lane shift), `portal` (teleport), `form_gate`,
 `spark` (collectible, builds combo and Overdrive charge), `prism` (risk/reward collectible),
-`shield` (absorbs one hit), `magnet` (pulls sparks for 4 s).
+`shield` (absorbs one hit), `magnet` (pulls sparks for 4 s), and the late-game **mass & gravity** family:
+
+* `launch_pad`: a core that crosses it in its lane is thrown into a real ballistic arc (gravity 30 u/s²,
+  launch speed 10 u/s). High in the air it vaults blocks, sliders, shutters and crystals (+20, combo).
+  Phase and form gates still apply, a floor current misses a flying core, pickups need a low core, and
+  a tap keeps its meaning (a hop steers in the air). Landing on a block is a hit.
+* `gravity` well: a stretch of the shaft where gravity is 0.7× or 1.4×. Heavier gravity speeds the fall
+  (+12 %), snaps hops quicker and flattens launch arcs; lighter gravity does the opposite.
+* `plate`: ballast that stacks on the core (up to 3, shown as discs on the core and pips on the HUD).
+  Each plate lowers launch arcs (a full stack only clears a wall in low gravity); a full stack smashes
+  the next crystal row on contact (a *stack crash*, which still sets off chains) and is spent. A shield
+  hit knocks the stack off.
+
+The three fuse into one system (stacking × physics × gravity): Void Space teaches launch pads (L14–25)
+and gravity wells over pads (L40–51), Candy Reactor teaches plates (L1–13) and mixes all three
+(L27–39).
 
 Collisions: with a shield the hit consumes it (brief invulnerability); without one the run fails.
 Near misses — a last-moment dodge that brings the core within 0.6 m of a hazard at any point of the
@@ -45,7 +60,8 @@ pass (about 50 ms before it would have hit) — score and build combo. Riding th
 
 ## 4. Scoring, combo, grades and stars
 
-* Sparks 10, prisms 50, near miss 25, shatter 30, chain link 15, gate pass 20, clear bonus 100.
+* Sparks 10, prisms 50, near miss 25, shatter 30, chain link 15, gate pass 20, vault 20, plate 10,
+  clear bonus 100.
 * **Combo**: every 5 consecutive clean actions raise the multiplier by ×0.5 up to ×4.0; a missed spark or
   a hit breaks it. Collecting 8 sparks fills **Overdrive** (3 s, ×2 score, magnet, ring burst).
 * **Stars**: ★ clear · ★★ score ≥ the level's score target · ★★★ Perfect (no damage and every spark).

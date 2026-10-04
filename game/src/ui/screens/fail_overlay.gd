@@ -87,9 +87,19 @@ func enter(payload: Dictionary) -> void:
 		var progress: float = clampf(raw_progress, 0.0, 1.0)
 		_progress.value = progress
 		_progress_label.text = tr("fail.progress").format({"percent": int(round(progress * 100.0))})
-	_tip.text = tr(str(TIP_KEYS.get(result.fail_reason, "fail.tip.general")))
+	_tip.text = tr(tip_key(result))
 	_revive.visible = bool(payload.get("can_revive", false))
 	_retry.grab_focus.call_deferred()
+
+
+## The fail tip that fits how the run ended: a bad landing after a launch pad
+## and glass hit without a dash or a full stack get their own advice.
+static func tip_key(result: RunResult) -> String:
+	if result.fail_in_air:
+		return "fail.tip.launch"
+	if result.fail_reason == SimConst.FailReason.COLLISION and result.fail_entity_type == SimConst.EntityType.BREAKABLE:
+		return "fail.tip.glass"
+	return str(TIP_KEYS.get(result.fail_reason, "fail.tip.general"))
 
 
 ## Withdraws the revive offer (the run was applied, e.g. the app was left).

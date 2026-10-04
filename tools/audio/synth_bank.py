@@ -1302,6 +1302,53 @@ def sfx_unlock() -> np.ndarray:
     return out
 
 
+def sfx_launch() -> np.ndarray:
+    # A pad springs: a rising pneumatic push under a bright upward chirp.
+    n = ns(0.38)
+    t = t_axis(n)
+    push = svf(noise(n, seed_of("launch")), sweep(300.0, 2600.0, n), 1.8, "bp")
+    push *= env_points(n, [(0.0, 0.0), (0.03, 1.0), (0.16, 0.45), (0.38, 0.0)])
+    chirp = np.sin(phase_of(sweep(220.0, 880.0, n), n)) * np.exp(-t / 0.12)
+    thump = np.sin(phase_of(sweep(140.0, 60.0, n), n)) * env_exp(n, 0.001, 0.05)
+    return push * 0.9 + chirp * 0.5 + thump * 0.8
+
+
+def sfx_land() -> np.ndarray:
+    # Touch-down: a short, damped floor thud with a little grit.
+    n = ns(0.2)
+    thud = np.sin(phase_of(sweep(95.0, 48.0, n), n)) * env_exp(n, 0.001, 0.06)
+    grit = spectral(noise(n, seed_of("land")), 120.0, 1600.0) * env_exp(n, 0.0005, 0.025)
+    return thud + grit * 0.5
+
+
+def sfx_gravity() -> np.ndarray:
+    # Entering a gravity well: a slow pitch bend through a resonant hum.
+    n = ns(0.6)
+    t = t_axis(n)
+    f = 90.0 + 30.0 * np.sin(2.0 * np.pi * 1.6 * t)
+    hum = osc("saw", f, n, cutoff=sweep(400.0, 1400.0, n), reso=0.6)
+    sub = np.sin(phase_of(f * 0.5, n))
+    env = env_points(n, [(0.0, 0.0), (0.12, 1.0), (0.4, 0.6), (0.6, 0.0)])
+    return (hum * 0.7 + sub * 0.6) * env
+
+
+def sfx_plate() -> np.ndarray:
+    # A ballast plate settles on the stack: a dull metallic clank.
+    n = ns(0.3)
+    t = t_axis(n)
+    clank = fm(hz(57), n, 2.76, 2.2 * np.exp(-t / 0.03)) * env_exp(n, 0.0005, 0.07)
+    body = np.sin(phase_of(hz(45), n)) * env_exp(n, 0.001, 0.05)
+    return clank * 0.8 + body * 0.6
+
+
+def sfx_stack_crash() -> np.ndarray:
+    # A full stack drives through glass: heavy impact under the shatter.
+    n = ns(0.55)
+    impact = np.sin(phase_of(sweep(110.0, 38.0, n), n)) * env_exp(n, 0.0008, 0.14)
+    crunch = spectral(noise(n, seed_of("stack_crash")), 200.0, 4000.0) * env_exp(n, 0.0005, 0.06)
+    return impact + crunch * 0.6 + glass(n, "stackg", 1800.0, 6500.0, 7, 0.08) * 0.45
+
+
 SFX: dict[str, Callable[[], np.ndarray]] = {
     "tap": sfx_tap, "phase": sfx_phase, "dash": sfx_dash, "denied": sfx_denied, "surge": sfx_surge,
     "collect": sfx_collect, "prism": sfx_prism, "miss": sfx_miss, "near_miss": sfx_near_miss,
@@ -1310,6 +1357,8 @@ SFX: dict[str, Callable[[], np.ndarray]] = {
     "portal": sfx_portal, "current": sfx_current, "pickup": sfx_pickup, "overdrive": sfx_overdrive,
     "overdrive_end": sfx_overdrive_end, "combo": sfx_combo, "ui_click": sfx_ui_click, "ui_back": sfx_ui_back,
     "reward": sfx_reward, "star": sfx_star, "coin": sfx_coin, "level_up": sfx_level_up, "unlock": sfx_unlock,
+    "launch": sfx_launch, "land": sfx_land, "gravity": sfx_gravity, "plate": sfx_plate,
+    "stack_crash": sfx_stack_crash,
 }
 
 

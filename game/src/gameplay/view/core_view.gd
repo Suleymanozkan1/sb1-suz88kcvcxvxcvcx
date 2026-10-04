@@ -22,6 +22,10 @@ const HALO_SIZE: float = 1.5
 const HALO_INTENSITY: float = 0.2
 const LIGHT_RANGE: float = 3.4
 const LIGHT_ENERGY: float = 1.1
+## Mass plates ride on top of the core as a stack of thin ballast discs.
+const STACK_DISC_RADIUS: float = 0.2
+const STACK_DISC_HEIGHT: float = 0.05
+const STACK_DISC_GAP: float = 0.065
 
 var body: MeshInstance3D
 var ink_shell: MeshInstance3D
@@ -31,6 +35,7 @@ var chevron: MeshInstance3D
 var ring: MeshInstance3D
 var light: OmniLight3D
 var shards: Array[MeshInstance3D] = []
+var stack_discs: Array[MeshInstance3D] = []
 
 var skin_style: int = 0
 var skin_color_a: Color = Palette.PRIMARY
@@ -128,6 +133,23 @@ func _ensure_built() -> void:
 		s.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(s)
 		shards.append(s)
+	var disc: CylinderMesh = CylinderMesh.new()
+	disc.top_radius = STACK_DISC_RADIUS
+	disc.bottom_radius = STACK_DISC_RADIUS
+	disc.height = STACK_DISC_HEIGHT
+	disc.radial_segments = 24
+	var ballast: StandardMaterial3D = StandardMaterial3D.new()
+	ballast.albedo_color = Palette.FORM_SURGE_HEAVY.darkened(0.45)
+	ballast.roughness = 0.45
+	ballast.metallic = 0.6
+	for i: int in SimConst.MAX_PLATES:
+		var d: MeshInstance3D = MeshInstance3D.new()
+		d.mesh = disc
+		d.material_override = ballast
+		d.position = Vector3(0.0, SimConst.CORE_RADIUS + STACK_DISC_GAP * (float(i) + 0.6), 0.0)
+		d.visible = false
+		add_child(d)
+		stack_discs.append(d)
 	light = OmniLight3D.new()
 	light.omni_range = LIGHT_RANGE
 	light.light_energy = LIGHT_ENERGY
@@ -290,6 +312,11 @@ func update_visuals(delta: float, sim: FluxSim) -> void:
 	light.light_energy = LIGHT_ENERGY + combo_glow * 0.5
 	shield_ring.visible = sim.shields > 0
 	shield_ring.rotation.z += delta * 0.8
+	for i: int in stack_discs.size():
+		stack_discs[i].visible = i < sim.plates
+	if sim.plates >= SimConst.MAX_PLATES:
+		# A full stack is a loaded state: the core breathes until it is spent.
+		_pulse = maxf(_pulse, 0.18 + 0.12 * sin(_spin * 6.0))
 	_update_shards(delta, sim.charges if sim.overdrive_timer <= 0.0 else SimConst.MAX_CHARGES)
 
 

@@ -8,6 +8,10 @@ var level_id: String = ""
 var mode: StringName = &"classic"
 var completed: bool = false
 var fail_reason: int = SimConst.FailReason.NONE
+## Entity type that ended the run (-1 when none), for the fail screen's tip.
+var fail_entity_type: int = -1
+## True when the run ended in the air or on landing after a launch pad.
+var fail_in_air: bool = false
 var score: int = 0
 var sparks: int = 0
 var spark_total: int = 0
@@ -40,6 +44,9 @@ static func from_sim(sim: FluxSim, meta: Dictionary, mode_id: StringName) -> Run
 	r.mode = mode_id
 	r.completed = sim.status == SimConst.Status.COMPLETED
 	r.fail_reason = sim.fail_reason
+	if sim.fail_entity >= 0 and sim.fail_entity < sim.level.entity_count():
+		r.fail_entity_type = sim.level.e_type[sim.fail_entity]
+	r.fail_in_air = sim.status == SimConst.Status.FAILED and sim.airborne
 	r.score = sim.score
 	r.sparks = sim.sparks
 	r.spark_total = sim.level.spark_total

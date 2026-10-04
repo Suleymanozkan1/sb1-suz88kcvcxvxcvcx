@@ -39,6 +39,14 @@ var magnet_chance: float = 0.0
 var current_chance: float = 0.0
 var portal_chance: float = 0.0
 var cluster_chance: float = 0.0
+## Mass & gravity family (0 = off; specials never inherit them from a chapter).
+var gravity_chance: float = 0.0
+## Gravity factors a well can take (low-g and high-g).
+var gravity_values: Array[float] = [0.7, 1.4]
+## A well spans this many slots (inclusive range).
+var gravity_slots: Vector2i = Vector2i(3, 5)
+var launch_chance: float = 0.0
+var plate_chance: float = 0.0
 
 var hop_time: float = SimConst.HOP_TIME
 var speed_ramp: float = 0.0

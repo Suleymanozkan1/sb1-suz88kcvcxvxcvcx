@@ -42,6 +42,7 @@
   },
   "boss_level": 52,
   "challenge": {
+    "current": 0.3,
     "hazards": {
       "barrier": 0.6,
       "slider": 0.4
@@ -67,7 +68,6 @@
       "start": 1
     },
     {
-      "current": 0.3,
       "end": 25,
       "forms": {
         "hop": 1
@@ -76,7 +76,8 @@
         "barrier": 0.6,
         "slider": 0.4
       },
-      "intro": "void_wells",
+      "intro": "launch_pads",
+      "launch": 0.3,
       "start": 14
     },
     {
@@ -104,6 +105,7 @@
         "phase": 0.2,
         "surge": 0.2
       },
+      "gravity": 0.2,
       "hazards": {
         "barrier": 0.3,
         "breakable": 0.15,
@@ -111,7 +113,8 @@
         "pulse_gate": 0.15,
         "slider": 0.2
       },
-      "intro": "master_mix",
+      "intro": "void_wells",
+      "launch": 0.1,
       "portal": 0.1,
       "start": 40
     }

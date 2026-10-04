@@ -12,6 +12,8 @@ const FLAG_RESOLVED: int = 2
 ## Set while passing a hazard whenever the core came within the near-miss
 ## margin of it (judged over the whole pass, not only its centre line).
 const FLAG_CLOSE: int = 4
+## Set when a launched core passed over a hazard it would have hit on the floor.
+const FLAG_VAULT: int = 8
 
 var level: SimLevel
 ## Presentation events are recorded only when needed (off for solver searches).
@@ -62,6 +64,20 @@ var taps: int = 0
 var portals_used: int = 0
 var currents_ridden: int = 0
 var overdrives: int = 0
+## Height above the resting line after a launch pad, and vertical speed.
+var y: float = 0.0
+var prev_y: float = 0.0
+var vy: float = 0.0
+var airborne: bool = false
+## Gravity factor of the gravity well the core is in (1.0 outside) and where
+## that well ends.
+var grav: float = 1.0
+var grav_end: float = 0.0
+## Mass plates stacked on the core (0..MAX_PLATES).
+var plates: int = 0
+var launches: int = 0
+var vaults: int = 0
+var stack_crashes: int = 0
 var cursor: int = 0
 var ent_flags: PackedByteArray = PackedByteArray()
 ## Flat triples: [event_type, entity_index, value, ...].
@@ -97,6 +113,16 @@ func reset() -> void:
 	phase = level.start_phase
 	form = level.start_form
 	heavy = false
+	y = 0.0
+	prev_y = 0.0
+	vy = 0.0
+	airborne = false
+	grav = 1.0
+	grav_end = 0.0
+	plates = 0
+	launches = 0
+	vaults = 0
+	stack_crashes = 0
 	speed = _target_speed()
 	dash_timer = 0.0
 	dash_cooldown = 0.0
@@ -179,6 +205,16 @@ func clone() -> FluxSim:
 	c.portals_used = portals_used
 	c.currents_ridden = currents_ridden
 	c.overdrives = overdrives
+	c.y = y
+	c.prev_y = prev_y
+	c.vy = vy
+	c.airborne = airborne
+	c.grav = grav
+	c.grav_end = grav_end
+	c.plates = plates
+	c.launches = launches
+	c.vaults = vaults
+	c.stack_crashes = stack_crashes
 	c.cursor = cursor
 	c.ent_flags = ent_flags.duplicate()
 	return c
@@ -208,10 +244,16 @@ func step(tap: bool) -> void:
 	speed = move_toward(speed, _target_speed(), accel * SimConst.DT)
 	prev_d = d
 	prev_x = x
+	prev_y = y
 	d += speed * SimConst.DT
 	if hop_t < 1.0:
 		hop_t = minf(1.0, hop_t + SimConst.DT / hop_duration)
 		x = hop_from + (hop_to - hop_from) * SimConst.smoothstep01(hop_t)
+	if airborne:
+		_update_air()
+	if grav != 1.0 and d >= grav_end:
+		grav = 1.0
+		_emit(SimConst.EventType.GRAVITY_EXIT, -1, 100)
 	_process_entities(time())
 	if status != SimConst.Status.RUNNING:
 		return
@@ -270,6 +312,13 @@ func state_key() -> int:
 	k = (k * 64 + int(invuln * 60.0)) & 0xFFFFFFFFFFFF
 	k = (k * 2 + (1 if magnet_timer > 0.0 else 0)) & 0xFFFFFFFFFFFF
 	k = (k * 97 + _broken_ahead()) & 0xFFFFFFFFFFFF
+	if airborne or plates > 0 or grav != 1.0:
+		# Mass/gravity state; legacy states keep exactly their old keys.
+		k = (k * 4 + plates) & 0xFFFFFFFFFFFF
+		k = (k * 64 + clampi(roundi(y * 24.0), 0, 63)) & 0xFFFFFFFFFFFF
+		k = (k * 131 + clampi(roundi(vy * 4.0) + 65, 0, 130)) & 0xFFFFFFFFFFFF
+		k = (k * 23 + clampi(roundi(grav * 10.0), 0, 22)) & 0xFFFFFFFFFFFF
+		k = (k * 67 + clampi(int((grav_end - d) * 2.0), 0, 66)) & 0xFFFFFFFFFFFF
 	return k
 
 
@@ -299,7 +348,20 @@ func _target_speed() -> float:
 		base *= SimConst.SURGE_HEAVY_FACTOR if heavy else SimConst.SURGE_LIGHT_FACTOR
 	if dash_timer > 0.0:
 		base *= SimConst.DASH_SPEED_FACTOR
+	if grav != 1.0:
+		base *= SimConst.gravity_speed_factor(grav)
 	return base
+
+
+## Ballistic flight after a launch pad (semi-implicit Euler, pure arithmetic).
+func _update_air() -> void:
+	vy -= SimConst.G0 * grav * SimConst.DT
+	y += vy * SimConst.DT
+	if y <= 0.0:
+		y = 0.0
+		vy = 0.0
+		airborne = false
+		_emit(SimConst.EventType.LAND, -1, 0)
 
 
 func _update_timers() -> void:
@@ -367,6 +429,9 @@ func _begin_hop(target: int) -> void:
 		x = hop_to
 		return
 	hop_duration = level.hop_time * maxf(SimConst.HOP_MIN_TIME_FRACTION, minf(dist, 1.0))
+	if grav != 1.0:
+		# Fixed for the whole hop, even if it ends outside the well.
+		hop_duration *= SimConst.gravity_hop_factor(grav)
 	hop_t = 0.0
 
 
@@ -443,11 +508,30 @@ func _process_entity(i: int, ed: float, t: float) -> void:
 			_check_collect(i, ed)
 		SimConst.EntityType.SHIELD, SimConst.EntityType.MAGNET:
 			_check_pickup(i, ed)
+		SimConst.EntityType.PLATE:
+			_check_plate(i, ed)
+		SimConst.EntityType.GRAVITY:
+			if _crossed(ed):
+				ent_flags[i] |= FLAG_CONSUMED
+				# The newest well wins; leaving it restores normal gravity.
+				grav = clampf(level.e_p1[i], SimConst.GRAVITY_MIN, SimConst.GRAVITY_MAX)
+				grav_end = ed + level.e_p0[i]
+				_emit(SimConst.EventType.GRAVITY_ENTER, i, roundi(grav * 100.0))
+		SimConst.EntityType.LAUNCH_PAD:
+			if _crossed(ed):
+				ent_flags[i] |= FLAG_CONSUMED
+				var pad_x: float = SimConst.lane_x(level.e_lane[i], level.lane_count)
+				if not airborne and absf(x - pad_x) <= SimConst.PAD_CAPTURE_HALF_WIDTH:
+					airborne = true
+					vy = SimConst.launch_speed(plates)
+					launches += 1
+					_emit(SimConst.EventType.LAUNCH, i, plates)
 		SimConst.EntityType.CURRENT:
 			if _crossed(ed):
 				ent_flags[i] |= FLAG_CONSUMED
 				var nearest: int = _nearest_lane()
-				if (level.e_mask[i] & (1 << nearest)) != 0:
+				# A current pushes along the floor: a core in the air flies over it.
+				if not airborne and (level.e_mask[i] & (1 << nearest)) != 0:
 					currents_ridden += 1
 					_begin_hop(int(level.e_p0[i]))
 					_emit(SimConst.EventType.CURRENT, i, lane)
@@ -455,7 +539,7 @@ func _process_entity(i: int, ed: float, t: float) -> void:
 			if _crossed(ed):
 				ent_flags[i] |= FLAG_CONSUMED
 				var px: float = SimConst.lane_x(level.e_lane[i], level.lane_count)
-				if absf(x - px) <= SimConst.PORTAL_CAPTURE_HALF_WIDTH:
+				if absf(x - px) <= SimConst.PORTAL_CAPTURE_HALF_WIDTH and y < SimConst.AIR_CLEARANCE:
 					_teleport(int(level.e_p0[i]))
 					portals_used += 1
 					_emit(SimConst.EventType.PORTAL, i, lane)
@@ -516,7 +600,7 @@ func _check_collect(i: int, ed: float) -> void:
 			if strict:
 				_fail(SimConst.FailReason.MISSED_SPARK, i)
 		return
-	if absf(ed - d) > depth:
+	if absf(ed - d) > depth or y > SimConst.PICKUP_HEIGHT:
 		return
 	var radius: float = SimConst.MAGNET_COLLECT_RADIUS if magnet else SimConst.SPARK_COLLECT_RADIUS
 	var lx: float = SimConst.lane_x(level.e_lane[i], level.lane_count)
@@ -549,7 +633,7 @@ func _check_pickup(i: int, ed: float) -> void:
 	# not draw them), so nothing ever pretends to protect the player.
 	if not shields_allowed and level.e_type[i] == SimConst.EntityType.SHIELD:
 		return
-	if absf(ed - d) > SimConst.SPARK_COLLECT_DEPTH:
+	if absf(ed - d) > SimConst.SPARK_COLLECT_DEPTH or y > SimConst.PICKUP_HEIGHT:
 		return
 	var lx: float = SimConst.lane_x(level.e_lane[i], level.lane_count)
 	if absf(x - lx) > SimConst.PICKUP_RADIUS:
@@ -562,6 +646,21 @@ func _check_pickup(i: int, ed: float) -> void:
 	else:
 		magnet_timer = SimConst.MAGNET_TIME
 		_emit(SimConst.EventType.MAGNET_UP, i, 0)
+
+
+## Mass plates stack on the core (up to MAX_PLATES); a full stack makes the
+## core heavy enough to smash glass on contact.
+func _check_plate(i: int, ed: float) -> void:
+	if absf(ed - d) > SimConst.SPARK_COLLECT_DEPTH or y > SimConst.PICKUP_HEIGHT:
+		return
+	var lx: float = SimConst.lane_x(level.e_lane[i], level.lane_count)
+	if absf(x - lx) > SimConst.PICKUP_RADIUS:
+		return
+	ent_flags[i] |= FLAG_CONSUMED
+	plates = mini(plates + 1, SimConst.MAX_PLATES)
+	_combo_up()
+	_add_score(SimConst.SCORE_PLATE)
+	_emit(SimConst.EventType.PLATE_UP, i, plates)
 
 
 ## Returns the lateral clearance between the core and the entity's blocking
@@ -593,8 +692,20 @@ func _check_hazard(i: int, type: int, ed: float, t: float) -> void:
 	if absf(ed - d) > half_depth + SimConst.CORE_RADIUS:
 		return
 	var clearance: float = _hazard_clearance(i, type, t)
-	if clearance < 0.0:
+	# A launched core high enough clears ground hazards (phase gates still apply).
+	var over: bool = airborne and y >= SimConst.AIR_CLEARANCE and SimConst.is_vaultable(type)
+	if over:
+		if clearance < 0.0:
+			ent_flags[i] |= FLAG_VAULT
+	elif clearance < 0.0:
 		if type == SimConst.EntityType.BREAKABLE and dash_timer > 0.0:
+			_shatter(i, 0)
+			return
+		if type == SimConst.EntityType.BREAKABLE and plates >= SimConst.MAX_PLATES:
+			# Stack crash: a full stack of plates smashes the glass and is spent.
+			plates = 0
+			stack_crashes += 1
+			_emit(SimConst.EventType.STACK_CRASH, i, 0)
 			_shatter(i, 0)
 			return
 		if invuln > 0.0:
@@ -604,7 +715,7 @@ func _check_hazard(i: int, type: int, ed: float, t: float) -> void:
 			SimConst.FailReason.WRONG_PHASE if type == SimConst.EntityType.PHASE_GATE else SimConst.FailReason.COLLISION
 		)
 		return
-	if clearance < SimConst.NEAR_MISS_MARGIN:
+	elif clearance < SimConst.NEAR_MISS_MARGIN:
 		# A late dodge is close at the front of the hazard and clear by its
 		# centre line: the closest approach over the pass decides.
 		ent_flags[i] |= FLAG_CLOSE
@@ -615,6 +726,11 @@ func _check_hazard(i: int, type: int, ed: float, t: float) -> void:
 			_combo_up()
 			var gained: int = _add_score(SimConst.SCORE_GATE_PASS)
 			_emit(SimConst.EventType.GATE_PASS, i, gained)
+		elif (ent_flags[i] & FLAG_VAULT) != 0:
+			vaults += 1
+			_combo_up()
+			var vault_gain: int = _add_score(SimConst.SCORE_VAULT)
+			_emit(SimConst.EventType.VAULT, i, vault_gain)
 		elif (ent_flags[i] & FLAG_CLOSE) != 0:
 			near_misses += 1
 			_combo_up()
@@ -635,6 +751,7 @@ func _collide(i: int, reason: int) -> void:
 		damage += 1
 		invuln = SimConst.HIT_INVULN_TIME
 		charges = 0
+		plates = 0
 		ent_flags[i] |= FLAG_CONSUMED
 		_combo_break()
 		_emit(SimConst.EventType.HIT_SHIELDED, i, shields)

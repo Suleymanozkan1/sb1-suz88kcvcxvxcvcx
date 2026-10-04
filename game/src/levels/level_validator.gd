@@ -18,6 +18,11 @@ const REACTION_TIME: float = 0.3
 const WINDOW_SCAN_TICKS: int = 90
 const MAX_SPEED: float = 40.0
 const PRISM_TAPS_CONSIDERED: int = 3
+## A launch pad needs this much room to the nearest blocker in its lane.
+const PAD_CLEARANCE: float = 0.8
+const MIN_GRAVITY_SPAN: float = 2.0
+## Smallest |g − 1| that is worth a gravity well (smaller is unreadable).
+const MIN_GRAVITY_CHANGE: float = 0.1
 
 var mechanics_catalog: Dictionary = {}
 var tiers: Dictionary = {}
@@ -137,7 +142,8 @@ func _check_schema(data: Dictionary, r: Report) -> void:
 		r.error("schema", "lanes must be 2 or 3")
 	var speed: float = float(data["speed"])
 	var ramp: float = float((data["modifiers"] as Dictionary).get("speed_ramp", 0.0))
-	if speed < 3.0 or speed * (1.0 + ramp) * SimConst.DASH_SPEED_FACTOR > MAX_SPEED:
+	var top: float = speed * (1.0 + ramp) * SimConst.DASH_SPEED_FACTOR * _max_gravity_speed_factor(data)
+	if speed < 3.0 or top > MAX_SPEED:
 		r.error("schema", "speed out of range: %.2f" % speed)
 	var hop_time: float = float((data["modifiers"] as Dictionary).get("hop_time", SimConst.HOP_TIME))
 	if hop_time < 0.08 or hop_time > 0.3:
@@ -146,6 +152,16 @@ func _check_schema(data: Dictionary, r: Report) -> void:
 		r.error("schema", "length too short")
 	if SimConst.form_from_name(str(data["start_form"])) < 0:
 		r.error("invalid_mechanic", "unknown start_form '%s'" % str(data["start_form"]))
+
+
+## Largest forward-speed factor any gravity well of the level applies.
+static func _max_gravity_speed_factor(data: Dictionary) -> float:
+	var best: float = 1.0
+	for raw: Variant in data.get("entities", []) as Array:
+		if typeof(raw) == TYPE_DICTIONARY and str((raw as Dictionary).get("t", "")) == "gravity":
+			var g: float = clampf(float((raw as Dictionary).get("g", 1.0)), SimConst.GRAVITY_MIN, SimConst.GRAVITY_MAX)
+			best = maxf(best, SimConst.gravity_speed_factor(g))
+	return best
 
 
 # --- mechanics / assets / objective -------------------------------------------
@@ -164,16 +180,21 @@ func _check_mechanics(data: Dictionary, r: Report) -> void:
 		"slider": "slider",
 		"pulse_gate": "pulse",
 		"phase_gate": "phase",
-		"breakable": "dash",
 		"current": "current",
 		"portal": "portal",
 		"form_gate": "form_gate",
 		"prism": "prism",
 		"shield": "shield",
 		"magnet": "magnet",
+		"gravity": "gravity",
+		"launch_pad": "launch",
+		"plate": "stack",
 	}
 	for raw: Variant in data["entities"] as Array:
 		var t: String = str((raw as Dictionary).get("t", ""))
+		# Glass breaks under a dash or under a full stack of plates.
+		if t == "breakable" and not declared.has("dash") and not declared.has("stack"):
+			r.error("invalid_mechanic", "entity 'breakable' requires undeclared mechanic 'dash' or 'stack'")
 		if needs.has(t) and not declared.has(needs[t]):
 			r.error("invalid_mechanic", "entity '%s' requires undeclared mechanic '%s'" % [t, needs[t]])
 		if t == "form_gate":
@@ -223,6 +244,8 @@ func _check_entities(data: Dictionary, r: Report) -> void:
 	var length: float = float(data["length"])
 	var blocking: Array[Dictionary] = []
 	var collectibles: Array[Dictionary] = []
+	var pads: Array[Dictionary] = []
+	var zones: Array[Dictionary] = []
 	var first_hazard: float = INF
 	for raw: Variant in data["entities"] as Array:
 		if typeof(raw) != TYPE_DICTIONARY:
@@ -250,13 +273,46 @@ func _check_entities(data: Dictionary, r: Report) -> void:
 				SimConst.EntityType.SPARK,
 				SimConst.EntityType.PRISM,
 				SimConst.EntityType.SHIELD,
-				SimConst.EntityType.MAGNET
+				SimConst.EntityType.MAGNET,
+				SimConst.EntityType.PLATE
 			]
 		):
 			collectibles.append(e)
+		elif tid == SimConst.EntityType.LAUNCH_PAD:
+			first_hazard = minf(first_hazard, d)
+			pads.append(e)
+		elif tid == SimConst.EntityType.GRAVITY:
+			zones.append(e)
 	if first_hazard < MIN_FIRST_HAZARD_D:
 		r.error("spawn_collision", "first hazard at d=%.2f gives no reaction time" % first_hazard)
 	_check_overlaps(blocking, collectibles, lanes, r)
+	_check_pads(pads, blocking, lanes, r)
+	_check_zones(zones, length, r)
+
+
+## A launch pad needs clear floor around it in its lane (no take-off from
+## inside a block).
+func _check_pads(pads: Array[Dictionary], blocking: Array[Dictionary], lanes: int, r: Report) -> void:
+	for p: Dictionary in pads:
+		var dp: float = float(p["d"])
+		var lp: int = int(p.get("lane", 0))
+		for h: Dictionary in blocking:
+			if absf(float(h["d"]) - dp) < PAD_CLEARANCE and _lanes_of(h, lanes).has(lp):
+				r.error("spawn_collision", "launch pad at d=%.2f lane %d too close to %s" % [dp, lp, h["t"]])
+				break
+
+
+## Gravity wells end inside the level and never overlap each other.
+func _check_zones(zones: Array[Dictionary], length: float, r: Report) -> void:
+	var last_end: float = -INF
+	for z: Dictionary in zones:
+		var start: float = float(z["d"])
+		var end: float = start + float(z.get("span", 0.0))
+		if end > length:
+			r.error("spawn_collision", "gravity well at d=%.2f ends beyond the level" % start)
+		if start < last_end:
+			r.error("spawn_collision", "gravity well at d=%.2f overlaps the previous one" % start)
+		last_end = maxf(last_end, end)
 
 
 func _check_entity_fields(e: Dictionary, t: String, lanes: int, r: Report) -> void:
@@ -269,11 +325,17 @@ func _check_entity_fields(e: Dictionary, t: String, lanes: int, r: Report) -> vo
 				for l: Variant in ls as Array:
 					if int(l) < 0 or int(l) >= lanes:
 						r.error("broken_trigger", "%s lane %d out of range" % [t, int(l)])
-		"spark", "prism", "shield", "magnet", "breakable", "portal":
+		"spark", "prism", "shield", "magnet", "breakable", "portal", "launch_pad", "plate":
 			var lane: int = int(e.get("lane", -1))
 			if lane < 0 or lane >= lanes:
 				r.error("broken_trigger", "%s lane %d out of range" % [t, lane])
 	match t:
+		"gravity":
+			var g: float = float(e.get("g", 1.0))
+			if float(e.get("span", 0.0)) < MIN_GRAVITY_SPAN:
+				r.error("broken_trigger", "gravity well span too short")
+			if g < SimConst.GRAVITY_MIN or g > SimConst.GRAVITY_MAX or absf(g - 1.0) < MIN_GRAVITY_CHANGE:
+				r.error("broken_trigger", "gravity factor %.2f invalid" % g)
 		"slider":
 			var a: int = int(e.get("from", -1))
 			var b: int = int(e.get("to", -1))
@@ -459,7 +521,9 @@ func _check_windows(data: Dictionary, r: Report) -> void:
 
 
 func _state_sig(sim: FluxSim) -> int:
-	return sim.lane * 1000 + sim.phase * 100 + (10 if sim.heavy else 0) + (1 if sim.hop_t >= 1.0 else 0)
+	var sig: int = sim.lane * 1000 + sim.phase * 100 + (10 if sim.heavy else 0) + (1 if sim.hop_t >= 1.0 else 0)
+	# Plates and flight are part of where the run is (zero for older levels).
+	return sig + sim.plates * 10000 + (100000 if sim.airborne else 0)
 
 
 ## Replays from [param start] with tap i moved to [param tap_tick] (the next
@@ -487,13 +551,18 @@ func _min_window_for(data: Dictionary) -> float:
 	return float(tier.get("min_window", 0.12))
 
 
-## Currents and portals must never push the core into an unavoidable hit.
+## Currents, portals and launch pads must never push the core into an
+## unavoidable hit (a launched core is followed through its whole flight).
 func _check_forced_moves(data: Dictionary, r: Report) -> void:
 	var lvl: SimLevel = SimLevel.from_dict(data)
 	var replay: RunReplay = _solution_replay(data)
 	for i: int in lvl.entity_count():
 		var type: int = lvl.e_type[i]
-		if type != SimConst.EntityType.CURRENT and type != SimConst.EntityType.PORTAL:
+		if (
+			type != SimConst.EntityType.CURRENT
+			and type != SimConst.EntityType.PORTAL
+			and type != SimConst.EntityType.LAUNCH_PAD
+		):
 			continue
 		var probe: FluxSim = _new_sim(data)
 		var tap_index: int = 0
@@ -502,6 +571,14 @@ func _check_forced_moves(data: Dictionary, r: Report) -> void:
 			if tap:
 				tap_index += 1
 			probe.step(tap)
+		if type == SimConst.EntityType.LAUNCH_PAD:
+			var launches_before: int = probe.launches
+			while probe.is_running() and probe.d < lvl.e_d[i] + 0.05:
+				probe.step(false)
+			if probe.launches == launches_before:
+				continue
+			while probe.is_running() and probe.airborne:
+				probe.step(false)
 		var until_tick: int = probe.tick + int(REACTION_TIME * float(SimConst.TICK_RATE)) + 2
 		while probe.is_running() and probe.tick < until_tick:
 			probe.step(false)
