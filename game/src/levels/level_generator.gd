@@ -932,6 +932,11 @@ func _try_launch_slot(gap: float) -> bool:
 	var flight: Dictionary[String, float] = _simulate_flight(pad_level, tap_tick, d_pad)
 	if flight["to"] - flight["from"] < MIN_AIR_STRETCH:
 		return false
+	# A player who skipped plates (or lost them to a shield hit) flies lighter:
+	# higher and longer. The landing room is planned for the lightest core.
+	var land: float = flight["land"]
+	if _checkpoint.plates > 0:
+		land = maxf(land, _simulate_flight(pad_level, tap_tick, d_pad, 0)["land"])
 	var d_wall: float = snappedf((flight["from"] + flight["to"]) * 0.5, 0.01)
 	var all_lanes: Array = []
 	for l: int in spec.lanes:
@@ -952,7 +957,7 @@ func _try_launch_slot(gap: float) -> bool:
 	if not errors.is_empty():
 		return true
 	# Nothing may demand an input before the core is back on the floor.
-	_cursor_d = maxf(_cursor_d, snappedf(flight["land"], 0.01))
+	_cursor_d = maxf(_cursor_d, snappedf(land, 0.01))
 	_reserve_reaction_room()
 	return true
 
@@ -960,8 +965,11 @@ func _try_launch_slot(gap: float) -> bool:
 ## Follows a launch from the checkpoint (tapping at [param tap_tick] if >= 0)
 ## and returns {"from", "to"}: the longest stretch above block height, and
 ## {"land"}: where the core touches down. All zero when it never launches.
-func _simulate_flight(lvl: SimLevel, tap_tick: int, d_pad: float) -> Dictionary[String, float]:
+## [param plates] >= 0 replaces the checkpoint's stack (a lighter player).
+func _simulate_flight(lvl: SimLevel, tap_tick: int, d_pad: float, plates: int = -1) -> Dictionary[String, float]:
 	var sim: FluxSim = _retarget(_checkpoint, lvl)
+	if plates >= 0:
+		sim.plates = plates
 	var launches: int = sim.launches
 	var guard: int = 0
 	while sim.is_running() and sim.d < d_pad + 1.0 and sim.launches == launches and guard < FLIGHT_GUARD_TICKS:

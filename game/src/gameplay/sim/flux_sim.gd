@@ -716,14 +716,15 @@ func _check_hazard(i: int, type: int, ed: float, t: float) -> void:
 		if clearance < 0.0:
 			ent_flags[i] |= FLAG_VAULT
 	elif clearance < 0.0:
-		if type == SimConst.EntityType.BREAKABLE and dash_timer > 0.0:
-			_shatter(i, 0)
-			return
 		if type == SimConst.EntityType.BREAKABLE and plates >= SimConst.MAX_PLATES:
-			# Stack crash: a full stack of plates smashes the glass and is spent.
+			# Stack crash: a full stack smashes the glass and is spent, dashing or
+			# not (a dash must never keep a stack the level planned to spend).
 			plates = 0
 			stack_crashes += 1
 			_emit(SimConst.EventType.STACK_CRASH, i, 0)
+			_shatter(i, 0)
+			return
+		if type == SimConst.EntityType.BREAKABLE and dash_timer > 0.0:
 			_shatter(i, 0)
 			return
 		if invuln > 0.0:

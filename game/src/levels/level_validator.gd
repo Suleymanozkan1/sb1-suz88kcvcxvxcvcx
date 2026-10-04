@@ -304,8 +304,11 @@ func _check_pads(pads: Array[Dictionary], blocking: Array[Dictionary], lanes: in
 
 ## Gravity wells end inside the level and never overlap each other.
 func _check_zones(zones: Array[Dictionary], length: float, r: Report) -> void:
+	# Hand-made levels may list wells in any order: compare them along the shaft.
+	var ordered: Array[Dictionary] = zones.duplicate()
+	ordered.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["d"]) < float(b["d"]))
 	var last_end: float = -INF
-	for z: Dictionary in zones:
+	for z: Dictionary in ordered:
 		var start: float = float(z["d"])
 		var end: float = start + float(z.get("span", 0.0))
 		if end > length:
@@ -572,19 +575,43 @@ func _check_forced_moves(data: Dictionary, r: Report) -> void:
 			if tap:
 				tap_index += 1
 			probe.step(tap)
-		if type == SimConst.EntityType.LAUNCH_PAD:
-			var launches_before: int = probe.launches
-			while probe.is_running() and probe.d < lvl.e_d[i] + 0.05:
-				probe.step(false)
-			if probe.launches == launches_before:
-				continue
-			while probe.is_running() and probe.airborne:
-				probe.step(false)
-		var until_tick: int = probe.tick + int(REACTION_TIME * float(SimConst.TICK_RATE)) + 2
-		while probe.is_running() and probe.tick < until_tick:
-			probe.step(false)
-		if probe.status == SimConst.Status.FAILED:
-			r.error("dead_end", "%s at d=%.2f leads into an unavoidable hit" % [SimConst.entity_name(type), lvl.e_d[i]])
+		if type != SimConst.EntityType.LAUNCH_PAD:
+			if _forced_move_fails(probe):
+				r.error(
+					"dead_end", "%s at d=%.2f leads into an unavoidable hit" % [SimConst.entity_name(type), lvl.e_d[i]]
+				)
+			continue
+		# A player may reach the pad carrying fewer plates than the solution
+		# (skipped, or lost to a shield hit): every lighter flight must land safely.
+		for carried: int in range(probe.plates, -1, -1):
+			var flight: FluxSim = probe.clone()
+			flight.plates = carried
+			if _pad_flight_fails(flight, lvl.e_d[i]):
+				r.error(
+					"dead_end",
+					"launch pad at d=%.2f with %d plates lands in an unavoidable hit" % [lvl.e_d[i], carried]
+				)
+				break
+
+
+## Follows a launch from just before its pad, then the reaction time after landing.
+func _pad_flight_fails(probe: FluxSim, d_pad: float) -> bool:
+	var launches_before: int = probe.launches
+	while probe.is_running() and probe.d < d_pad + 0.05:
+		probe.step(false)
+	if probe.launches == launches_before:
+		return probe.status == SimConst.Status.FAILED
+	while probe.is_running() and probe.airborne:
+		probe.step(false)
+	return _forced_move_fails(probe)
+
+
+## Plays the reaction time without input: true when the core cannot avoid a hit.
+func _forced_move_fails(probe: FluxSim) -> bool:
+	var until_tick: int = probe.tick + int(REACTION_TIME * float(SimConst.TICK_RATE)) + 2
+	while probe.is_running() and probe.tick < until_tick:
+		probe.step(false)
+	return probe.status == SimConst.Status.FAILED
 
 
 ## Prisms are optional but must be collectible by some fair timing.

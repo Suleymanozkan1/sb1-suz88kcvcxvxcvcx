@@ -191,3 +191,66 @@ func test_solver_solves_new_chapters_without_the_stored_solution() -> void:
 	for id: String in ["w09_l15", "w10_l03"]:
 		var solver: AutopilotSolver = AutopilotSolver.new()
 		assert_true(solver.solve(SimLevel.from_dict(repo.load_level(id))), "%s solvable independently" % id)
+
+
+func test_no_extra_dash_keeps_a_stack_the_level_spends() -> void:
+	# R-6: for every stack crash the solution makes in dash form, try an extra
+	# dash just before it: the stack must still be spent there.
+	var repo: LevelRepository = LevelRepository.new()
+	var probed: int = 0
+	for local: int in range(1, 53):
+		var level: Dictionary = repo.load_level("w10_l%02d" % local)
+		if not (level["mechanics"] as Array).has("stack"):
+			continue
+		var taps: PackedInt32Array = PackedInt32Array()
+		for t: Variant in (level["solution"] as Dictionary)["taps"] as Array:
+			taps.append(int(t))
+		for crash_tick: int in _dash_crash_ticks(level, taps):
+			for early: int in [3, 6, 9]:
+				var extra: int = crash_tick - early
+				if _too_close(taps, extra):
+					continue
+				var probe: FluxSim = _probe_until(level, taps, extra, crash_tick + 30)
+				probed += 1
+				assert_lt(probe.plates, SimConst.MAX_PLATES, "%s: a dash at %d keeps the stack" % [level["id"], extra])
+	assert_gt(float(probed), 0.0, "World 10 has dash-form stack crashes to probe")
+
+
+func _dash_crash_ticks(level: Dictionary, taps: PackedInt32Array) -> Array[int]:
+	var sim: FluxSim = FluxSim.new()
+	sim.record_events = false
+	sim.shields_allowed = false
+	sim.setup(SimLevel.from_dict(level))
+	var out: Array[int] = []
+	while sim.is_running():
+		var dash: bool = sim.form == SimConst.Form.DASH
+		var before: int = sim.stack_crashes
+		sim.step(taps.has(sim.tick))
+		if dash and sim.stack_crashes > before:
+			out.append(sim.tick)
+	return out
+
+
+func _too_close(taps: PackedInt32Array, tick: int) -> bool:
+	for t: int in taps:
+		if absi(t - tick) <= RunReplay.MIN_TAP_GAP_TICKS:
+			return true
+	return false
+
+
+func _probe_until(level: Dictionary, taps: PackedInt32Array, extra: int, until: int) -> FluxSim:
+	var sim: FluxSim = FluxSim.new()
+	sim.record_events = false
+	sim.shields_allowed = false
+	sim.setup(SimLevel.from_dict(level))
+	while sim.is_running() and sim.tick < until:
+		sim.step(taps.has(sim.tick) or sim.tick == extra)
+	return sim
+
+
+func test_well_order_in_the_file_does_not_matter() -> void:
+	# R-6: hand-made levels may list wells in any order.
+	var level: Dictionary = LevelRepository.new().load_level("w09_l41").duplicate(true)
+	assert_true(_validator().validate(level).ok(), "shipped order validates")
+	(level["entities"] as Array).reverse()
+	assert_true(_validator().validate(level).ok(), "reversed order validates too")

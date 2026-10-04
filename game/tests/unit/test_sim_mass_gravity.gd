@@ -221,6 +221,29 @@ func test_a_full_stack_smashes_glass_and_chains() -> void:
 	assert_eq(two.status, SimConst.Status.FAILED, "two plates are not enough")
 
 
+func test_a_dash_never_keeps_a_full_stack() -> void:
+	# R-6: dashing into glass used to break it without spending the stack, so a
+	# later launch planned for a lighter core could no longer clear its wall.
+	var ents: Array = [
+		{"t": "plate", "d": 4.0, "lane": 0},
+		{"t": "plate", "d": 5.0, "lane": 0},
+		{"t": "plate", "d": 6.0, "lane": 0},
+		{"t": "breakable", "d": 14.0, "lane": 0},
+	]
+	var sim: FluxSim = FluxSim.new(_level(ents, {"start_form": "dash"}))
+	assert_eq(sim.form, SimConst.Form.DASH)
+	var guard: int = 0
+	while sim.is_running() and sim.d < 12.5 and guard < 20000:
+		sim.step(false)
+		guard += 1
+	assert_eq(sim.plates, SimConst.MAX_PLATES, "a full stack before the glass")
+	sim.step(true)
+	_run(sim)
+	assert_eq(sim.status, SimConst.Status.COMPLETED)
+	assert_eq(sim.stack_crashes, 1, "the stack smashes the glass even mid-dash")
+	assert_eq(sim.plates, 0, "and is spent")
+
+
 func test_a_shield_hit_drops_the_stack() -> void:
 	var ents: Array = [
 		{"t": "plate", "d": 4.0, "lane": 0},
