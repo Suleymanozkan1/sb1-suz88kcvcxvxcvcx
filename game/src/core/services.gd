@@ -180,6 +180,8 @@ func _boot_platform() -> void:
 	cloud = CloudSaveService.new(
 		CloudSaveService.provider_for(_cloud_url, net, profile.install_id, AppInfo.version()), profile, clock, bus
 	)
+	cloud.starting_wallet = (economy.config[EconomyService.KEY_STARTING] as Dictionary).duplicate()
+	cloud.daily_grace_days = daily.grace_days()
 	remote_config.applied.connect(func(_keys: PackedStringArray) -> void: _update_cloud_provider(net))
 	var policy: Dictionary = AdsPolicy.merge_remote(AdsPolicy.load_default(), remote_config)
 	ads = AdsService.new(profile, bus, NullAdProvider.new(), policy, analytics.track, clock)
@@ -270,8 +272,15 @@ func _wire() -> void:
 					cloud.sync()
 	)
 	leaderboard.queue_changed.connect(save.mark_dirty)
+	# Every write decides the cloud flag first (_write_save); this catches any
+	# other writer, and the next autosave then writes the flag.
 	save.saved.connect(func(_bytes: int) -> void: cloud.mark_dirty())
 	cloud.flags_changed.connect(save.mark_dirty)
+	cloud.push_prepared.connect(
+		func() -> void:
+			save.mark_dirty()
+			_write_save()
+	)
 	cloud.profile_merged.connect(_on_cloud_merged)
 	cloud.sync_finished.connect(
 		func(status: StringName, conflict: bool) -> void:
@@ -416,7 +425,16 @@ func _process(delta: float) -> void:
 	_save_left -= delta
 	if _save_left <= 0.0 and not hold_autosave:
 		_save_left = SAVE_INTERVAL
-		save.flush_if_dirty(profile)
+		_write_save()
+
+
+## Writes the save when it changed. Whether the cloud has seen the content is
+## decided first, so "cloud.dirty" is part of what is written: an app killed
+## right after (pause, quit) still uploads the change at its next launch.
+func _write_save() -> void:
+	if save.dirty:
+		cloud.mark_dirty()
+	save.flush_if_dirty(profile)
 
 
 ## Remote economy tuning: coin multiplier (times the weekend event bonus on
@@ -443,13 +461,14 @@ func check_integrity() -> Array[String]:
 	return codes
 
 
-## Persists everything now (app pause, quit, focus loss) and starts a cloud
-## sync when this device has changes the cloud has not seen.
+## Persists everything now (app pause, quit, focus loss, a run committed on
+## leave), the cloud flag included, and starts a cloud sync when this device
+## has changes the cloud has not seen.
 func flush_now() -> void:
 	if not is_booted:
 		return
 	save.mark_dirty()
-	save.flush_if_dirty(profile)
+	_write_save()
 	analytics.flush()
 	errors.flush()
 	if cloud.is_dirty() and cloud.needs_sync():

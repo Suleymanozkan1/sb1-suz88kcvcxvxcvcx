@@ -358,5 +358,31 @@ func test_fresh_install_takes_the_cloud_wallet() -> void:
 	var played: PlayerProfile = _player(800, {"w02_l01": 1})
 	var cloud2: CloudSaveService = _service(played)
 	assert_eq(await cloud2.sync(), CloudSaveService.STATUS_CONFLICT_RESOLVED, "two histories combined")
-	assert_eq(played.coins, 800, "a device with its own history keeps its newer wallet")
+	assert_eq(played.coins, 4200 + 800 - 100, "a device with its own history adds what it earned beyond the start")
 	assert_eq(played.stars_for("w01_l01"), 3)
+
+
+func test_wallet_bookkeeping_survives_the_save_format() -> void:
+	var profile: PlayerProfile = _player(120, {"w01_l01": 2})
+	var cloud: CloudSaveService = _service(profile)
+	assert_eq(await cloud.sync(), CloudSaveService.STATUS_SYNCED)
+	for flag: String in [ProfileMerge.FLAG_BASE, ProfileMerge.FLAG_BASE_LEDGER, ProfileMerge.FLAG_DEVICE]:
+		assert_true(profile.flags.has(flag), "%s recorded by the push" % flag)
+	assert_eq(profile.flags[ProfileMerge.FLAG_BASE], {"coins": 120, "gems": 0, "bonus_stars": 0})
+	assert_false(profile.flags.has(ProfileMerge.FLAG_PENDING), "the accepted push is no longer pending")
+	var storage: MemorySaveStorage = MemorySaveStorage.new()
+	assert_eq(SaveService.new(storage, _clock).save_profile(profile), OK)
+	var loaded: PlayerProfile = SaveService.new(storage, _clock).load_profile()
+	assert_eq(JsonIO.canonical(loaded.flags), JsonIO.canonical(profile.flags), "every flag survives a save")
+	var relaunched: CloudSaveService = _service(loaded)
+	assert_eq(await relaunched.sync(), CloudSaveService.STATUS_SYNCED)
+	assert_eq(_server.count("PUT"), 1, "nothing to upload after a relaunch")
+	var pushes: Dictionary = {"y": 3, "x": "many"}
+	for i: int in PlayerProfile.MAX_FLAG_ENTRIES + 10:
+		pushes["d%d" % i] = i
+	var hostile: Dictionary = {ProfileMerge.FLAG_BASE: [1, 2], ProfileMerge.FLAG_PUSHES: pushes}
+	var cleaned: PlayerProfile = PlayerProfile.from_dict({"flags": hostile})
+	assert_false(cleaned.flags.has(ProfileMerge.FLAG_BASE), "a base of the wrong type is dropped")
+	var kept: Dictionary = cleaned.flags[ProfileMerge.FLAG_PUSHES] as Dictionary
+	assert_eq(kept.size(), PlayerProfile.MAX_FLAG_ENTRIES, "push counts are bounded")
+	assert_false(kept.has("x"), "and whole numbers only")
