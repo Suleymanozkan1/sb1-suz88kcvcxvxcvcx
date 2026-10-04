@@ -270,7 +270,7 @@ func test_quality_flags_survive_world_changes() -> void:
 func test_reduce_motion_scales_camera_motion() -> void:
 	var view: GameplayView = _view_for("w01_l01", "neon_core")
 	view.reduce_motion = true
-	assert_near(view.camera_rig.shake_scale, GameplayView.REDUCED_CAMERA_MOTION, 0.0001)
+	assert_near(view.camera_rig.shake_scale, FeelTuning.REDUCED_CAMERA_MOTION, 0.0001)
 	view.reduce_motion = false
 	assert_near(view.camera_rig.shake_scale, 1.0, 0.0001)
 
@@ -289,7 +289,7 @@ func test_atmosphere_and_bursts_stay_within_budget() -> void:
 	var view: GameplayView = _view_for("w01_l01", "neon_core")
 	for id: String in ["neon_core", "molten_grid", "frozen_pulse", "void_space", "candy_reactor", "cloud_factory"]:
 		view.apply_world(WorldTheme.from_world(_app.catalog.world(id)))
-		assert_le(view._atmosphere.color.a, GameplayView.ATMOSPHERE_MAX_ALPHA + 0.0001, "%s motes" % id)
+		assert_le(view._atmosphere.color.a, AmbientMotes.MAX_ALPHA + 0.0001, "%s motes" % id)
 	view.bursts.set_amount_scale(1.25)
 	for name: String in view.bursts._pools:
 		for p: CPUParticles3D in view.bursts._pools[name] as Array[CPUParticles3D]:
