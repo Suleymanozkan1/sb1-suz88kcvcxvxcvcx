@@ -296,6 +296,16 @@ func test_every_reveal_has_its_cue() -> void:
 	assert_eq(_app.audio.active_voice_count(&"reward"), 1, "everything else is a reward")
 	_app._on_level_up(2)
 	assert_eq(str(_app.take_level_up_reveals()[0].get("sound", "")), "level_up", "level-up reveals name their cue")
+	# The result card's three stars rise in pitch as they land.
+	var complete: CompleteOverlay = flow.router.screen(&"complete") as CompleteOverlay
+	var pitches: Array[float] = []
+	for i: int in 3:
+		complete.star_landed.emit(i)
+		for v: int in _app.audio._voices.size():
+			if _app.audio._voice_kind[v] == &"star" and _app.audio._voice_seq[v] == _app.audio._seq:
+				pitches.append(_app.audio._voices[v].pitch_scale)
+	assert_eq(pitches.size(), 3, "every star sounds")
+	assert_true(pitches[0] < pitches[1] and pitches[1] < pitches[2], "each star lands a step higher: %s" % str(pitches))
 	flow.queue_free()
 	await wait_frames(2)
 

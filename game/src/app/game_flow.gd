@@ -182,8 +182,9 @@ func _build_ui() -> void:
 	complete.home_requested.connect(_quit_run)
 	complete.double_requested.connect(func() -> void: meta.double_reward(_last_outcome))
 	complete.star_landed.connect(
-		func(_i: int) -> void:
-			s.audio.play_sfx(&"star")
+		func(i: int) -> void:
+			# Each star lands a step higher (the bank's pitch_step): a rising three-note cue.
+			s.audio.play_sfx(&"star", i)
 			s.haptics.play(&"reward", 0.7)
 	)
 	var reward: RewardOverlay = RewardOverlay.new()

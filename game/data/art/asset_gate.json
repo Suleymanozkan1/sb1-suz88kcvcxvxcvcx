@@ -1870,7 +1870,7 @@
       "topology": "0.85 s.",
       "texture": "Sparkle.",
       "animation": "None.",
-      "readability": "Plays as an achievement, mission or chest reveal opens (GameFlow._next_reveal, the reveal default).",
+      "readability": "Plays as an achievement, mission or chest reveal opens (RevealQueue.show_next, the reveal default).",
       "mobile_cost": "22 050 Hz mono 16-bit WAV, imported with QOA compression (compress/mode 2); pooled voices with polyphony limits.",
       "verdict": "pass",
       "note": ""
@@ -1887,7 +1887,7 @@
       "lighting": "n/a: audio.",
       "topology": "0.65 s, UI bus.",
       "texture": "Sparkle.",
-      "animation": "pitch_step 2.0 in the bank, but GameFlow plays it with step 0, so all three stars sound the same.",
+      "animation": "pitch_step 2.0 in the bank; the result card plays star n with step n, so the three stars rise.",
       "readability": "One chime per star (§8 reward).",
       "mobile_cost": "22 050 Hz mono 16-bit WAV, imported with QOA compression (compress/mode 2); pooled voices with polyphony limits.",
       "verdict": "pass",

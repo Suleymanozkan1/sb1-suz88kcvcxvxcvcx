@@ -413,7 +413,7 @@ These elements have a job, but the audit found a gap. The first seven were close
 * ~~The shop's core-skin swatch draws every style the same~~: the swatch plays the skin's real style
   (`core_swatch.gdshader` over the shared `core_styles.gdshaderinc`, the run's own code).
 * ~~`reward.wav`, `level_up.wav` and `unlock.wav` never play~~: each reveal names its cue (`level_up` for
-  level-ups, `unlock` for worlds and cosmetics, `reward` otherwise) and GameFlow plays it as the reveal opens.
+  level-ups, `unlock` for worlds and cosmetics, `reward` otherwise) and `RevealQueue.show_next` plays it as the reveal opens.
 
 Still open:
 
