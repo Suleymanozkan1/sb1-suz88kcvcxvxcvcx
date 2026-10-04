@@ -2,145 +2,147 @@
 	"beat_seconds": 0.5085,
 	"chapter": "A",
 	"chapter_phase": "introduction",
-	"combo_target": 13,
+	"combo_target": 12,
 	"difficulty": 0.0,
-	"duration": 10.4,
+	"duration": 8.02,
 	"entities": [
 		{
-			"d": 25.31,
+			"d": 17.66,
 			"lanes": [
 				0
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 17.1,
+			"d": 11.11,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 18.3,
+			"d": 12.32,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 19.5,
+			"d": 13.53,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 20.7,
+			"d": 14.74,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 21.9,
+			"d": 15.95,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 23.1,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 33.13,
+			"d": 24.19,
 			"lanes": [
 				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 26.5,
+			"d": 18.81,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 27.7,
+			"d": 20.02,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 28.9,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 30.1,
+			"d": 21.78,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 31.3,
+			"d": 22.99,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 42.21,
+			"d": 31.05,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 25.3,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 26.51,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 28.49,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 29.7,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 37.34,
 			"lanes": [
 				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 34.3,
+			"d": 32.23,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 33.44,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 35.09,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 35.5,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 36.7,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 37.9,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 39.1,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 40.3,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 50.34,
+			"d": 44.85,
 			"lanes": [
 				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 43.4,
+			"d": 38.5,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 44.6,
+			"d": 39.71,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 45.8,
+			"d": 40.92,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 47.0,
+			"d": 42.13,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 48.2,
+			"d": 43.34,
 			"lane": 0,
 			"t": "spark"
 		}
@@ -155,16 +157,16 @@
 	"intro_mechanic": "hop",
 	"kind": "normal",
 	"lanes": 2,
-	"length": 62.34,
+	"length": 52.85,
 	"local_index": 1,
 	"mechanics": [
 		"hop",
 		"spark"
 	],
-	"min_tap_window": 1.0,
+	"min_tap_window": 0.667,
 	"modifiers": {
 		"hop_time": 0.13,
-		"ramp_distance": 62.0,
+		"ramp_distance": 53.0,
 		"speed_ramp": 0.0
 	},
 	"music": "neon_core",
@@ -173,26 +175,28 @@
 		"target": 0,
 		"type": "reach_end"
 	},
-	"perfect_target": 22,
+	"perfect_target": 21,
 	"schema_version": 1,
-	"score_target": 440,
+	"score_target": 420,
 	"seed": 2018986822,
 	"solution": {
-		"max_combo": 22,
-		"score": 800,
-		"sparks": 22,
+		"max_combo": 21,
+		"score": 770,
+		"sparks": 21,
 		"taps": [
-			122,
-			293
+			76,
+			190,
+			251,
+			311
 		]
 	},
 	"spawn": {
-		"lead_in": 16.0,
-		"slots": 4,
-		"spacing": 8.5,
-		"tail": 12.0
+		"lead_in": 10.0,
+		"slots": 5,
+		"spacing": 7.0,
+		"tail": 8.0
 	},
-	"speed": 6.0,
+	"speed": 6.6,
 	"start_form": "hop",
 	"start_lane": 0,
 	"start_phase": 0,

@@ -46,12 +46,12 @@
  },
  "REQ-010": {
   "status": "PARTIAL",
-  "evidence": "Tutorial L1-5 (DifficultyModel._apply_tutorial: slower, forgiving first hit); HUD tap hint on stored solution taps (hud.gd TUTORIAL_HINT_LEAD); w01_l01 lasts 10.4 s with 2 taps; form hints 'TAP = ...'.",
+  "evidence": "Tutorial L1-3 (DifficultyModel._apply_tutorial: gentler, forgiving first hit on L1-2); HUD tap hint on stored solution taps (hud.gd TUTORIAL_HINT_LEAD); w01_l01 lasts 8.0 s with 4 taps; form hints 'TAP = ...'.",
   "note": "No human playtest; '5 seconds to understand' is unmeasured."
  },
  "REQ-011": {
   "status": "PARTIAL",
-  "evidence": "w01_l01 is 10.4 s; probe of all 520 stored solutions shows combo steps and Overdrive in every level; attract run plays behind the main menu (test_main_scene_boots_headless).",
+  "evidence": "w01_l01 is 8.0 s with 4 taps; World 1 averages 0.71 required taps/s after the pacing pass (tests/unit/test_level_pacing.gd); probe of all 520 stored solutions shows combo steps and Overdrive in every level; attract run plays behind the main menu (test_main_scene_boots_headless).",
   "note": "Fun within 15 s not verified by any human playtest."
  },
  "REQ-012": {
@@ -86,8 +86,8 @@
  },
  "REQ-018": {
   "status": "IMPLEMENTED",
-  "evidence": "First use in shipped levels: barrier/spark L1, shield L15, prism L17, slider L27, magnet L40, phase L53, form gate L66, 3 lanes L105, current L118, dash+breakable L157, surge L209, pulse L40, portal L236 (level JSON scan); test_difficulty_structure_tiers_and_specials.",
-  "note": "Pulse gates now first appear in the W1 pulse chapter (L40), as designed."
+  "evidence": "First use in shipped levels: barrier/spark L1, prism L5, slider L14, shield L28, pulse gate + magnet L40, phase L53, form gate L59, 3 lanes L105, current L118, dash+breakable L157, surge L209, portal L235, launch pad L430, gravity well L456, mass plate L469 (level JSON scan); test_difficulty_structure_tiers_and_specials, test_world1_moves_early.",
+  "note": "World 1 brings moving sliders at L14 (was L27) after player feedback that the start stayed simple too long."
  },
  "REQ-019": {
   "status": "IMPLEMENTED",
@@ -191,7 +191,7 @@
  },
  "REQ-039": {
   "status": "PARTIAL",
-  "evidence": "Designed deepening: curve.json tiers tighten min tap window 420->130 ms and speed 6.5->12 m/s; 13-level chapters go intro->mastery->combination->pressure (DifficultyModel); test_speed_rises_on_average_but_not_randomly.",
+  "evidence": "Designed deepening: curve.json tiers tighten min tap window 420->130 ms and speed 7->12 m/s on a front-loaded ramp (exponent 0.75; World 1 averages 0.71 taps/s, Worlds 2-3 0.84-0.87, test_level_pacing.gd); 13-level chapters go intro->mastery->combination->pressure (DifficultyModel); test_speed_rises_on_average_but_not_randomly.",
   "note": "Easy-to-learn / hard-to-master not validated by human playtests."
  },
  "REQ-040": {
@@ -411,7 +411,7 @@
  },
  "REQ-083": {
   "status": "PARTIAL",
-  "evidence": "Tutorial L1-5 (forgiving L1-3, HUD._update_tap_hint on solution ticks); L1-52 are hop-only with shield at L14 and slider at L27; tier minimum windows 420/340 ms (curve.json).",
+  "evidence": "Tutorial L1-3 (forgiving L1-2, HUD._update_tap_hint on solution ticks); L1-52 are hop-only with sliders from L14, the shield chapter at L27 and pulse gates at L40; tier minimum windows 420/340 ms (curve.json).",
   "note": "The structure supports learning hop by L20-30, but nobody checked that players actually learn it (no playtests)."
  },
  "REQ-084": {
@@ -1126,8 +1126,8 @@
  },
  "REQ-226": {
   "status": "PARTIAL",
-  "evidence": "w01_l01.json: duration 10.4 s, 2 solution taps, forgiving true, tutorial true; Hud._update_tap_hint pulses a TAP ring on solution ticks; one-line form hints (Hud._show_form_hint).",
-  "note": "Tutorial levels last 6-14 s with hints on L1-5 (docs match); whether it teaches within 20 s was not confirmed by players."
+  "evidence": "w01_l01.json: duration 8.0 s, 4 solution taps, forgiving true, tutorial true; Hud._update_tap_hint pulses a TAP ring on solution ticks; one-line form hints (Hud._show_form_hint).",
+  "note": "Tutorial levels sit in an 8-14 s band (8.0-8.9 s shipped) with hints on L1-3 (docs match); whether it teaches within 20 s was not confirmed by players."
  },
  "REQ-227": {
   "status": "PARTIAL",

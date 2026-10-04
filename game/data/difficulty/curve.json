@@ -2,8 +2,8 @@
 	"schema_version": 1,
 	"campaign_span": 520,
 	"tiers": [
-		{"id": "tutorial", "from": 1, "to": 5, "duration": [6, 14], "min_window": 0.42},
-		{"id": "early", "from": 6, "to": 26, "duration": [8, 15], "min_window": 0.34},
+		{"id": "tutorial", "from": 1, "to": 3, "duration": [8, 14], "min_window": 0.42},
+		{"id": "early", "from": 4, "to": 26, "duration": [9, 15], "min_window": 0.34},
 		{"id": "core_learning", "from": 27, "to": 52, "duration": [12, 28], "min_window": 0.28},
 		{"id": "mechanic_expansion", "from": 53, "to": 156, "duration": [14, 30], "min_window": 0.24},
 		{"id": "combination", "from": 157, "to": 260, "duration": [16, 30], "min_window": 0.21},
@@ -27,18 +27,18 @@
 		"special_challenge": [60, 120],
 		"special_boss": [60, 120]
 	},
-	"speed": {"start": 6.5, "end": 12.0, "exponent": 0.9, "wave": 0.07},
-	"spacing": {"start": 7.2, "end": 4.1, "exponent": 0.8, "wave": 0.06, "jitter": 0.12},
-	"change_prob": {"start": 0.35, "end": 0.78},
-	"density": {"start": 0.7, "end": 1.0},
+	"speed": {"start": 7.0, "end": 12.0, "exponent": 0.75, "wave": 0.07},
+	"spacing": {"start": 6.2, "end": 4.1, "exponent": 0.7, "wave": 0.06, "jitter": 0.12},
+	"change_prob": {"start": 0.6, "end": 0.82, "exponent": 0.6},
+	"density": {"start": 0.85, "end": 1.0},
 	"spark_density": {"start": 0.9, "end": 0.6},
 	"score_target_ratio": {"start": 0.55, "end": 0.72},
 	"combo_target_ratio": 0.6,
 	"chapter_phases": {
-		"introduction": {"levels": 3, "wave": -1.0, "density_scale": 0.75},
+		"introduction": {"levels": 2, "wave": -0.5, "density_scale": 0.9, "speed_scale": 0.97, "change_scale": 0.9},
 		"mastery": {"levels": 4, "wave": 0.0, "density_scale": 1.0},
 		"combination": {"levels": 4, "wave": 0.5, "density_scale": 1.0, "blend_previous": 0.3},
-		"high_pressure": {"levels": 2, "wave": 1.0, "density_scale": 1.0}
+		"high_pressure": {"levels": 3, "wave": 1.0, "density_scale": 1.0}
 	},
-	"tutorial": {"speed": 6.0, "spacing": 8.5, "change_prob": 0.5, "density": 0.6}
+	"tutorial": {"speed": 6.6, "spacing": 7.0, "change_prob": 0.65, "density": 0.7}
 }

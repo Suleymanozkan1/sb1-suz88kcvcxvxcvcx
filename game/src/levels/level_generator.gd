@@ -10,8 +10,8 @@ extends RefCounted
 ## in the level as `solution`; the validator replays and re-checks them
 ## independently.
 
-const LEAD_IN: float = 16.0
-const TAIL: float = 12.0
+const LEAD_IN: float = 10.0
+const TAIL: float = 8.0
 const MAX_ATTEMPTS: int = 8
 const SLOT_RETRIES: int = 3
 const CLEAR_AFTER: float = 0.9

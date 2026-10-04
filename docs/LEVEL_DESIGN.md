@@ -20,8 +20,8 @@ validation, the autopilot, the replay verifier and the tests, so "solvable in th
 
 | Tier | Levels | Duration (s) | Min tap window |
 |---|---|---|---|
-| Tutorial | 1–5 | 6–14 | 420 ms |
-| Early | 6–26 | 8–15 | 340 ms |
+| Tutorial | 1–3 | 8–14 | 420 ms |
+| Early | 4–26 | 9–15 | 340 ms |
 | Core Learning | 27–52 | 12–28 | 280 ms |
 | Mechanic Expansion | 53–156 | 14–30 | 240 ms |
 | Combination | 157–260 | 16–30 | 210 ms |
@@ -32,23 +32,32 @@ validation, the autopilot, the replay verifier and the tests, so "solvable in th
 | Endgame | 495–520 | 30–60 | 130 ms |
 
   Specials override the band: challenge levels (L26) and bosses (L52) run 60–120 s.
-* **Continuous parameters** interpolate over the campaign with a gentle exponent and a small wave:
-  speed 6.5 → 12.0 m/s, slot spacing 7.2 → 4.1 m, change probability 0.35 → 0.78, hazard density
-  0.70 → 1.00, spark density 0.90 → 0.60, score-target ratio 0.55 → 0.72. Progress along the
+* **Continuous parameters** interpolate over the campaign with a front-loaded exponent (the ramp is
+  steepest early, so the first worlds do not stay easy for long) and a small wave: speed 7.0 → 12.0 m/s
+  (exponent 0.75), slot spacing 6.2 → 4.1 m (0.7), change probability 0.60 → 0.82 (0.6), hazard density
+  0.85 → 1.00, spark density 0.90 → 0.60, score-target ratio 0.55 → 0.72.
+* **Pacing.** A level opens with a 10 m lead-in and closes with an 8 m tail; everything between is
+  slots. Measured on the generated campaign (`generate_levels.gd` prints taps per level): World 1 asks
+  for 0.57–0.81 taps per second (one lane change every 1.2–1.8 s), Worlds 2–3 for 0.8–1.0, with
+  the tightest early tap window 333 ms against the 340/280 ms tier minimums of those levels' tiers. Progress along the
   campaign is `(n − 1) / (campaign_span − 1)` with `campaign_span` fixed at 520 in `curve.json`
   (see "Adding content" below).
 * **Music.** Each level's beat grid starts at sim time 0 and the world loop is locked to it
   (`MusicClock`): held through the READY beat and pause, nudged back through the playback rate
   (≤ 3 %) when it drifts past 40 ms, sought straight to the run after a restart or revive.
 * **Chapters**: every world is a sequence of 13-level chapters, each introducing one mechanic and then
-  walking it through four phases — *introduction* (3 levels, wave −1, density ×0.75: a breather),
+  walking it through four phases — *introduction* (2 levels, wave −0.5, density ×0.9, speed ×0.97,
+  lane changes ×0.9: a short, shallow breather),
   *mastery* (4), *combination* with earlier mechanics (4: the previous chapter's hazards, forms and
   special elements come back at 30 % of their weight, `chapter_phases.combination.blend_previous`),
-  *high pressure* (2, wave +1). This is the
+  *high pressure* (the rest, 2–3 levels, wave +1). This is the
   sawtooth: difficulty rises inside a chapter, relaxes when the next idea arrives. A new idea arrives
-  every 13 levels (40 introductions: hop, shield, slider, pulse, phase, form gate, moving colours,
+  every 13 levels (40 introductions: hop, slider, shield, pulse, phase, form gate, moving colours,
   3 lanes, currents, dash, chains, surge, portals, overdrive, ice, beat lock, speed ramp, …).
-* The tutorial (1–5) uses fixed gentle parameters, a forgiving first hit and on-screen tap hints.
+* The tutorial (1–3) uses fixed gentle parameters (6.6 m/s, 7 m slots, 65 % lane changes), a forgiving
+  first hit in levels 1–2 and on-screen tap hints. World 1 then brings moving sliders at L14, the
+  shield pickup at L27 (when the sliders make it useful) and pulse gates at L40; prisms (off-path
+  bonus shards) appear from L4.
 * **Teaching:** every chapter's introduction levels name the new idea in one short HUD line at the
   start (`hint.mechanic.<intro>`, EN/TR, tested for all 40 chapters).
 * **Mass & gravity chapters** (W9 L14–25 launch pads, W9 L40–51 gravity wells, W10 L1–13 plates,
@@ -149,16 +158,16 @@ CI runs both: all 520 levels must validate and regenerated output must equal the
 
 ```json
 {
-  "id": "w01_l05", "world": "neon_core", "number": 5, "local_index": 5,
+  "id": "w01_l03", "world": "neon_core", "number": 3, "local_index": 3,
   "kind": "normal", "tier": "tutorial", "chapter": "A", "chapter_phase": "mastery",
-  "seed": 2086097298, "lanes": 2, "speed": 6.6, "length": 56.23, "duration": 8.53,
-  "start_form": "hop", "modifiers": {"hop_time": 0.13, "speed_ramp": 0.0, "ramp_distance": 57.2},
+  "seed": 1985431584, "lanes": 2, "speed": 6.9, "length": 61.26, "duration": 8.88,
+  "start_form": "hop", "modifiers": {"hop_time": 0.13, "speed_ramp": 0.0, "ramp_distance": 62.8},
   "objective": {"type": "reach_end", "target": 0},
-  "score_target": 340, "combo_target": 10, "perfect_target": 18, "min_tap_window": 0.7,
+  "score_target": 400, "combo_target": 12, "perfect_target": 21, "min_tap_window": 0.6,
   "mechanics": ["hop", "spark"], "intro_mechanic": "",
-  "entities": [{"t": "barrier", "d": 18.4, "lane": 1}, {"t": "spark", "d": 20.1, "lane": 0}, "…"],
-  "solution": {"taps": [64, 141, "…"]},
-  "unlock": {"requires_level": "w01_l04", "requires_stars": 0},
+  "entities": [{"t": "spark", "d": 11.15, "lane": 1}, {"t": "barrier", "d": 16.47, "lanes": [0]}, "…"],
+  "solution": {"taps": [67, 170, 332, "…"]},
+  "unlock": {"requires_level": "w01_l02", "requires_stars": 0},
   "generator": {"version": 1, "attempt": 0}
 }
 ```

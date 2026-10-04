@@ -170,10 +170,13 @@ func _apply_chapter(spec: LevelSpec, chapter: Dictionary) -> void:
 	spec.form_segment = int(chapter.get("form_segment", 6))
 	spec.spark_density = minf(1.0, spec.spark_density + float(chapter.get("spark_bonus", 0.0)))
 	_apply_mass_gravity(spec, chapter)
-	if spec.chapter_phase == "introduction":
-		# Teach the new idea safely: slower, fewer simultaneous threats.
-		spec.speed *= 0.94
-		spec.change_prob *= 0.8
+	# Introduction levels teach the new idea a little slower, with fewer lane
+	# changes; a shallow dip only, so the run never goes slack between chapters.
+	var phase_cfg: Dictionary = (
+		(curve.get("chapter_phases", {}) as Dictionary).get(spec.chapter_phase, {}) as Dictionary
+	)
+	spec.speed *= float(phase_cfg.get("speed_scale", 1.0))
+	spec.change_prob *= float(phase_cfg.get("change_scale", 1.0))
 	spec.start_form = _first_form(spec)
 
 

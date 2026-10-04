@@ -51,7 +51,7 @@
   "chapters": [
     {
       "end": 13,
-      "forgiving_until": 3,
+      "forgiving_until": 2,
       "forms": {
         "hop": 1
       },
@@ -59,8 +59,9 @@
         "barrier": 1
       },
       "intro": "hop",
+      "prism": 0.2,
       "start": 1,
-      "tutorial_until": 5
+      "tutorial_until": 3
     },
     {
       "end": 25,
@@ -68,11 +69,11 @@
         "hop": 1
       },
       "hazards": {
-        "barrier": 1
+        "barrier": 0.6,
+        "slider": 0.4
       },
-      "intro": "shield",
-      "prism": 0.35,
-      "shield": 0.12,
+      "intro": "slider",
+      "prism": 0.3,
       "start": 14
     },
     {
@@ -81,11 +82,12 @@
         "hop": 1
       },
       "hazards": {
-        "barrier": 0.55,
-        "slider": 0.45
+        "barrier": 0.5,
+        "slider": 0.5
       },
-      "intro": "slider",
-      "prism": 0.3,
+      "intro": "shield",
+      "prism": 0.35,
+      "shield": 0.12,
       "start": 27
     },
     {
@@ -109,9 +111,9 @@
   "lanes": 2,
   "levels": 52,
   "music": {
+    "boss_bpm": 133,
     "boss_track": "neon_core_boss",
     "bpm": 118,
-    "boss_bpm": 133,
     "root_midi": 57,
     "scale": "minor_pentatonic",
     "track": "neon_core"

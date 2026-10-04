@@ -90,7 +90,7 @@ atmosphere particles), its own procedurally synthesised music (base loop, high-i
 with combo, boss loop) and its own challenge/boss identity. World unlocks need roughly 60 % of the stars
 available so far, so progress is skill-based but forgiving.
 
-Difficulty tiers across the campaign: Tutorial (1–5) → Early → Core Learning → Mechanic Expansion →
+Difficulty tiers across the campaign: Tutorial (1–3) → Early → Core Learning → Mechanic Expansion →
 Combination → Advanced Timing → Expert → Master → Challenge → Endgame (495–520). A new mechanic is
 introduced every 13 levels (introduce → master → combine → high pressure) — 40 introductions in total.
 
@@ -174,8 +174,9 @@ Settings.
 
 ## 11. Tutorial (≤ 20 s)
 
-Levels 1–5 (tutorial-flagged) teach hop with a pulsing tap hint placed exactly on the stored
-solution's tap ticks. The first hit in levels 1–3 is forgiven. Every new
+Levels 1–3 (tutorial-flagged, about 8–9 s each with 3–5 taps) teach hop with a pulsing tap hint
+placed exactly on the stored solution's tap ticks. The first hit in levels 1–2 is forgiven. From
+level 4 the pace is a lane change every 1.2–1.8 s, and moving sliders arrive at level 14. Every new
 form is introduced by a form gate with a one-line HUD hint (`TAP = SWITCH COLOUR`).
 
 ## 12. Ethics
