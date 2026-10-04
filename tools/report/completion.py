@@ -109,7 +109,7 @@ def split_evidence(evidence: str) -> dict:
     low = evidence.lower()
     checks = []
     if tests or "test" in low:
-        checks.append("automated tests (suite 746 passed, 0 failed)")
+        checks.append("automated tests (suite 890 passed, 0 failed)")
     if "validat" in low and "level" in low:
         checks.append("level validator 520/520")
     if "screenshot" in low or "render" in low or "capture" in low:

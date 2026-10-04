@@ -216,7 +216,7 @@
  },
  "REQ-044": {
   "status": "IMPLEMENTED",
-  "evidence": "24580 barriers, 6060 sliders and 1822 pulse gates are dodged by lane hops or surge timing (FluxSim._check_hazard); test_barrier_kills_and_hop_avoids.",
+  "evidence": "28709 barriers, 5090 sliders and 6589 pulse gates are dodged by lane hops or surge timing (FluxSim._check_hazard); test_barrier_kills_and_hop_avoids.",
   "note": "Checked in code, shipped data and headless tests."
  },
  "REQ-045": {
@@ -271,8 +271,8 @@
  },
  "REQ-055": {
   "status": "IMPLEMENTED",
-  "evidence": "Pulse gates and sliders cycle on multiples of the world music beat (DifficultyModel: beat_seconds = 60/bpm; LevelGenerator periods = 2-4 beats); 1822 pulse gates in 77 levels, sliders in 273; test_pulse_gate_open_closed_cycle.",
-  "note": "Bug: pulse gates appear only from L222 (W1 'pulse' chapter has none). Not phase-locked to audio; bosses play boss_bpm music."
+  "evidence": "Pulse gates and sliders cycle on multiples of the world music beat (DifficultyModel: beat_seconds = 60/bpm; LevelGenerator periods = 2-4 beats); 6589 pulse gates in 288 levels, sliders in 316; test_pulse_gate_open_closed_cycle.",
+  "note": "Pulse gates are taught from L40 (World 1 pulse chapter, test_pulse_chapters_place_pulse_gates); the music loop is locked to the run clock (REQ-224) and set pieces are built on the boss loop's tempo (boss_bpm)."
  },
  "REQ-056": {
   "status": "IMPLEMENTED",
@@ -406,8 +406,8 @@
  },
  "REQ-082": {
   "status": "IMPLEMENTED",
-  "evidence": "Level data per world (computed here): avg speed 6.86 m/s -> 11.71; avg min tap window 0.73 s -> 0.155 s (both monotonic); taps/s 0.27 -> 1.27. W1 is hop-only with 2 lanes; phase arrives in W2, 3 lanes in W3, dash in W4, surge in W5, all four forms from W6.",
-  "note": "W1 is objectively slow and wide-windowed. That it feels very easy was not checked with players."
+  "evidence": "Level data per world (computed here after the pacing pass): avg speed 7.65 m/s -> 12.05 (rising every world); avg min tap window 0.445 s -> 0.144 s (never widening); required taps/s 0.71 in W1, 0.84-0.87 in W2-W3, 1.1-1.3 from W5. W1 is hop-only with 2 lanes and the widest windows; phase arrives in W2, 3 lanes in W3, dash in W4, surge in W5, all four forms from W6.",
+  "note": "W1 stays the easiest world on every measure, but it is no longer slack: the first player report said the start stayed too simple for too long, so it now asks for a lane change every 1.2-1.8 s (was 3-5 s). 'Very easy' versus 'engaging' is a balance to settle with playtests."
  },
  "REQ-083": {
   "status": "PARTIAL",
@@ -417,7 +417,7 @@
  "REQ-084": {
   "status": "PARTIAL",
   "evidence": "Tier minimum windows go from 420 to 130 ms (curve.json); world unlocks need about 60% of stars; Zen mode never fails (test_zen_never_fails); forgiving tutorial.",
-  "note": "Endgame asks for about 1.27 taps/s with 133-150 ms windows. Overall difficulty was never tested with players or on a device."
+  "note": "Hardest worlds ask for about 1.3 taps/s (W7-W8) with 133-183 ms minimum windows in W8-W10. Overall difficulty was never tested with players or on a device."
  },
  "REQ-085": {
   "status": "PARTIAL",
@@ -967,7 +967,7 @@
  "REQ-194": {
   "status": "PARTIAL",
   "evidence": "game/export_presets.cfg has Android (com.fluxdrop.game) and iOS presets, portrait orientation; lead: signed debug APK exported and apksigner-verified; iOS export job defined in .github/workflows/ci.yml.",
-  "note": "Android debug APK is built in CI (artifact 63 MB, run 37185275246); iOS project exports but the CI simulator compile fails (masked, see REQ-295); release signing for both BLOCKED."
+  "note": "Android: debug/test APK built in CI and here (arm64, apksigner-verified, 520 levels). iOS: the unsigned arm64 device app compiles and links in CI (run 37188419595, Xcode 26.3). Neither is installed on a real device here; release signing for both BLOCKED."
  },
  "REQ-195": {
   "status": "IMPLEMENTED",
@@ -1166,7 +1166,7 @@
  },
  "REQ-234": {
   "status": "IMPLEMENTED",
-  "evidence": "Constructor-injected RefCounted systems (e.g. QualityService._init(settings, bus, presets)); only src/app and services.gd use the Services autoload (grep); 66 test files / 746 passing tests (lead); untyped declarations are errors in project.godot.",
+  "evidence": "Constructor-injected RefCounted systems (e.g. QualityService._init(settings, bus, presets)); only src/app and services.gd use the Services autoload (grep); 83 test files / 890 passing tests; untyped declarations are errors in project.godot.",
   "note": "Specific gaps are tracked separately: broad coordinators (REQ-235), inline literals (REQ-237) and untyped Dictionary containers (REQ-239)."
  },
  "REQ-235": {
@@ -1286,8 +1286,8 @@
  },
  "REQ-258": {
   "status": "IMPLEMENTED",
-  "evidence": "game/tests/unit: 56 suites of test_* methods (sim, levels, save, economy, rewards, cosmetics, progression, stats, meta, online, platform, feel) run by game/tests/run_tests.gd, which also fails tests that hit script errors; lead: 746 tests, 0 failed.",
-  "note": "746 tests, 0 failed in the final full run (66 suites incl. integration)."
+  "evidence": "game/tests/unit: 72 suites of test_* methods (plus 11 integration suites) (sim, levels, save, economy, rewards, cosmetics, progression, stats, meta, online, platform, feel) run by game/tests/run_tests.gd, which also fails tests that hit script errors; full run: 890 tests, 0 failed.",
+  "note": "890 tests, 0 failed in the final full run (83 test files incl. integration); the runner also fails any test file that cannot load."
  },
  "REQ-259": {
   "status": "IMPLEMENTED",
@@ -1320,9 +1320,9 @@
   "note": "unreachable_state and dead_end (barrier d=22.0, tap 134) reproduced by scratch probes, not by dedicated tests (see REQ-263)."
  },
  "REQ-265": {
-  "status": "PARTIAL",
-  "evidence": ".github/workflows/ci.yml: gdlint, placeholder/licence scans, JSON parse, --import failing on script/shader errors, run_tests.gd, validate_levels.gd, generate_levels --check, Android debug APK export, iOS export + xcodebuild simulator build.",
-  "note": "Now observed running: GitHub Actions run 37185275246 (HEAD 61e7db5) green in all four jobs with gdlint, gdformat, placeholder/licence/asset-gate/JSON scans, import, 885 tests, 520-level validation, regen diff, perf budgets, Android debug APK (63 MB artifact) and iOS export. NEW DEFECT keeps it PARTIAL: the iOS 'Compile for the simulator without signing' step logs '** BUILD FAILED **' (ld: libgodot.a simulator slice is x86_64 only on the arm64 macos-14 runner; undefined _main) but the step passes because `xcodebuild ... | tail -20` runs without pipefail (ci.yml:191-192). The pipeline reports a build it never produced."
+  "status": "IMPLEMENTED",
+  "evidence": ".github/workflows/ci.yml: gdlint, gdformat --check, placeholder/licence/asset-gate scans, JSON parse, --import failing on script/shader errors, run_tests.gd, validate_levels.gd (520), generate_levels --check, perf budgets, Android debug APK export, iOS Xcode export + unsigned arm64 device build (pipefail, Xcode 26).",
+  "note": "Observed green in all four jobs: GitHub Actions run 37188419595 (f7cfff3), including an iOS device build that really links ('** BUILD SUCCEEDED **', Xcode 26.3). The earlier masked simulator failure (no pipefail, macos-14 SDK) is fixed: the step now fails on a failed build, and it failed honestly on the old image before the Xcode 26 change."
  },
  "REQ-266": {
   "status": "PARTIAL",
@@ -1471,8 +1471,8 @@
  },
  "REQ-295": {
   "status": "IMPLEMENTED",
-  "evidence": "export_presets.cfg iOS preset (arm64, iOS 14, export_project_only); Xcode project exported here on Linux (FluxDrop.xcodeproj + 13 MB .pck) with a team ID; CI job injects IOS_TEAM_ID and compiles an unsigned simulator build (.github/workflows/ci.yml).",
-  "note": "Compiling/signing need macOS + Apple account (BLOCKED here); CI job not observed running."
+  "evidence": "export_presets.cfg iOS preset (arm64, iOS 14); CI job 'iOS project export (unsigned)' exports the Xcode project, selects Xcode 26 (the 4.7.2 template links against the iOS 26 SDK) and compiles and links the unsigned arm64 device app with pipefail: GitHub Actions run 37188419595 (f7cfff3), Xcode 26.3, '** BUILD SUCCEEDED **'.",
+  "note": "Signing, provisioning and a device install need the Apple developer account, which this environment does not have (see REQ-194)."
  },
  "REQ-296": {
   "status": "IMPLEMENTED",
@@ -1491,7 +1491,7 @@
  },
  "REQ-299": {
   "status": "PARTIAL",
-  "evidence": "Final steps run at the end on the final tree: git status, Android debug export (64 MB, v2+v3 verified), iOS Xcode project export, 746 tests, full level validation (520/520) and regeneration check (0 mismatches), licence check, placeholder scan, dead-code probe (20 unused functions removed), gdlint, and a final independent review of the last fix round (R-FINAL: 0 critical / 0 major / 5 minor, 4 fixed, 1 by design); results in report sections 29 and 32-35.",
+  "evidence": "Final steps run at the end on the final tree: git status, Android test APK export (33 MB arm64, v2+v3 verified), iOS Xcode project export (and the unsigned device build in CI), 890 tests, full level validation (520/520) and regeneration check (0 mismatches), licence check, placeholder scan, dead-code probe (20 unused functions removed), gdlint, and a final independent review of the last fix round (R-FINAL: 0 critical / 0 major / 5 minor, 4 fixed, 1 by design); results in report sections 29 and 32-35.",
   "note": "CodeRabbit runs are BLOCKED (CLI unreachable); substitute reviews used."
  },
  "REQ-300": {
