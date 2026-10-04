@@ -13,6 +13,8 @@ signal chest_requested
 const MAX_TIER: int = 7
 const TIER_DOT: int = 20
 const MISSION_KINDS: PackedStringArray = ["daily", "weekly"]
+## Typed cosmetic reward keys and their icons in a reward preview.
+const REWARD_ITEM_ICONS: Dictionary = {"skin": &"form_orb", "trail": &"form_comet"}
 
 var _date: Label
 var _chest: VBoxContainer
@@ -246,7 +248,8 @@ func _mission_row(m: Dictionary) -> PanelContainer:
 	return card
 
 
-## Reward preview: the exact contents of the mission reward spec.
+## Reward preview: the exact contents of the mission / achievement reward
+## spec (currencies, XP, bonus stars, and a named skin or trail).
 static func _reward_row(spec: Dictionary) -> HBoxContainer:
 	var row: HBoxContainer = UiKit.hbox(UiTokens.GUTTER)
 	if int(spec.get("coins", 0)) > 0:
@@ -255,6 +258,12 @@ static func _reward_row(spec: Dictionary) -> HBoxContainer:
 		row.add_child(_small_chip(&"gem", "+" + UiKit.format_int(int(spec["gems"])), Palette.SECONDARY))
 	if int(spec.get("xp", 0)) > 0:
 		row.add_child(_small_chip(&"progress", "+%d XP" % int(spec["xp"]), UiTokens.TEXT_MUTED))
+	if int(spec.get("stars", 0)) > 0:
+		row.add_child(_small_chip(&"star_filled", "+" + UiKit.format_int(int(spec["stars"])), Palette.ACCENT))
+	for kind: String in REWARD_ITEM_ICONS:
+		if typeof(spec.get(kind)) == TYPE_STRING:
+			var label: String = TranslationServer.translate("reward.label." + kind)
+			row.add_child(_small_chip(REWARD_ITEM_ICONS[kind] as StringName, label, Palette.PRIMARY))
 	return row
 
 

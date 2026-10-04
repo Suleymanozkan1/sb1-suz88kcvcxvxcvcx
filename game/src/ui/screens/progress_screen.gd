@@ -297,7 +297,8 @@ func _board_row(e: Dictionary) -> HBoxContainer:
 	return h
 
 
-## payload: {"player_level", "xp", "xp_next", "stars", "max_stars", "perfects",
+## payload: {"player_level", "xp", "xp_next", "stars" (campaign), "max_stars",
+##   "bonus_stars" (reward stars, shown apart so "stars" never exceeds the max), "perfects",
 ##   "cleared", "worlds": [...world rows], "stats": {name: int},
 ##   "achievements": [{"name","desc","value","target","unlocked","reward"}],
 ##   "achievements_unlocked", "achievements_total",
@@ -311,12 +312,15 @@ func enter(payload: Dictionary) -> void:
 	_xp_label.text = "%s / %s XP" % [UiKit.format_int(xp), UiKit.format_int(xp_next)]
 	for c: Node in _totals.get_children():
 		c.queue_free()
+	var stars_caption: String = tr("progress.stars_of").format(
+		{"max": UiKit.format_int(int(payload.get("max_stars", 0)))}
+	)
+	var bonus: int = int(payload.get("bonus_stars", 0))
+	if bonus > 0:
+		stars_caption += "\n" + tr("progress.bonus_stars").format({"n": UiKit.format_int(bonus)})
 	_totals.add_child(
 		_total_tile(
-			&"star_filled",
-			Palette.ACCENT,
-			"%s" % UiKit.format_int(int(payload.get("stars", 0))),
-			tr("progress.stars_of").format({"max": UiKit.format_int(int(payload.get("max_stars", 0)))})
+			&"star_filled", Palette.ACCENT, "%s" % UiKit.format_int(int(payload.get("stars", 0))), stars_caption
 		)
 	)
 	_totals.add_child(

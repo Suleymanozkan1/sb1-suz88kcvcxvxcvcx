@@ -15,8 +15,12 @@ const ITEM_ICONS: Dictionary = {
 	"xp": [&"progress", Palette.PRIMARY],
 	"stars": [&"star_filled", Palette.ACCENT],
 	"cosmetic": [&"collection", Palette.PRIMARY],
+	"skin": [&"form_orb", Palette.PRIMARY],
+	"trail": [&"form_comet", Palette.PRIMARY],
 	"badge": [&"trophy", Palette.ACCENT],
 }
+## Item types shown as a named unlock ("New skin") instead of a count.
+const NAMED_ITEM_TYPES: PackedStringArray = ["skin", "trail"]
 
 var reduce_motion: bool = false
 
@@ -62,7 +66,8 @@ func build() -> void:
 
 
 ## payload: {"eyebrow", "title", "subtitle", "bundle": RewardBundle,
-##           "cosmetic": {"category", "params"} (optional)}
+##           "cosmetic": {"category", "params"} (optional),
+##           "item_names": {item id: localised name} (optional, skins / trails)}
 func enter(payload: Dictionary) -> void:
 	_eyebrow.text = str(payload.get("eyebrow", ""))
 	_title.text = str(payload.get("title", ""))
@@ -75,6 +80,7 @@ func enter(payload: Dictionary) -> void:
 	for c: Node in _items.get_children():
 		c.queue_free()
 	var bundle: RewardBundle = payload.get("bundle") as RewardBundle
+	var names: Dictionary = payload.get("item_names", {}) as Dictionary
 	var targets: Array[int] = []
 	var labels: Array[Label] = []
 	var cells: Array[Control] = []
@@ -82,6 +88,9 @@ func enter(payload: Dictionary) -> void:
 		for raw: Variant in bundle.items:
 			var item: Dictionary = raw as Dictionary
 			var type: String = str(item.get("type", ""))
+			if NAMED_ITEM_TYPES.has(type):
+				_items.add_child(_named_cell(type, str(names.get(str(item.get("id", "")), ""))))
+				continue
 			if not ITEM_ICONS.has(type) or type == "cosmetic" or type == "badge":
 				continue
 			var spec: Array = ITEM_ICONS[type] as Array
@@ -102,6 +111,24 @@ func enter(payload: Dictionary) -> void:
 			cells.append(cell)
 	_animate(cells, labels, targets)
 	_continue.grab_focus.call_deferred()
+
+
+## A skin / trail unlock: its icon, its name and "New skin" / "New trail".
+func _named_cell(type: String, item_name: String) -> VBoxContainer:
+	var spec: Array = ITEM_ICONS[type] as Array
+	var cell: VBoxContainer = UiKit.vbox(UiTokens.UNIT / 2)
+	cell.alignment = BoxContainer.ALIGNMENT_CENTER
+	var glyph: IconGlyph = UiKit.icon(spec[0] as StringName, 40, spec[1] as Color)
+	glyph.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	cell.add_child(glyph)
+	if not item_name.is_empty():
+		var label: Label = UiKit.text(item_name, &"body")
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cell.add_child(label)
+	var cap: Label = UiKit.text(tr("reward.label." + type), &"caption", UiTokens.TEXT_MUTED)
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cell.add_child(cap)
+	return cell
 
 
 func _animate(cells: Array[Control], labels: Array[Label], targets: Array[int]) -> void:

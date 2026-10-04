@@ -69,7 +69,8 @@ func test_grant_drops_invalid_items() -> void:
 	bundle.add(RewardBundle.TYPE_COINS, 20)
 	bundle.add(RewardBundle.TYPE_GEMS, economy.max_single_grant(EconomyService.GEMS) + 1)
 	bundle.add(RewardBundle.TYPE_COSMETIC, 1, "core_unknown")
-	bundle.add(RewardBundle.TYPE_STARS, 3)
+	# Stars are grantable (bonus stars) but never above the per-item limit.
+	bundle.add(RewardBundle.TYPE_STARS, 99)
 	bundle.items.append({"type": &"xp", "amount": -5, "id": ""})
 	bundle.items.append({"type": &"coins", "amount": "lots", "id": ""})
 	bundle.items.append({"type": &"cosmetic", "amount": 1, "id": ""})
@@ -79,6 +80,7 @@ func test_grant_drops_invalid_items() -> void:
 	assert_eq(economy.balance(EconomyService.GEMS), 0, "over-limit gems rejected")
 	assert_false(profile.cosmetics_owned.has("core_unknown"))
 	assert_true(xp_log.is_empty())
+	assert_eq(profile.bonus_stars, 0, "over-limit stars rejected")
 
 
 func test_duplicate_cosmetic_converted_to_coins() -> void:

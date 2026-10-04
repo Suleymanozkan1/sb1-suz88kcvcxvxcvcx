@@ -13,6 +13,11 @@ extends RefCounted
 ## in campaign order cleared and its world unlocked.
 ## [br]- World N (N >= 2) unlocks when world N-1 is unlocked, its boss level is
 ## cleared AND total stars >= the world's unlock_stars. Unlocks are permanent.
+## [br]Stars: [method campaign_stars] are earned on levels (0..3 each, at most
+## [method max_stars]); [method total_stars] adds the bonus stars rewards
+## grant ([member PlayerProfile.bonus_stars]) and is the count every star
+## unlock uses (worlds, modes, cosmetics). "x / max" displays use the campaign
+## count so they never exceed the maximum.
 ## Construction silently syncs world unlocks that already hold (e.g. after a
 ## save migration); later unlocks emit [signal EventBus.world_unlocked].
 
@@ -275,14 +280,26 @@ func world_perfect(world_index: int) -> bool:
 	return count > 0 and world_stars(world_index) == count * MAX_LEVEL_STARS
 
 
-## Campaign stars (only valid catalog levels count, 0..3 each).
+## Stars that count toward unlocks: [method campaign_stars] plus the bonus
+## stars granted by rewards.
 func total_stars() -> int:
+	return campaign_stars() + bonus_stars()
+
+
+## Campaign stars (only valid catalog levels count, 0..3 each); never more
+## than [method max_stars].
+func campaign_stars() -> int:
 	var total: int = 0
 	for key: Variant in _profile.levels:
 		var id: String = str(key)
 		if _number.has(id):
 			total += _stars_of(id)
 	return total
+
+
+## Bonus stars granted by rewards (sanitised, 0..PlayerProfile.MAX_BONUS_STARS).
+func bonus_stars() -> int:
+	return clampi(_profile.bonus_stars, 0, PlayerProfile.MAX_BONUS_STARS)
 
 
 ## Maximum campaign stars (levels x 3).
@@ -323,7 +340,7 @@ func next_unlock_hint() -> Dictionary:
 		return _hint(HINT_LEVEL, next_id, progress, _catalog.levels_in(world_index), HINT_KEY_LEVEL)
 	var to_improve: String = _first_level_below_max_stars()
 	if not to_improve.is_empty():
-		return _hint(HINT_LEVEL, to_improve, stars, max_stars(), HINT_KEY_STARS)
+		return _hint(HINT_LEVEL, to_improve, campaign_stars(), max_stars(), HINT_KEY_STARS)
 	var xp: Dictionary = xp_progress()
 	var level: int = int(xp["level"])
 	if bool(xp["at_max"]):
@@ -334,8 +351,10 @@ func next_unlock_hint() -> Dictionary:
 ## Data for the Progress screen: {"worlds": [{"index", "id", "name",
 ## "name_key", "stars", "max", "cleared", "levels", "unlocked", "perfect",
 ## "complete", "stars_required", "stars_needed", "boss_cleared"}...],
-## "total_stars", "max_stars", "levels_cleared", "total_levels",
-## "worlds_unlocked", "player_level", "xp"}. Show the translated "name_key"
+## "total_stars", "max_stars", "bonus_stars", "unlock_stars", "levels_cleared",
+## "total_levels", "worlds_unlocked", "player_level", "xp"}. "total_stars" is
+## the campaign count shown against "max_stars"; "unlock_stars" adds the bonus
+## stars and drives "stars_needed". Show the translated "name_key"
 ## ("world.<id>.name"); "name" is the untranslated data fallback.
 func progress_summary() -> Dictionary:
 	var worlds: Array[Dictionary] = []
@@ -373,8 +392,10 @@ func progress_summary() -> Dictionary:
 		)
 	return {
 		"worlds": worlds,
-		"total_stars": total,
+		"total_stars": campaign_stars(),
 		"max_stars": max_stars(),
+		"bonus_stars": bonus_stars(),
+		"unlock_stars": total,
 		"levels_cleared": cleared_total,
 		"total_levels": _ids.size(),
 		"worlds_unlocked": unlocked_count,

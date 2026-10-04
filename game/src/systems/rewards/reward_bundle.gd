@@ -8,6 +8,10 @@ const TYPE_GEMS: StringName = &"gems"
 const TYPE_XP: StringName = &"xp"
 const TYPE_STARS: StringName = &"stars"
 const TYPE_COSMETIC: StringName = &"cosmetic"
+## A core skin (catalog category core_skin), so reveals can say "New skin".
+const TYPE_SKIN: StringName = &"skin"
+## A trail (catalog category trail), so reveals can say "New trail".
+const TYPE_TRAIL: StringName = &"trail"
 const TYPE_BADGE: StringName = &"badge"
 
 const VALID_TYPES: Array[StringName] = [
@@ -16,6 +20,8 @@ const VALID_TYPES: Array[StringName] = [
 	TYPE_XP,
 	TYPE_STARS,
 	TYPE_COSMETIC,
+	TYPE_SKIN,
+	TYPE_TRAIL,
 	TYPE_BADGE,
 ]
 

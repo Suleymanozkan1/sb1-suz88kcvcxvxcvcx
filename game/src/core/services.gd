@@ -16,6 +16,7 @@ const DAYS_PER_WEEK: int = 7
 const SATURDAY: int = 6
 const SUNDAY: int = 0
 const DEFAULT_PLAYER_NAME: String = "You"
+const CLOUD_URL_KEY: String = "cloud_save.base_url"
 
 var bus: EventBus
 var clock: GameClock
@@ -44,6 +45,8 @@ var transport: HttpTransport
 var network: NetworkMonitor
 var analytics: AnalyticsService
 var leaderboard: LeaderboardService
+## Cloud copy of the save; off (honestly labelled) without cloud_save.base_url.
+var cloud: CloudSaveService
 var ads: AdsService
 var store: StoreService
 var notifications: NotificationService
@@ -60,6 +63,8 @@ var auto_boot: bool = true
 var hold_autosave: bool = false
 
 var _save_left: float = 0.0
+## Base URL the cloud provider was built for (rebuilt when remote config changes it).
+var _cloud_url: String = ""
 var _integrity_reported: String = ""
 ## Level-up reveals waiting to be shown ({eyebrow, title, subtitle, bundle}).
 var _level_up_reveals: Array[Dictionary] = []
@@ -127,7 +132,9 @@ func _boot_economy() -> void:
 		bus,
 		economy,
 		func(amount: int) -> void: progression.add_xp(amount),
-		func(item_id: String) -> bool: return cosmetics.grant(item_id)
+		func(item_id: String) -> bool: return cosmetics.grant(item_id),
+		{},
+		cosmetics_catalog.category_of
 	)
 
 
@@ -169,6 +176,11 @@ func _boot_platform() -> void:
 		remote_board = HttpLeaderboardBackend.new(base_url, net, profile.install_id, AppInfo.version(), board_cfg)
 	leaderboard = LeaderboardService.new(profile, bus, clock, local_board, remote_board, online_config)
 	leaderboard.integrity = integrity
+	_cloud_url = remote_config.get_string(CLOUD_URL_KEY)
+	cloud = CloudSaveService.new(
+		CloudSaveService.provider_for(_cloud_url, net, profile.install_id, AppInfo.version()), profile, clock, bus
+	)
+	remote_config.applied.connect(func(_keys: PackedStringArray) -> void: _update_cloud_provider(net))
 	var policy: Dictionary = AdsPolicy.merge_remote(AdsPolicy.load_default(), remote_config)
 	ads = AdsService.new(profile, bus, NullAdProvider.new(), policy, analytics.track, clock)
 	store = StoreService.new(
@@ -186,6 +198,9 @@ func _boot_platform() -> void:
 	# Scores queued offline in an earlier session (the network may simply be
 	# up from the start, so no offline->online change would trigger it).
 	leaderboard.flush_queue.call_deferred()
+	# Boot sync: never awaited, so it cannot delay the first frame.
+	if cloud.is_enabled():
+		cloud.sync.call_deferred()
 	check_integrity()
 
 
@@ -233,7 +248,7 @@ func _wire() -> void:
 	bus.reward_granted.connect(_on_reward_granted)
 	bus.world_unlocked.connect(
 		func(world_id: String) -> void:
-			analytics.track(&"world_unlocked", {"world_id": world_id, "total_stars": profile.total_stars()})
+			analytics.track(&"world_unlocked", {"world_id": world_id, "total_stars": progression.total_stars()})
 	)
 	bus.daily_completed.connect(
 		func(date_key: String, score: int) -> void:
@@ -251,8 +266,17 @@ func _wire() -> void:
 		func(online: bool) -> void:
 			if online:
 				leaderboard.flush_queue()
+				if cloud.needs_sync():
+					cloud.sync()
 	)
 	leaderboard.queue_changed.connect(save.mark_dirty)
+	save.saved.connect(func(_bytes: int) -> void: cloud.mark_dirty())
+	cloud.flags_changed.connect(save.mark_dirty)
+	cloud.profile_merged.connect(_on_cloud_merged)
+	cloud.sync_finished.connect(
+		func(status: StringName, conflict: bool) -> void:
+			analytics.track(&"cloud_sync", {"status": String(status), "conflict": conflict})
+	)
 	bus.cosmetic_unlocked.connect(
 		func(_id: String) -> void: stats.set_value("cosmetics_owned", cosmetics.owned_count())
 	)
@@ -279,7 +303,8 @@ func _on_setting(key: StringName, value: Variant) -> void:
 	analytics.track(&"settings_changed", {"key": String(key), "value": str(value)})
 
 
-## Reward specs ({"coins", "gems", "xp", "cosmetic", "badge"} or a table
+## Reward specs ({"coins", "gems", "xp", "stars", "cosmetic", "skin", "trail",
+## "badge"} or a table
 ## request {"table", ...}) become real, applied bundles: the returned bundle is
 ## exactly what was granted.
 func grant_reward_spec(spec: Dictionary, source: String = "reward") -> RewardBundle:
@@ -315,6 +340,10 @@ func take_level_up_reveals() -> Array[Dictionary]:
 func _on_reward_granted(bundle: RewardBundle) -> void:
 	if bundle == null or bundle.is_empty():
 		return
+	if bundle.amount_of(RewardBundle.TYPE_STARS) > 0:
+		# Bonus stars count toward star unlocks right away.
+		progression.refresh_world_unlocks()
+		bus.stars_changed.emit(progression.total_stars())
 	(
 		analytics
 		. track(
@@ -346,7 +375,7 @@ func _progress_query() -> Dictionary:
 	for id: Variant in profile.achievements.keys():
 		unlocked.append(str(id))
 	return {
-		"total_stars": profile.total_stars(),
+		"total_stars": progression.total_stars(),
 		"player_level": profile.player_level,
 		"perfects": profile.stat("unique_perfects"),
 		"achievements": unlocked,
@@ -413,7 +442,8 @@ func check_integrity() -> Array[String]:
 	return codes
 
 
-## Persists everything now (app pause, quit, focus loss).
+## Persists everything now (app pause, quit, focus loss) and starts a cloud
+## sync when this device has changes the cloud has not seen.
 func flush_now() -> void:
 	if not is_booted:
 		return
@@ -421,6 +451,33 @@ func flush_now() -> void:
 	save.flush_if_dirty(profile)
 	analytics.flush()
 	errors.flush()
+	if cloud.is_dirty() and cloud.needs_sync():
+		cloud.sync()
+
+
+## Remote config may turn the cloud save on or off (or move it) at run time;
+## the next trigger (network back, pause, "Sync now") syncs with the new one.
+func _update_cloud_provider(net: Callable) -> void:
+	var url: String = remote_config.get_string(CLOUD_URL_KEY)
+	if url == _cloud_url:
+		return
+	_cloud_url = url
+	cloud.set_provider(CloudSaveService.provider_for(url, net, profile.install_id, AppInfo.version()))
+
+
+## A cloud merge replaced the live profile: rebuild everything derived from it
+## and save.
+func _on_cloud_merged() -> void:
+	cosmetics.ensure_defaults()
+	progression.refresh_world_unlocks()
+	missions.refresh()
+	var local_board: LocalLeaderboardBackend = leaderboard.local as LocalLeaderboardBackend
+	if local_board != null:
+		local_board.store = LocalLeaderboardBackend.profile_store(profile)
+	stats.set_value("cosmetics_owned", cosmetics.owned_count())
+	bus.stars_changed.emit(progression.total_stars())
+	save.mark_dirty()
+	check_integrity()
 
 
 func _notification(what: int) -> void:
