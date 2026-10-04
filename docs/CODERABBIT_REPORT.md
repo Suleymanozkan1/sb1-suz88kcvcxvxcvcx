@@ -34,6 +34,7 @@ fix, verification). To run real CodeRabbit later: install the CLI on a machine w
 | M8 | Daily / missions / achievements / leaderboard | `67d68b9`→`908b4fe`, `89098dd`→`7e0e9df` | Module reviews R-ONLINE, R-META |
 | M9 | Optimization & platform services | `3ebda43`→`22bc293`, `933e677`→`f3fab46` | Module reviews R-FEEL, R-PLAT + R-INT (view-perf) |
 | M10 | Release build | `export_presets.cfg`, CI, Android debug APK | R-INT (security-data) + export verification (signed debug APK, all 520 levels packaged) |
+| M11 | Round 5: mass & gravity mechanics, cloud save, music lock, visual quality, performance budgets, refactors | `83c86ef` → `f0f3391` | Independent review R-6 (three areas) + 24-level visual review |
 
 ## Module reviews (one independent reviewer per module, fixes committed on `review/<module>`)
 
@@ -131,6 +132,30 @@ Verification: after the fixes the full suite (now 740+ tests including `test_ui_
 `test_async_music.gd` and the new cases in the online, platform, profile, level-pipeline, sim and
 app-flow suites) passes, gdlint is clean and all 520 regenerated levels validate.
 
+## Round 5 review R-6 (three independent reviewers, 2026-10-04)
+
+Round 5 (`4d3eb5f..f0f3391`) added the mass & gravity family, cloud save, music locked to the run, the
+visual-quality work, performance budgets and the GameFlow / typed-dictionary / named-constant refactors.
+Three reviewers that had not written the code reviewed the round's diff by area, reproduced each defect
+with a headless script or a render under Xvfb, and changed nothing; the fixes and regression tests were
+written afterwards (each regression test fails on the old code).
+
+| Area | Found | Critical | Major | Minor | Fixed | Fix commit | Notes |
+|---|---|---|---|---|---|---|---|
+| Sim and levels | 2 | 0 | 1 | 1 | 2 | `6cc5fc8` | A dash through a stack-crash glass row kept the plates, so a later launch planned for a lighter core could not clear its wall (w10_l33, w10_l50); 22 World 10 levels regenerated |
+| App and systems | 9 | 3 | 3 | 3 | 9 | `a6ba2be` | All in the new cloud save: fresh install wiping a linked wallet, clock-based last-writer-wins wallet, merges counted as earnings, dirty flag lost on pause, in-flight changes marked synced, bonus stars merged by max, quadratic de-duplication, future daily day adopted, uploads larger than downloads; replaced by a three-way wallet merge (`WalletMerge`) |
+| View, shaders, tools | 14 | 0 | 6 | 8 | 12 | `69f3f09` | Low/Medium never got the light glass, per-frame sky re-bake, reflection probe mirroring hazards, pooled views keeping shader values, swatch ignoring fades; 2 accepted (below) |
+| **Total** | **25** | **3** | **10** | **12** | **23** | | **0 open; 2 accepted, documented** |
+
+Accepted, documented: (1) the reflection probe's re-captures do not appear in the engine's draw-call
+counter, so the High/Ultra draw-call budgets cannot see them (their cost shows in frame time and video
+memory; `docs/ARCHITECTURE.md` §9); (2) a tool or test booting the app with analytics consent off clears
+that machine's local analytics log — the designed consent behaviour, it only touches developer machines.
+The 24-level visual review found four more issues, all fixed: passed gate arches and pulse-gate shutters
+hiding the core (`9b64e2d`, `69f3f09`), the muddy dash core in high-key worlds, floor-light banding and the
+probe mirroring hazard colour onto ribs. Verification after the fixes: full suite 885 tests, 0 failed;
+520/520 levels validate (worst tap window 150 ms); regeneration reproduces all 520 files.
+
 ## Milestone review log (per milestone)
 
 | Milestone | Date | Commit(s) | Scope | Critical | Major | Minor | Fixed | Remaining | Final status |
@@ -145,11 +170,13 @@ app-flow suites) passes, gdlint is clean and all 520 regenerated levels validate
 | M8 Daily / missions / achievements / leaderboard | 2026-10-03 | `908b4fe`, `7e0e9df`, `055562e`, final commit | R-ONLINE, R-META, R-INT security, independent security, R-FINAL | 4 | 17 | 22 | 43 (2 at integration) | 0 | reviewed, fixed |
 | M9 Optimization & platform | 2026-10-03 | `22bc293`, `f3fab46`, `055562e`, follow-up | R-FEEL, R-PLAT, audio/loading/allocations | 0 | 9 | 24 | 33 | 0 | reviewed, fixed |
 | M10 Release build | 2026-10-03 | export presets, CI, follow-up | iOS team ID, licence notices, docs | 0 | 1 | 2 | 3 | 0 | Android debug APK + iOS Xcode project exported; signing BLOCKED |
-| **Total** | | | | **13** | **67** | **107** | **184 of 187** | **0 open** | |
+| M11 Round 5 | 2026-10-04 | `6cc5fc8`, `69f3f09`, `a6ba2be` | R-6 sim/levels, app/systems (cloud save), view/shaders/tools | 3 | 10 | 12 | 23 | 0 (2 accepted, documented) | reviewed, fixed |
+| **Total** | | | | **16** | **77** | **119** | **207 of 212** | **0 open** | |
 
 Every critical and major finding above, row by row (issue → fix → commit → regression test → verification → status, critical first): `docs/REVIEW_FINDINGS.md`.
 
-The per-milestone counts assign every module and integrated finding (95 + 92 = 187) to the milestone
-whose code it concerns; each finding is counted once. The three findings not fixed are R-SAVE's two
-accepted, documented limits and R-FINAL's Time Attack unlock note (by design, see above). Real CodeRabbit runs
+The per-milestone counts assign every module, integrated and round-5 finding (95 + 92 + 25 = 212) to the milestone
+whose code it concerns; each finding is counted once. The five findings not fixed are R-SAVE's two
+accepted, documented limits, R-FINAL's Time Attack unlock note (by design, see above) and R-6's two accepted,
+documented items (probe draw calls outside the counter; consent clearing a developer's local analytics log). Real CodeRabbit runs
 remain BLOCKED; nothing here is a CodeRabbit result.
