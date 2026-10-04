@@ -217,11 +217,11 @@ func test_leaving_the_app_on_a_revivable_fail_applies_the_run() -> void:
 	var result: RunResult = RunResult.from_sim(flow.session.sim, flow.session.level_data, &"classic")
 	assert_false(result.completed, "the run failed")
 	# The fail card is up with a revive on offer: the run is still pending.
-	flow._uncommitted = result
+	flow.runs.pending = result
 	flow.router.push_overlay(&"fail", {"result": result, "best": 0, "progress": 0.5, "can_revive": true})
 	var played: int = _app.stats.value(StatsService.RUNS_PLAYED)
 	flow._notification(Node.NOTIFICATION_APPLICATION_PAUSED)
-	assert_true(flow._uncommitted == null, "applied before the OS can kill the app")
+	assert_true(flow.runs.pending == null, "applied before the OS can kill the app")
 	assert_eq(_app.stats.value(StatsService.RUNS_PLAYED), played + 1, "counted once")
 	assert_false((flow.router.screen(&"fail") as FailOverlay)._revive.visible, "revive offer withdrawn")
 	flow.queue_free()
@@ -240,12 +240,12 @@ func test_fail_card_stays_clear_and_music_follows_the_run() -> void:
 	flow._on_feedback(&"miss", 0.2, 0)
 	assert_near(_app.audio._intensity_target, 0.0, 0.0001, "combo break drops the intensity stem")
 	# A queued reveal never covers the fail card.
-	flow._reveals.append({"eyebrow": "x", "title": "y", "subtitle": "", "bundle": null})
+	flow.reveals.add({"eyebrow": "x", "title": "y", "subtitle": "", "bundle": null})
 	flow.session.step_ticks(60 * 120)
 	await wait_frames(2)
 	await tree.create_timer(GameFlow.RESULT_DELAY + 0.2).timeout
 	assert_eq(flow.router.top_id(), &"fail", "fail card on top")
-	assert_false(flow._reveals.is_empty(), "the reveal waits for a calmer moment")
+	assert_false(flow.reveals.is_empty(), "the reveal waits for a calmer moment")
 	flow.queue_free()
 	await wait_frames(2)
 
@@ -285,14 +285,14 @@ func test_every_reveal_has_its_cue() -> void:
 	await wait_frames(3)
 	for sound: String in ["level_up", "unlock", "reward"]:
 		assert_false(_app.audio._bank.sfx(StringName(sound)).is_empty(), "%s is in the bank" % sound)
-	flow._reveals.append({"eyebrow": "x", "title": "Level 3", "subtitle": "", "bundle": null, "sound": "level_up"})
-	flow._reveals.append({"eyebrow": "x", "title": "World", "subtitle": "", "bundle": null, "sound": "unlock"})
-	flow._reveals.append({"eyebrow": "x", "title": "Badge", "subtitle": "", "bundle": null})
-	flow._next_reveal()
+	flow.reveals.add({"eyebrow": "x", "title": "Level 3", "subtitle": "", "bundle": null, "sound": "level_up"})
+	flow.reveals.add({"eyebrow": "x", "title": "World", "subtitle": "", "bundle": null, "sound": "unlock"})
+	flow.reveals.add({"eyebrow": "x", "title": "Badge", "subtitle": "", "bundle": null})
+	flow.reveals.show_next()
 	assert_eq(_app.audio.active_voice_count(&"level_up"), 1, "a level-up sounds like one")
-	flow._next_reveal()
+	flow.reveals.show_next()
 	assert_eq(_app.audio.active_voice_count(&"unlock"), 1, "an unlock sounds like one")
-	flow._next_reveal()
+	flow.reveals.show_next()
 	assert_eq(_app.audio.active_voice_count(&"reward"), 1, "everything else is a reward")
 	_app._on_level_up(2)
 	assert_eq(str(_app.take_level_up_reveals()[0].get("sound", "")), "level_up", "level-up reveals name their cue")
@@ -309,8 +309,8 @@ func test_bonus_chest_is_optional_and_once_a_day() -> void:
 	_app.ads._provider = WatchedAds.new()
 	assert_true(Presenters.bonus_chest_offered(_app), "offered when an ad can play")
 	var coins: int = _app.economy.balance(EconomyService.COINS)
-	flow._show_daily()
-	await flow._open_bonus_chest()
+	flow.menus.show_daily()
+	await flow.meta.open_bonus_chest()
 	var chest: Dictionary = RewardEngine.load_tables()["bonus_chest"]["reward"] as Dictionary
 	assert_eq(_app.economy.balance(EconomyService.COINS), coins + int(chest.get("coins", 0)), "fixed chest contents")
 	assert_false(Presenters.bonus_chest_offered(_app), "once a day")
@@ -329,11 +329,13 @@ func test_bonus_chest_level_up_is_revealed_with_it() -> void:
 	var bar: Dictionary = _app.progression.xp_progress()
 	_app.profile.xp += int(bar["needed"]) - int(bar["into_level"]) - 1
 	var level: int = _app.profile.player_level
-	flow._show_daily()
-	await flow._open_bonus_chest()
+	flow.menus.show_daily()
+	await flow.meta.open_bonus_chest()
 	assert_gt(float(_app.profile.player_level), float(level), "chest XP levelled up")
 	var level_up: String = TranslationServer.translate("reveal.level_up")
-	var queued: Array = flow._reveals.filter(func(r: Dictionary) -> bool: return str(r.get("eyebrow", "")) == level_up)
+	var queued: Array = flow.reveals.pending().filter(
+		func(r: Dictionary) -> bool: return str(r.get("eyebrow", "")) == level_up
+	)
 	assert_eq(queued.size(), 1, "level-up revealed after the chest, not after the next run")
 	assert_true(_app.take_level_up_reveals().is_empty(), "nothing left over for the next run")
 	flow.queue_free()

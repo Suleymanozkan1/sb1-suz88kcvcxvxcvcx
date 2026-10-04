@@ -1,18 +1,20 @@
 class_name GameFlow
 extends Node
-## App root (main scene). Owns the persistent gameplay session + view (restarts
-## never reload scenes), the UI router and the application state machine, and
-## routes every screen intent to the systems. Screens are dumb views; payloads
-## come from [Presenters]; run bookkeeping lives in [RunController].
+## App root (main scene) and composition root. Owns the persistent gameplay
+## session + view (restarts never reload scenes), the UI router and the
+## application state machine, builds every screen and wires its intents, and
+## runs the run lifecycle (attract, start, restart, pause, revive, result).
+## Screens are dumb views; payloads come from [Presenters]. The collaborators:
+## [RunController] (run bookkeeping), [RevealQueue] (reveals on the reward
+## overlay), [MetaActions] (the meta screens' actions), [MenuNavigator] (menu
+## screens) and [ViewSync] (settings, cosmetics, quality and world veils).
 
 const RESULT_DELAY: float = 0.55
-const REVEAL_DELAY_COMPLETE: float = 2.2
 const READY_FIRST: float = 0.8
 const READY_RESTART: float = 0.35
 const ATTRACT_READY: float = 0.2
-const WORLD_FADE: float = 0.6
-## Cue for reveals that name none (achievements, missions, chests).
-const REVEAL_SOUND: String = "reward"
+## Canvas layer of screens and toasts: above the world veil ([constant ViewSync.VEIL_LAYER]).
+const UI_LAYER: int = 10
 
 ## The service graph; the autoload unless one is injected before _ready (tests).
 var s: AppServices
@@ -21,24 +23,18 @@ var view: GameplayView
 var runs: RunController
 var router: ScreenRouter
 var fsm: GameStateMachine = GameStateMachine.new()
+var reveals: RevealQueue
+var meta: MetaActions
+var menus: MenuNavigator
+var view_sync: ViewSync
 var hud: Hud
 var toast: ToastView
 var attract: bool = true
 
-var _pick_mode: StringName = &""
-var _world_id: String = ""
-var _reveals: Array = []
 var _last_outcome: Dictionary = {}
-var _settings_return: StringName = &""
-var _restore_status: String = ""
 var _ending: bool = false
-var _uncommitted: RunResult = null
 ## A rewarded revive ad is showing (reveals wait; the pending run stays open).
 var _reviving: bool = false
-var _veil: ColorRect
-var _veil_tween: Tween
-var _shown_world: String = ""
-var _reveal_return: GameStateMachine.State = GameStateMachine.State.MAIN_MENU
 
 
 func _ready() -> void:
@@ -60,15 +56,9 @@ func _ready() -> void:
 	)
 	view.feedback.connect(_on_feedback)
 	_build_ui()
-	_apply_settings_to_view()
-	s.bus.cosmetic_equipped.connect(func(_c: StringName, _id: String) -> void: _apply_cosmetics())
-	s.bus.settings_changed.connect(func(_k: StringName, _v: Variant) -> void: _apply_settings_to_view())
-	s.bus.quality_changed.connect(func(_p: StringName, _a: bool) -> void: _apply_quality())
-	s.bus.locale_changed.connect(func(_l: String) -> void: _relocalize_ui.call_deferred())
-	# The track breathes with the music: a stronger pulse on each bar's downbeat.
-	s.audio.beat.connect(func(i: int) -> void: view.music_beat(1.0 if i % 4 == 0 else 0.45))
-	_apply_cosmetics()
-	_apply_quality()
+	view_sync = ViewSync.new(s, view, router)
+	add_child(view_sync)
+	s.bus.locale_changed.connect(func(_l: String) -> void: menus.relocalize.call_deferred())
 	fsm.state_changed.connect(
 		func(_from: GameStateMachine.State, to: GameStateMachine.State, _p: Dictionary) -> void:
 			s.hold_autosave = to == GameStateMachine.State.PLAYING or to == GameStateMachine.State.COUNTDOWN
@@ -98,21 +88,19 @@ func _announce_save_state() -> void:
 
 
 func _build_ui() -> void:
-	# World transition veil: between the 3D view and the UI.
-	var veil_layer: CanvasLayer = CanvasLayer.new()
-	veil_layer.layer = 5
-	add_child(veil_layer)
-	_veil = ColorRect.new()
-	_veil.color = Palette.INK
-	_veil.modulate.a = 0.0
-	_veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	veil_layer.add_child(_veil)
 	var layer: CanvasLayer = CanvasLayer.new()
-	layer.layer = 10
+	layer.layer = UI_LAYER
 	add_child(layer)
 	router = ScreenRouter.new()
 	layer.add_child(router)
+	reveals = RevealQueue.new(s, router, fsm, func() -> bool: return not attract and not _reviving)
+	add_child(reveals)
+	meta = MetaActions.new(s, router, runs, reveals)
+	add_child(meta)
+	menus = MenuNavigator.new(s, router, fsm, meta)
+	menus.campaign_requested.connect(_play_campaign)
+	menus.run_requested.connect(_start_run)
+	menus.home_requested.connect(_show_main)
 	toast = ToastView.new()
 	layer.add_child(toast)
 	s.bus.toast_requested.connect(toast.show_message)
@@ -127,27 +115,21 @@ func _build_ui() -> void:
 	var main: MainMenu = MainMenu.new()
 	router.register(&"main", main)
 	main.play_requested.connect(func() -> void: _play_campaign(s.progression.next_level_to_play(), &"classic"))
-	main.daily_requested.connect(_show_daily)
-	main.modes_requested.connect(_show_modes)
-	main.worlds_requested.connect(
-		func() -> void:
-			_pick_mode = &""
-			_show_worlds()
-	)
-	main.tab_requested.connect(_on_tab)
+	main.daily_requested.connect(menus.show_daily)
+	main.modes_requested.connect(menus.show_modes)
+	main.worlds_requested.connect(menus.show_campaign)
+	main.tab_requested.connect(menus.show_tab)
 	var worlds: WorldSelect = WorldSelect.new()
 	router.register(&"worlds", worlds)
-	worlds.world_selected.connect(_show_levels)
+	worlds.world_selected.connect(menus.show_levels)
 	worlds.back_requested.connect(_show_main)
 	var levels: LevelSelect = LevelSelect.new()
 	router.register(&"levels", levels)
-	levels.level_selected.connect(
-		func(id: String) -> void: _play_campaign(id, _pick_mode if _pick_mode != &"" else &"classic")
-	)
-	levels.back_requested.connect(_show_worlds)
+	levels.level_selected.connect(menus.select_level)
+	levels.back_requested.connect(menus.show_worlds)
 	var modes: ModesScreen = ModesScreen.new()
 	router.register(&"modes", modes)
-	modes.mode_selected.connect(_on_mode_selected)
+	modes.mode_selected.connect(menus.select_mode)
 	modes.back_requested.connect(_show_main)
 	var daily: DailyScreen = DailyScreen.new()
 	router.register(&"daily", daily)
@@ -158,39 +140,35 @@ func _build_ui() -> void:
 			else:
 				toast.show_message(Presenters.t("toast.daily_paused"), &"info")
 	)
-	daily.claim_requested.connect(_claim_mission)
-	daily.chest_requested.connect(_open_bonus_chest)
+	daily.claim_requested.connect(meta.claim_mission)
+	daily.chest_requested.connect(meta.open_bonus_chest)
 	daily.back_requested.connect(_show_main)
 	var progress: ProgressScreen = ProgressScreen.new()
 	router.register(&"progress", progress)
-	progress.board_requested.connect(_load_board)
+	progress.board_requested.connect(meta.load_board)
 	progress.back_requested.connect(_show_main)
 	for mode: StringName in [&"shop", &"collection"]:
 		var cos: CosmeticsScreen = CosmeticsScreen.new()
 		cos.mode = mode
 		router.register(mode, cos)
-		cos.buy_requested.connect(_buy)
-		cos.equip_requested.connect(_equip)
-		cos.pack_requested.connect(_buy_pack)
+		cos.buy_requested.connect(meta.buy)
+		cos.equip_requested.connect(meta.equip)
+		cos.pack_requested.connect(meta.buy_pack)
 		cos.back_requested.connect(_show_main)
 	var settings: SettingsScreen = SettingsScreen.new()
 	router.register(&"settings", settings)
 	settings.setting_changed.connect(func(key: String, value: Variant) -> void: s.settings.set_value(key, value))
-	settings.restore_requested.connect(_restore_purchases)
+	settings.restore_requested.connect(meta.restore_purchases)
 	settings.cloud_sync_requested.connect(func() -> void: s.cloud.sync())
 	s.cloud.status_changed.connect(
 		func(_status: StringName) -> void: settings.set_cloud_status(Presenters.cloud_status(s))
 	)
-	settings.back_requested.connect(_close_settings)
+	settings.back_requested.connect(menus.close_settings)
 	var pause: PauseOverlay = PauseOverlay.new()
 	router.register(&"pause", pause)
 	pause.resume_requested.connect(_resume)
 	pause.restart_requested.connect(_restart)
-	pause.settings_requested.connect(
-		func() -> void:
-			_settings_return = &"pause"
-			router.push_overlay(&"settings", Presenters.settings(s, _restore_status))
-	)
+	pause.settings_requested.connect(menus.open_settings_over_pause)
 	pause.home_requested.connect(_quit_run)
 	var fail: FailOverlay = FailOverlay.new()
 	router.register(&"fail", fail)
@@ -202,7 +180,7 @@ func _build_ui() -> void:
 	complete.next_requested.connect(_next_level)
 	complete.replay_requested.connect(_restart)
 	complete.home_requested.connect(_quit_run)
-	complete.double_requested.connect(_double_reward)
+	complete.double_requested.connect(func() -> void: meta.double_reward(_last_outcome))
 	complete.star_landed.connect(
 		func(_i: int) -> void:
 			s.audio.play_sfx(&"star")
@@ -210,7 +188,7 @@ func _build_ui() -> void:
 	)
 	var reward: RewardOverlay = RewardOverlay.new()
 	router.register(&"reward", reward)
-	reward.continue_requested.connect(_next_reveal)
+	reward.continue_requested.connect(reveals.show_next)
 	reward.item_landed.connect(
 		func(_i: int) -> void:
 			s.audio.play_sfx(&"coin")
@@ -235,89 +213,18 @@ func _show_main() -> void:
 	# The next level's world track loads in the background while the menu shows.
 	var next: Dictionary = WorldCatalog.parse_level_id(s.progression.next_level_to_play())
 	s.audio.prefetch_music(str(s.catalog.world_at(int(next.get("world_index", 1))).get("id", "")))
-	_reveals.append_array(s.take_level_up_reveals())
-	if not _reveals.is_empty():
-		_next_reveal()
+	reveals.add_level_ups()
+	reveals.show_pending()
 
 
-func _show_worlds() -> void:
-	_go(GameStateMachine.State.WORLD_SELECT)
-	router.show_screen(&"worlds", Presenters.worlds(s))
-
-
-func _show_levels(world_id: String) -> void:
-	_world_id = world_id
-	s.audio.prefetch_music(world_id)
-	_go(GameStateMachine.State.LEVEL_SELECT)
-	router.show_screen(&"levels", Presenters.level_grid(s, world_id))
-
-
-func _show_modes() -> void:
-	_go(GameStateMachine.State.MODES)
-	router.show_screen(&"modes", Presenters.modes(s))
-
-
-func _show_daily() -> void:
-	s.missions.refresh()
-	_go(GameStateMachine.State.DAILY)
-	router.show_screen(&"daily", Presenters.daily(s))
-	var daily_status: Dictionary = s.daily.status()
-	s.analytics.track(
-		&"daily_started",
-		{"date_key": str(daily_status.get("date_key", "")), "streak": int(daily_status.get("streak", 0))}
-	)
-
-
-func _on_tab(tab: StringName) -> void:
-	match tab:
-		&"progress":
-			_go(GameStateMachine.State.PROGRESS)
-			router.show_screen(&"progress", Presenters.progress(s, "overview", {}))
-			_load_board(Presenters.board_ids(s)[0])
-		&"shop":
-			_go(GameStateMachine.State.SHOP)
-			router.show_screen(&"shop", Presenters.cosmetics(s, &"shop"))
-			s.analytics.track(&"shop_opened", {"source": "menu", "tab": "shop"})
-		&"collection":
-			_go(GameStateMachine.State.COLLECTION)
-			router.show_screen(&"collection", Presenters.cosmetics(s, &"collection"))
-		&"settings":
-			_settings_return = &""
-			_go(GameStateMachine.State.SETTINGS)
-			router.show_screen(&"settings", Presenters.settings(s, _restore_status))
-
-
-## The language changed (from Settings): every screen is rebuilt in the new
-## language on its next show, and Settings itself is rebuilt in place.
-func _relocalize_ui() -> void:
-	router.relocalize()
-	if router.top_id() != &"settings":
-		return
-	if _settings_return == &"pause":
-		router.push_overlay(&"settings", Presenters.settings(s, _restore_status))
-	else:
-		router.show_screen(&"settings", Presenters.settings(s, _restore_status))
-
-
-func _close_settings() -> void:
-	if _settings_return == &"pause":
-		_settings_return = &""
-		router.close_overlay(&"settings")
-		return
-	_show_main()
-
-
-func _on_mode_selected(mode_id: StringName) -> void:
-	match s.modes.source(mode_id):
-		"campaign_pick":
-			_pick_mode = mode_id
-			_show_worlds()
-		"daily":
-			_show_daily()
-		"campaign":
-			_play_campaign(s.progression.next_level_to_play(), mode_id)
-		_:
-			_start_run(mode_id)
+## Android Back / Escape with no screen handler: pauses a run, leaves the app
+## from the main menu (after saving), otherwise goes home.
+func _on_back_unhandled() -> void:
+	if fsm.current == GameStateMachine.State.PLAYING or fsm.current == GameStateMachine.State.COUNTDOWN:
+		_pause()
+	elif router.current_id == &"main":
+		s.flush_now()
+		get_tree().quit()
 
 
 # --- Runs --------------------------------------------------------------------------
@@ -329,10 +236,7 @@ func _start_attract() -> void:
 	var data: Dictionary = s.levels.load_level(id)
 	if data.is_empty() or not session.load_level(data):
 		return
-	var taps: PackedInt32Array = PackedInt32Array()
-	for t: Variant in (data.get("solution", {}) as Dictionary).get("taps", []) as Array:
-		taps.append(int(t))
-	session.autopilot = taps
+	session.autopilot = RunController.solution_taps(data)
 	_present_level(data)
 	session.begin(ATTRACT_READY)
 	s.audio.play_music("menu")
@@ -362,28 +266,11 @@ func _start_run(mode_id: StringName, level_id: String = "") -> void:
 	_go(GameStateMachine.State.COUNTDOWN)
 	_present_level(session.level_data)
 	router.clear_screen()
-	router.show_screen(
-		&"hud",
-		{
-			"tutorial": bool(session.level_data.get("tutorial", false)),
-			"solution_taps": (session.level_data.get("solution", {}) as Dictionary).get("taps", [])
-		}
-	)
+	router.show_screen(&"hud", Presenters.hud(session.level_data))
 	session.begin(READY_FIRST)
 	_go(GameStateMachine.State.PLAYING)
 	_play_level_music(session.level_data)
-	(
-		s
-		. analytics
-		. track(
-			&"level_started",
-			{
-				"level_id": str(runs.context.get("level_id", "")),
-				"world_id": str(runs.context.get("world_id", "")),
-				"mode": String(mode_id),
-			}
-		)
-	)
+	runs.track_start()
 
 
 ## The level's world track; bosses and mid-world challenges use the world's
@@ -395,30 +282,13 @@ func _play_level_music(data: Dictionary) -> void:
 
 
 func _present_level(data: Dictionary) -> void:
-	var world_id: String = str(data.get("world", "neon_core"))
-	if not attract and not _shown_world.is_empty() and world_id != _shown_world:
-		_world_transition()
-	_shown_world = world_id
-	view.apply_world(WorldTheme.from_world(s.catalog.world(world_id)))
-	_apply_cosmetics()
+	# A run entering a different world passes through the veil (the attract run never does).
+	view_sync.show_world(str(data.get("world", "neon_core")), not attract)
 	view.setup_level()
 
 
-## Entering a different world: the old one is gone behind ink, and the new
-## one rises out of it (calm, ART_DIRECTION §8; shorter with reduce motion).
-func _world_transition() -> void:
-	if _veil_tween != null:
-		_veil_tween.kill()
-	_veil.modulate.a = 1.0
-	_veil_tween = create_tween()
-	var seconds: float = WORLD_FADE * (0.4 if router.reduce_motion else 1.0)
-	_veil_tween.tween_property(_veil, "modulate:a", 0.0, seconds).set_trans(Tween.TRANS_CUBIC).set_ease(
-		Tween.EASE_OUT
-	)
-
-
 func _restart() -> void:
-	_commit_pending()
+	reveals.add_all(runs.commit_pending())
 	router.close_overlays()
 	_ending = false
 	if runs.streamer != null:
@@ -435,16 +305,6 @@ func _restart() -> void:
 	_go(GameStateMachine.State.COUNTDOWN)
 	_go(GameStateMachine.State.PLAYING)
 	s.bus.run_restarted.emit(str(runs.context.get("level_id", "")))
-
-
-## Android Back / Escape with no screen handler: pauses a run, leaves the app
-## from the main menu (after saving), otherwise goes home.
-func _on_back_unhandled() -> void:
-	if fsm.current == GameStateMachine.State.PLAYING or fsm.current == GameStateMachine.State.COUNTDOWN:
-		_pause()
-	elif router.current_id == &"main":
-		s.flush_now()
-		get_tree().quit()
 
 
 func _pause() -> void:
@@ -465,17 +325,8 @@ func _resume() -> void:
 	s.bus.run_paused.emit(false)
 
 
-## The daily result card names the run's rank among the player's own daily
-## scores (local: no global board without a backend); "" for other modes.
-func _daily_rank_text(result: RunResult) -> String:
-	if session.mode_id != &"daily":
-		return ""
-	var rank: Dictionary = s.daily.rank_text_local(result.score)
-	return Presenters.t(str(rank.get("key", ""))).format(rank.get("params", {}) as Dictionary)
-
-
 func _quit_run() -> void:
-	_commit_pending()
+	reveals.add_all(runs.commit_pending())
 	session.set_paused(false)
 	_ending = false
 	router.close_overlays()
@@ -501,88 +352,27 @@ func _on_run_ended(result: RunResult) -> void:
 		s.bus.run_completed.emit(result)
 	else:
 		s.bus.run_failed.emit(result)
-	if runs.can_offer_revive(result):
-		# Nothing is applied yet: if the player revives, the continued run is
-		# applied once when it ends; otherwise it is applied on leaving.
-		_last_outcome = runs.preview(result)
-		_uncommitted = result
-	else:
-		_last_outcome = runs.finish(result)
+	# While a revive is on offer nothing is applied yet: a revived run is applied
+	# once when it ends, otherwise this one is applied on leaving.
+	_last_outcome = runs.conclude(result)
 	await get_tree().create_timer(RESULT_DELAY).timeout
 	_ending = false
 	# The result card owns the screen: the HUD steps away underneath it.
 	router.clear_screen()
-	_reveals.append_array(_last_outcome.get("reveals", []) as Array)
+	reveals.add_all(_last_outcome.get("reveals", []) as Array)
+	var card: Dictionary = Presenters.result_card(s, result, _last_outcome, session.mode_id)
 	if result.completed:
 		s.audio.play_stinger(&"perfect_fanfare" if result.perfect else &"level_complete")
 		_go(GameStateMachine.State.COMPLETE)
-		router.push_overlay(
-			&"complete",
-			{
-				"result": result,
-				"best": int(_last_outcome.get("best", 0)),
-				"new_best": bool(_last_outcome.get("new_best", false)),
-				"reward": _last_outcome.get("reward"),
-				"can_double": bool(_last_outcome.get("can_double", false)),
-				"has_next": bool(_last_outcome.get("has_next", false)),
-				"rank_text": _daily_rank_text(result)
-			}
-		)
+		router.push_overlay(&"complete", card)
 		if s.ads.can_show_interstitial(&"level_end"):
 			await s.ads.show_interstitial(&"level_end")
 	else:
 		_go(GameStateMachine.State.FAILED)
-		router.push_overlay(
-			&"fail",
-			{
-				"result": result,
-				"best": int(_last_outcome.get("best", 0)),
-				"progress": float(_last_outcome.get("progress", 0.0)),
-				"can_revive": bool(_last_outcome.get("can_revive", false))
-			}
-		)
+		router.push_overlay(&"fail", card)
 	# Reveals celebrate on the result of a cleared run (or wait for the menu):
 	# nothing ever covers PLAY AGAIN after a fail.
-	if not _reveals.is_empty() and result.completed:
-		_schedule_reveals(REVEAL_DELAY_COMPLETE)
-
-
-## Reveals wait until the result sequence (stars, count-up) has played; if the
-## player moves on first they stay queued for the next calm moment (menu).
-func _schedule_reveals(delay: float) -> void:
-	var host: StringName = router.top_id()
-	await get_tree().create_timer(delay).timeout
-	# Never over a pending revive: the revived run must return to PLAYING.
-	if router.top_id() == host and not attract and not _reviving:
-		_next_reveal()
-
-
-## Shows queued reveals (level-up, unlocks, achievements) one at a time on top
-## of the result screen; the result screen stays underneath. When the last one
-## closes, the state machine returns to the state it came from.
-func _next_reveal() -> void:
-	router.close_overlay(&"reward")
-	if _reveals.is_empty():
-		if fsm.current == GameStateMachine.State.REWARD and _reveal_return != GameStateMachine.State.REWARD:
-			fsm.transition_to(_reveal_return)
-		return
-	var r: Dictionary = _reveals.pop_front() as Dictionary
-	if fsm.current != GameStateMachine.State.REWARD:
-		_reveal_return = fsm.current
-	_go(GameStateMachine.State.REWARD)
-	router.push_overlay(&"reward", r)
-	# Each reveal has its own cue: level-up, unlock (world, cosmetic) or reward.
-	s.audio.play_sfx(StringName(str(r.get("sound", REVEAL_SOUND))))
-
-
-## Applies a failed run that was held back for a possible revive.
-func _commit_pending() -> void:
-	if _uncommitted == null:
-		return
-	var result: RunResult = _uncommitted
-	_uncommitted = null
-	var outcome: Dictionary = runs.finish(result)
-	_reveals.append_array(outcome.get("reveals", []) as Array)
+	reveals.after_result(result.completed)
 
 
 func _next_level() -> void:
@@ -595,7 +385,7 @@ func _next_level() -> void:
 
 
 func _revive() -> void:
-	if _uncommitted == null:
+	if runs.pending == null:
 		return
 	_reviving = true
 	var shown: Dictionary = await s.ads.show_rewarded(&"revive")
@@ -605,117 +395,27 @@ func _revive() -> void:
 	if session.revive():
 		view.on_revive()
 		# The run continues; it is applied once, cumulatively, when it ends.
-		_uncommitted = null
-		_reveals.clear()
+		runs.pending = null
+		reveals.clear()
 		router.close_overlays()
 		router.show_screen(&"hud", {})
 		fsm.transition_to(GameStateMachine.State.PLAYING)
 
 
-func _double_reward() -> void:
-	var bundle: RewardBundle = _last_outcome.get("reward") as RewardBundle
-	if bundle == null or bool(_last_outcome.get("doubled", false)):
+## The app is going to the background or closing while the fail card still
+## offers a revive: the run is applied now (the OS may kill the app), and the
+## revive offer is withdrawn. Not while the revive ad itself is showing.
+func _commit_on_leave() -> void:
+	if runs == null or runs.pending == null or _reviving:
 		return
-	# One optional double per result: the button goes away before the ad runs.
-	_last_outcome["doubled"] = true
-	_last_outcome["can_double"] = false
-	(router.screen(&"complete") as CompleteOverlay).disable_double()
-	var shown: Dictionary = await s.ads.show_rewarded(&"double_reward")
-	if not bool(shown.get("granted", false)):
-		return
-	var extra: RewardBundle = runs.grant_double(bundle)
-	_reveals.append(
-		{
-			"eyebrow": Presenters.t("reveal.bonus"),
-			"title": Presenters.t("reveal.doubled"),
-			"subtitle": "",
-			"bundle": extra
-		}
-	)
-	_next_reveal()
+	reveals.add_all(runs.commit_pending())
+	var fail: FailOverlay = router.screen(&"fail") as FailOverlay if router != null else null
+	if fail != null:
+		fail.disable_revive()
+	s.flush_now()
 
 
-## Optional rewarded bonus chest (Daily screen, once a day): the fixed
-## reward_tables bonus_chest contents, granted only after the ad completed.
-func _open_bonus_chest() -> void:
-	if not Presenters.bonus_chest_offered(s):
-		return
-	var shown: Dictionary = await s.ads.show_rewarded(&"bonus_chest")
-	if not bool(shown.get("granted", false)):
-		return
-	s.profile.flags[Presenters.BONUS_CHEST_FLAG] = s.clock.day_number()
-	var bundle: RewardBundle = s.rewards.grant(s.rewards.compute(RewardEngine.TABLE_BONUS_CHEST))
-	s.save.mark_dirty()
-	(router.screen(&"daily") as DailyScreen).enter(Presenters.daily(s))
-	var title: String = Presenters.t("reveal.bonus_chest")
-	_reveals.append({"eyebrow": Presenters.t("reveal.bonus"), "title": title, "subtitle": "", "bundle": bundle})
-	# The chest's XP can level the player up: say so now, not after the next run.
-	_reveals.append_array(s.take_level_up_reveals())
-	_next_reveal()
-
-
-# --- Meta actions -------------------------------------------------------------------
-
-
-func _claim_mission(mission_id: String) -> void:
-	var bundle: RewardBundle = s.missions.claim(mission_id)
-	if bundle == null or bundle.is_empty():
-		return
-	s.analytics.track(&"mission_claimed", {"mission_id": mission_id})
-	_reveals.append_array(s.take_level_up_reveals())
-	router.show_screen(&"daily", Presenters.daily(s))
-	_reveals.append(
-		{
-			"eyebrow": Presenters.t("reveal.mission"),
-			"title": Presenters.t("reveal.mission_done"),
-			"subtitle": "",
-			"bundle": bundle
-		}
-	)
-	_next_reveal()
-
-
-func _load_board(board_id: String) -> void:
-	var fetched: Dictionary = await s.leaderboard.fetch(board_id)
-	var screen: ProgressScreen = router.screen(&"progress") as ProgressScreen
-	if screen != null and router.current_id == &"progress":
-		screen.show_board(Presenters.board_view(s, fetched))
-
-
-func _buy(item_id: String) -> void:
-	if s.cosmetics.purchase(item_id):
-		s.cosmetics.equip(item_id)
-		s.achievements.evaluate()
-	router.show_screen(router.current_id, Presenters.cosmetics(s, router.current_id))
-
-
-func _equip(item_id: String) -> void:
-	s.cosmetics.equip(item_id)
-	router.show_screen(router.current_id, Presenters.cosmetics(s, router.current_id))
-
-
-func _buy_pack(product_id: String) -> void:
-	var result: Dictionary = await s.store.purchase(product_id)
-	if not bool(result.get("ok", false)):
-		s.bus.toast_requested.emit(Presenters.t(StoreService.message_key(str(result.get("error", "")))), &"info")
-	router.show_screen(router.current_id, Presenters.cosmetics(s, router.current_id))
-
-
-func _restore_purchases() -> void:
-	_restore_status = Presenters.t("settings.restoring")
-	var screen: SettingsScreen = router.screen(&"settings") as SettingsScreen
-	screen.set_restore_status(_restore_status)
-	var result: Dictionary = await s.store.restore_purchases()
-	if bool(result.get("ok", false)):
-		_restore_status = Presenters.t("settings.restored").format(
-			{"n": (result.get("product_ids", []) as Array).size()}
-		)
-	else:
-		_restore_status = Presenters.t(StoreService.message_key(str(result.get("error", ""))))
-	screen.set_restore_status(_restore_status)
-
-
-# --- Presentation glue --------------------------------------------------------------
+# --- Engine callbacks ----------------------------------------------------------------
 
 
 func _on_feedback(kind: StringName, strength: float, pitch_step: int) -> void:
@@ -730,43 +430,6 @@ func _on_feedback(kind: StringName, strength: float, pitch_step: int) -> void:
 		s.bus.combo_reached.emit(pitch_step)
 
 
-func _apply_cosmetics() -> void:
-	view.apply_cosmetics(s.cosmetics.core_skin_params(), s.cosmetics.trail_params())
-	# Default items keep the art direction's own palette (no override).
-	view.apply_effect_cosmetics(
-		Presenters.worn(s, CosmeticCatalog.PARTICLE),
-		Presenters.worn(s, CosmeticCatalog.EFFECT),
-		Presenters.worn(s, CosmeticCatalog.BACKGROUND)
-	)
-	if UiTheme.apply_accent(Presenters.worn(s, CosmeticCatalog.THEME)):
-		# Buttons keep copies of the theme's boxes: rebuild screens on next show.
-		router.relocalize()
-
-
-func _apply_quality() -> void:
-	var p: Dictionary = s.quality.params()
-	view.set_quality(
-		bool(p.get("post_fx", true)),
-		float(p.get("particle_scale", 1.0)),
-		int(p.get("trail_points", 18)),
-		bool(p.get("dynamic_light", true)),
-		bool(p.get("shadows", true)),
-		bool(p.get("glow", true)),
-		bool(p.get("ambient_particles", true)),
-		bool(p.get("reflections", false)),
-		bool(p.get("fine_glass", true))
-	)
-
-
-func _apply_settings_to_view() -> void:
-	var reduce: bool = s.settings.get_bool("reduce_motion")
-	router.reduce_motion = reduce
-	view.reduce_motion = reduce
-	view.core_view.reduce_motion = reduce
-	view.set_colorblind(s.settings.get_bool("colorblind"))
-	(router.screen(&"reward") as RewardOverlay).reduce_motion = reduce
-
-
 func _process(delta: float) -> void:
 	if attract:
 		return
@@ -774,7 +437,7 @@ func _process(delta: float) -> void:
 		if runs.pump():
 			view.on_stream_appended()
 		if s.quality.feed_frame(delta):
-			_apply_quality()
+			view_sync.apply_quality()
 	if session.phase == GameplaySession.Phase.READY or session.phase == GameplaySession.Phase.RUNNING:
 		# The level's beat grid starts at sim time 0: the loop is held through the
 		# READY beat and pause and follows the run while it plays (REQ-224).
@@ -806,16 +469,3 @@ func _notification(what: int) -> void:
 		_pause()
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
 		_commit_on_leave()
-
-
-## The app is going to the background or closing while the fail card still
-## offers a revive: the run is applied now (the OS may kill the app), and the
-## revive offer is withdrawn. Not while the revive ad itself is showing.
-func _commit_on_leave() -> void:
-	if _uncommitted == null or _reviving or s == null:
-		return
-	_commit_pending()
-	var fail: FailOverlay = router.screen(&"fail") as FailOverlay if router != null else null
-	if fail != null:
-		fail.disable_revive()
-	s.flush_now()

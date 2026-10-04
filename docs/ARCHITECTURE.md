@@ -24,7 +24,8 @@ game/
                             remote_config, ads, store, notifications, network, audio, haptics, quality
   src/save/                 SaveService (versioned envelope, checksum, atomic writes, backup, migrations)
   src/server_shared/        ReplayVerifier (also used by game/server/verify_replay.gd)
-  src/app/                  GameFlow, RunController, Presenters
+  src/app/                  GameFlow (composition root), RunController, Presenters, RevealQueue,
+                            MetaActions, MenuNavigator, ViewSync
   src/ui/                   kit (tokens, fonts, theme, buttons, icons, toggles, segmented), components,
                             screens (13), ScreenRouter
   data/                     worlds, levels (520 JSON), difficulty curve, mechanics, modes, economy,
@@ -101,6 +102,25 @@ endless stream, boss rush); `finish(result)` applies the result: progression, st
 bundles, mode bests, leaderboard submission (ranked modes only, never revived runs), analytics, and
 collects reveals (level-ups with their reward, world unlocks, achievements with the bundle actually
 granted, cosmetic unlocks) which GameFlow shows after the result sequence.
+
+GameFlow is the composition root, not a god object: it builds the screens and wires every intent, owns
+the state machine and runs the run lifecycle (attract, start, present, restart, pause/resume, revive,
+result cards), and hands everything else to focused collaborators in `src/app/`:
+
+* `RunController` (RefCounted): run preparation and bookkeeping, including the failed run held back
+  while a revive is on offer (`conclude` / `commit_pending`, applied exactly once).
+* `RevealQueue` (Node child): queued reveals shown one at a time on the reward overlay with their own
+  cue; returns the state machine to the state the first one covered; celebrates only on a cleared
+  result and otherwise waits for the menu, never over a fail card or a revive ad.
+* `MetaActions` (Node child, awaits ads/store): mission claims, the daily bonus chest, the result
+  card's double reward, leaderboards, shop/collection purchases and equips, restoring purchases.
+* `MenuNavigator` (RefCounted): moves between the menu screens with their payloads and states, turns
+  mode and level picks into `campaign_requested` / `run_requested`, and returns Settings to the menu
+  or the pause card.
+* `ViewSync` (Node child): keeps the view in step with settings, worn cosmetics and the quality preset,
+  pulses the track on the music's beat and lifts the ink veil between worlds.
+
+Node children are used where a coroutine or tween must end with the app root.
 
 ## 4. Gameplay layers
 
