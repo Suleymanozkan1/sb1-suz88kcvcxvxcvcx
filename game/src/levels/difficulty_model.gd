@@ -70,7 +70,10 @@ func build_spec(number: int) -> LevelSpec:
 	var wi: int = int(loc["world_index"])
 	var local: int = int(loc["local_index"])
 	var world: Dictionary = catalog.world_at(wi)
-	var total: int = catalog.total_levels()
+	# The ramp is measured against a fixed campaign span, not the current level
+	# count: appending a world never retunes a shipped level (REQ-076). Levels
+	# past the span sit at the curve's end values.
+	var total: int = int(curve.get("campaign_span", catalog.total_levels()))
 	var t: float = float(number - 1) / float(maxi(total - 1, 1))
 	var spec: LevelSpec = LevelSpec.new()
 	spec.number = number

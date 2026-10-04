@@ -250,6 +250,34 @@ func test_fail_card_stays_clear_and_music_follows_the_run() -> void:
 	await wait_frames(2)
 
 
+func test_music_is_locked_to_the_run() -> void:
+	var flow: GameFlow = MAIN_SCENE.instantiate() as GameFlow
+	flow.s = _app
+	tree.root.add_child(flow)
+	await wait_frames(3)
+	flow._start_run(&"classic", "w01_l05")
+	await wait_frames(2)
+	var deck: AudioService.MusicDeck = _app.audio._decks[_app.audio._active_deck]
+	assert_eq(deck.track, "neon_core", "the world's track")
+	assert_true(deck.base.stream_paused, "held at the top through the READY beat")
+	flow.session.request_tap()
+	await wait_frames(3)
+	assert_eq(flow.session.phase, GameplaySession.Phase.RUNNING)
+	assert_false(deck.base.stream_paused, "the loop starts with the run")
+	assert_true(_app.audio._locked)
+	flow._pause()
+	await wait_frames(2)
+	assert_true(deck.base.stream_paused, "pause holds the loop")
+	flow._resume()
+	await wait_frames(2)
+	assert_false(deck.base.stream_paused)
+	flow.session.step_ticks(60 * 120)
+	await tree.create_timer(AudioService.LOCK_RELEASE_S + 0.1).timeout
+	assert_false(_app.audio._locked, "the run is over: the loop plays on freely")
+	flow.queue_free()
+	await wait_frames(2)
+
+
 func test_bonus_chest_is_optional_and_once_a_day() -> void:
 	var flow: GameFlow = MAIN_SCENE.instantiate() as GameFlow
 	flow.s = _app

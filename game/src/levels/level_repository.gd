@@ -20,6 +20,12 @@ static func level_path(dir: String, world_index: int, local_index: int) -> Strin
 	return dir.path_join("w%02d" % world_index).path_join(WorldCatalog.level_id(world_index, local_index) + ".json")
 
 
+## A designer-authored (or hand-edited) level: validated like every other level
+## but never overwritten by the generator, and skipped by its `--check`.
+static func is_handmade(level: Dictionary) -> bool:
+	return bool(level.get("handmade", false))
+
+
 func path_for(level_id: String) -> String:
 	var parsed: Dictionary = WorldCatalog.parse_level_id(level_id)
 	if parsed.is_empty():

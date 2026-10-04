@@ -34,7 +34,12 @@ validation, the autopilot, the replay verifier and the tests, so "solvable in th
   Specials override the band: challenge levels (L26) and bosses (L52) run 60–120 s.
 * **Continuous parameters** interpolate over the campaign with a gentle exponent and a small wave:
   speed 6.5 → 12.0 m/s, slot spacing 7.2 → 4.1 m, change probability 0.35 → 0.78, hazard density
-  0.70 → 1.00, spark density 0.90 → 0.60, score-target ratio 0.55 → 0.72.
+  0.70 → 1.00, spark density 0.90 → 0.60, score-target ratio 0.55 → 0.72. Progress along the
+  campaign is `(n − 1) / (campaign_span − 1)` with `campaign_span` fixed at 520 in `curve.json`
+  (see "Adding content" below).
+* **Music.** Each level's beat grid starts at sim time 0 and the world loop is locked to it
+  (`MusicClock`): held through the READY beat and pause, nudged back through the playback rate
+  (≤ 3 %) when it drifts past 40 ms, sought straight to the run after a restart or revive.
 * **Chapters**: every world is a sequence of 13-level chapters, each introducing one mechanic and then
   walking it through four phases — *introduction* (3 levels, wave −1, density ×0.75: a breather),
   *mastery* (4), *combination* with earlier mechanics (4: the previous chapter's hazards, forms and
@@ -166,3 +171,17 @@ CI runs both: all 520 levels must validate and regenerated output must equal the
 3. `validate_levels.gd --solver --report=…` for the full report (worst tap window, codes per level).
 4. Capture a level visually: `tools/capture_level.gd -- --level=w03_l20 --at=2,6 --out=…` (needs a display).
 5. Commit the JSON; CI re-checks determinism (`--check`) and fairness on every push.
+
+### Adding content without retuning what shipped
+
+* **New world or more levels.** Add the world file and its entry in `data/worlds/index.json`, then
+  generate only the new range (`--from=521`). The ramp is measured against `curve.json`
+  `campaign_span` (520), not the current level count, so no shipped level changes: its speed,
+  spacing, density and seed stay exactly as they were (`tests/unit/test_level_growth.gd` appends a
+  probe world and proves it). Levels past the span hold the curve's end values; raise
+  `campaign_span` only when a full rebalance of the campaign is intended.
+* **Hand-authored or hand-edited level.** Edit the JSON and add `"handmade": true`. The generator
+  never overwrites it and its `--check` skips it (the run prints `handmade, kept`), while
+  `validate_levels.gd` validates it like every other level: schema, mechanics, overlaps, the stored
+  solution, tap windows, forced moves, prisms, duration and, with `--solver`, independent
+  solvability. A handmade level that is not fair fails CI.

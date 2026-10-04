@@ -759,11 +759,17 @@ func _apply_settings_to_view() -> void:
 
 
 func _process(delta: float) -> void:
-	if not attract and session.is_running():
+	if attract:
+		return
+	if session.is_running():
 		if runs.pump():
 			view.on_stream_appended()
 		if s.quality.feed_frame(delta):
 			_apply_quality()
+	if session.phase == GameplaySession.Phase.READY or session.phase == GameplaySession.Phase.RUNNING:
+		# The level's beat grid starts at sim time 0: the loop is held through the
+		# READY beat and pause and follows the run while it plays (REQ-224).
+		s.audio.sync_run(session.interpolated_time(), session.is_running())
 
 
 func _unhandled_input(event: InputEvent) -> void:

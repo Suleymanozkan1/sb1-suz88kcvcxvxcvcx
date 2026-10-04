@@ -5,6 +5,8 @@ extends SceneTree
 ##     [--out=res://data/levels] [--check]
 ## With --check nothing is written; the tool exits 1 if any committed file differs
 ## from freshly generated output (used by CI to prove data == generator).
+## Committed levels marked `"handmade": true` are never overwritten and are not
+## compared (they are still validated by validate_levels.gd like every level).
 
 const DEFAULT_OUT: String = "res://data/levels"
 
@@ -30,9 +32,17 @@ func _initialize() -> void:
 	var started: int = Time.get_ticks_msec()
 	var failures: int = 0
 	var mismatches: int = 0
+	var handmade: int = 0
 	var manifest: Array = []
 	for n: int in range(from_n, to_n + 1):
 		var spec: LevelSpec = model.build_spec(n)
+		var path: String = LevelRepository.level_path(out_dir, spec.world_index, spec.local_index)
+		var existing: String = FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+		var committed: Variant = JSON.parse_string(existing) if not existing.is_empty() else null
+		if committed is Dictionary and LevelRepository.is_handmade(committed as Dictionary):
+			handmade += 1
+			print("%s n=%d handmade, kept" % [spec.id, n])
+			continue
 		var gen: LevelGenerator = LevelGenerator.new()
 		var t0: int = Time.get_ticks_msec()
 		var level: Dictionary = gen.generate(spec)
@@ -41,10 +51,8 @@ func _initialize() -> void:
 			failures += 1
 			printerr("FAILED %s: %s" % [spec.id, ", ".join(gen.errors)])
 			continue
-		var path: String = LevelRepository.level_path(out_dir, spec.world_index, spec.local_index)
 		var text: String = JsonIO.canonical(level, "\t") + "\n"
 		if check:
-			var existing: String = FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
 			if existing != text:
 				mismatches += 1
 				printerr("MISMATCH %s" % path)
@@ -74,5 +82,10 @@ func _initialize() -> void:
 			)
 		)
 	var secs: float = float(Time.get_ticks_msec() - started) / 1000.0
-	print("generated %d levels in %.1fs, failures=%d mismatches=%d" % [manifest.size(), secs, failures, mismatches])
+	print(
+		(
+			"generated %d levels in %.1fs, failures=%d mismatches=%d handmade=%d"
+			% [manifest.size(), secs, failures, mismatches, handmade]
+		)
+	)
 	quit(1 if failures > 0 or mismatches > 0 else 0)

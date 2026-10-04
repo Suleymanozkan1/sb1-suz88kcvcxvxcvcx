@@ -9,8 +9,10 @@ extends Node
 ## (for crossfades), each a base stem plus an intensity stem started in the
 ## same call so they stay sample-aligned; [method set_intensity] fades the
 ## intensity stem in smoothly. [signal beat] is derived from the music playback
-## position for visual sync. Settings (sound/music toggles, volumes) apply live
-## to the Music/SFX/UI buses. Works headless with the Dummy audio driver.
+## position for visual sync. During a run [method sync_run] locks the loop to
+## the simulation clock ([MusicClock]): held through READY and pause, nudged or
+## sought back when it drifts. Settings (sound/music toggles, volumes) apply
+## live to the Music/SFX/UI buses. Works headless with the Dummy audio driver.
 
 ## Emitted once per music beat (running index across loops) for visual sync.
 signal beat(index: int)
@@ -35,6 +37,8 @@ const MIN_DUCK_RELEASE_S: float = 0.01
 ## Frequency ratio of one octave (pitch_scale doubles every 12 semitones).
 const OCTAVE_RATIO: float = 2.0
 const NO_BEAT: int = -1
+## The run lock lets go when nobody has driven it for this long (run over).
+const LOCK_RELEASE_S: float = 0.2
 
 
 ## One pair of synchronised stem players (base + intensity layer).
@@ -76,8 +80,28 @@ class MusicDeck:
 		else:
 			gain = target
 
+	## Pauses or resumes both stems together (they stay sample-aligned).
+	func hold(held: bool) -> void:
+		if base.stream_paused != held:
+			base.stream_paused = held
+			hi.stream_paused = held
+
+	## Seeks both stems to [param seconds] into the loop.
+	func seek(seconds: float) -> void:
+		base.seek(seconds)
+		if hi.stream != null:
+			hi.seek(seconds)
+
+	## Plays both stems at [param rate] (1 = as written).
+	func set_rate(rate_value: float) -> void:
+		if not is_equal_approx(base.pitch_scale, rate_value):
+			base.pitch_scale = rate_value
+			hi.pitch_scale = rate_value
+
 	## Stops both players and clears the deck.
 	func halt() -> void:
+		hold(false)
+		set_rate(1.0)
 		base.stop()
 		hi.stop()
 		track = ""
@@ -104,6 +128,11 @@ var _beat_index: int = NO_BEAT
 var _beat_phase: float = 0.0
 var _loop_count: int = 0
 var _last_pos: float = 0.0
+## Run lock: active while [method sync_run] drives it; seconds since the last
+## call; seek cooldown left.
+var _locked: bool = false
+var _lock_age: float = 0.0
+var _seek_cooldown: float = 0.0
 var _ready_ok: bool = false
 var _warned_buses: Dictionary = {}
 
@@ -181,6 +210,7 @@ func play_music(track: String, boss: bool = false) -> bool:
 	if not _can_play():
 		GameLog.warn(LOG_CHANNEL, "play_music('%s') ignored: service not set up or not in the tree" % track)
 		return false
+	_release_lock()
 	var entry: Dictionary = _bank.music(track)
 	if entry.is_empty():
 		GameLog.warn(LOG_CHANNEL, "unknown music track '%s'" % track)
@@ -239,6 +269,7 @@ func prefetch_music(track: String) -> int:
 func stop_music(fade_s: float = -1.0) -> void:
 	if not _ready_ok:
 		return
+	_release_lock()
 	var seconds: float = fade_s if fade_s >= 0.0 else _bank.mixer_float("music_fade_s")
 	for deck: MusicDeck in _decks:
 		if seconds <= 0.0:
@@ -247,6 +278,40 @@ func stop_music(fade_s: float = -1.0) -> void:
 			deck.fade_to(0.0, seconds)
 	if seconds <= 0.0:
 		_beat_index = NO_BEAT
+
+
+## Locks the active track to a run; call every frame while a run is on screen.
+## While [param running] is false (READY beat, pause) the loop is held where it
+## is; while it runs the loop follows [param sim_time] (plus the device's output
+## latency, so what is heard lines up with what is seen): small drift is nudged
+## out through the playback rate, a jump (restart, revive) is sought. The lock
+## lets go by itself once the calls stop. Returns the drift in seconds
+## (positive: the music is ahead; 0 when no track is playing).
+func sync_run(sim_time: float, running: bool) -> float:
+	if not _ready_ok or is_nan(sim_time):
+		return 0.0
+	var deck: MusicDeck = _decks[_active_deck]
+	if deck.track.is_empty() or deck.loop_length <= 0.0:
+		return 0.0
+	_locked = true
+	_lock_age = 0.0
+	deck.hold(not running)
+	if not running:
+		return 0.0
+	var heard_at: float = sim_time + AudioServer.get_output_latency()
+	var pos: float = deck.base.get_playback_position()
+	var drift_s: float = MusicClock.drift(pos, heard_at, deck.loop_length)
+	if _seek_cooldown > 0.0:
+		return drift_s
+	var target: float = MusicClock.seek_target(pos, heard_at, deck.loop_length)
+	if target >= 0.0:
+		deck.seek(target)
+		deck.set_rate(1.0)
+		_seek_cooldown = MusicClock.SEEK_COOLDOWN_S
+		_reset_beat_tracking()
+	else:
+		deck.set_rate(MusicClock.playback_rate(drift_s, deck.base.pitch_scale))
+	return drift_s
 
 
 ## Target loudness (0..1) of the intensity stem; followed smoothly.
@@ -357,6 +422,11 @@ func tick(delta: float) -> void:
 	var duck_target: float = db_to_linear(_bank.mixer_float("stinger_duck_db")) if _stinger_player.playing else 1.0
 	var release: float = maxf(MIN_DUCK_RELEASE_S, _bank.mixer_float("stinger_duck_release_s"))
 	_duck = move_toward(_duck, duck_target, delta / release)
+	_seek_cooldown = maxf(0.0, _seek_cooldown - delta)
+	if _locked:
+		_lock_age += delta
+		if _lock_age > LOCK_RELEASE_S:
+			_release_lock()
 	for deck: MusicDeck in _decks:
 		deck.advance(delta)
 		if deck.is_playing() and deck.gain <= 0.0 and deck.target <= 0.0:
@@ -381,6 +451,18 @@ func _track_beat() -> void:
 	if index > _beat_index:
 		_beat_index = index
 		beat.emit(index)
+
+
+## The run is over (or the music changes): the loop plays on freely.
+func _release_lock() -> void:
+	if not _locked:
+		return
+	_locked = false
+	_lock_age = 0.0
+	_seek_cooldown = 0.0
+	for deck: MusicDeck in _decks:
+		deck.hold(false)
+		deck.set_rate(1.0)
 
 
 ## The active deck changed: beat indices restart from its current position.
