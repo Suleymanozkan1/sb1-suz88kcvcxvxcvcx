@@ -299,7 +299,7 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 | Monolith height pattern | `gameplay_view.gd` `RIB_HEIGHT_PATTERN` | Desert Reactor's slabs (fixed rule, not random) | Kept |
 | Story silhouette | `mesh_factory.gd` `silhouette` | The world's story far away (e.g. the World 1 boss turbine) | Kept |
 | Turbine rotation | `gameplay_view.gd` | The boss machine is running | Kept |
-| Atmosphere motes (≤ 24, ≤ 8 %) | `gameplay_view.gd` `_setup_atmosphere` | The world's air: dust in the key light, embers, bubbles, snow, sand, twinkling glitter, rising spores | Kept |
+| Atmosphere motes (≤ 24, ≤ 8 %) | `ambient_motes.gd` `AmbientMotes.configure` | The world's air: dust in the key light, embers, bubbles, snow, sand, twinkling glitter, rising spores | Kept |
 | Sky gradient | `sky.gdshader` | The world's light and mood | Kept |
 | Flux sink | `sky.gdshader` | The direction of the run | Kept |
 | Sparse stars | `sky.gdshader` | Space (Void Space, or a background cosmetic) | Kept |
@@ -388,7 +388,7 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 | Attract-run structure crossing the menu wordmark (the title band) | Scenery crossing text (visual priority: UI over decoration) | `26c2427` | `main_menu.gd` `_edge_fade(true, 0.34, 0.6)` holds 86 % ink over the title |
 | App icon gradients (three gradient fills) and its 18 % glow halo | Meaningless gradients and glow | `26c2427` | `game/assets/icons/app_icon.svg`: flat palette shapes only |
 | Emissive Deep Ocean floor caustics | Matter must not glow (§1) | `4d3eb5f` | `floor.gdshader`: caustics mixed into albedo, no EMISSION |
-| Atmosphere above 8 % opacity (alphas 0.12-0.5) | Above the §7 cap; read as particle rain | `055562e` | `gameplay_view.gd` `ATMOSPHERE_MAX_ALPHA` |
+| Atmosphere above 8 % opacity (alphas 0.12-0.5) | Above the §7 cap; read as particle rain | `055562e` | `ambient_motes.gd` `AmbientMotes.MAX_ALPHA` |
 | Bursts above their §9 budget on ultra (fail 35, perfect 37) | Over budget | `055562e` | `burst_pool.gd` `set_amount_scale` never scales above the budget |
 | Live 3D core preview in the shop (SubViewport + CoreView) | Its colour-space conversion showed colours that differ from the item | `25f2423` | `cosmetics_screen.gd` `_build_preview` (flat swatch) |
 | HUD visible under the result cards | Two layers saying the same thing | `25f2423` | `game_flow.gd` (the HUD steps away under the result card) |

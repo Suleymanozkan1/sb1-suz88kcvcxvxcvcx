@@ -9,13 +9,13 @@ Every shipped asset, checked against the art language of `docs/ART_DIRECTION.md`
 | Kind | Entries | pass | pass_with_note |
 |---|---|---|---|
 | Shaders | 19 | 9 | 10 |
-| Code-built meshes | 41 | 30 | 11 |
+| Code-built meshes | 41 | 31 | 10 |
 | Generated textures | 4 | 3 | 1 |
 | Icons | 3 | 1 | 2 |
 | Fonts | 3 | 3 | 0 |
 | Audio | 49 | 41 | 8 |
 | Cosmetic styles (core skins and trails) | 31 | 30 | 1 |
-| **Total** | **150** | **117** | **33** |
+| **Total** | **150** | **118** | **32** |
 
 Asset files found under `game/` (shipped directories): 95 (shaders 19, audio 69, images 1, fonts 6). They are covered by 72 path/glob entries; 78 entries cover code-built assets (meshes, generated textures, glyph systems, shader styles). No entry fails the gate: assets that deviate from the art direction or were not verified are `pass_with_note`, and the note says why.
 
@@ -116,7 +116,7 @@ Gate detail — shaders:
 | mesh.core_details | `CoreView._ensure_built() parts` (game/src/gameplay/view/core_view.gd) | Core attachments: shield ring, hop direction chevron, orbiting charge shards, plate stack discs. | pass | — |
 | mesh.core_shadow | `GameplayView._make_core_shadow()` (game/src/gameplay/view/gameplay_view.gd) | Ground shadow under the core that shrinks and fades as a launch carries it up. | pass | — |
 | mesh.floor_plane | `GameplayView floor PlaneMesh` (game/src/gameplay/view/gameplay_view.gd) | Floor plane carrying floor.gdshader. | pass | — |
-| mesh.atmosphere | `GameplayView._setup_atmosphere()` (game/src/gameplay/view/gameplay_view.gd) | Atmosphere motes per world (dust, embers, bubbles, snow, sand, stars, puffs, sprinkles). | pass_with_note | World data types 'glitter' (Crystal Valley) and 'spores' (Cyber Garden) have no branch in _setup_atmosphere and render as the default dust. |
+| mesh.atmosphere | `AmbientMotes.configure()` (game/src/gameplay/view/ambient_motes.gd) | Atmosphere motes per world (dust, embers, bubbles, snow, sand, stars, puffs, sprinkles, twinkling glitter, rising spores). | pass | — |
 | mesh.bursts | `BurstPool PRESETS` (game/src/vfx/burst_pool.gd) | Pooled one-shot bursts: collect, prism, near-miss streak, shatter debris, shield, fail, perfect. | pass | — |
 | mesh.trail_ribbon | `TrailRibbon.rebuild(camera)` (game/src/vfx/trail_ribbon.gd) | Trail ribbon geometry: camera-facing strip rebuilt from a ring buffer. | pass | — |
 | mesh.tap_ripple | `TapRipple._init()` (game/src/vfx/tap_ripple.gd) | Tap ripple quads (pool of 3). | pass | — |
@@ -162,7 +162,7 @@ Gate detail — code-built meshes:
 | mesh.core_details | Small functional parts on the core; no decoration. | Shield ring 0.5-0.54 u; chevron 0.16 x 0.12 u at 0.46 u; shards 0.045 u at 0.48 u orbit; discs 0.2 u radius, 0.065 u apart. | True 3D around the core. | Shield: unshaded SUCCESS x 1.3. Chevron and shards: accent core material. Discs: ballast (lit, metallic 0.6). | Energy parts unshaded; discs lit (matter). | Shield torus 6 x 4 = 48; chevron prism 8; shard 24; disc cylinder 24 sides = 288 triangles. | None. | Shield turns; shards orbit at 2.6 rad/s; a full stack makes the core breathe. | Shield up, hop direction (3+ lanes), charges toward overdrive, carried plates. | At most 1 + 1 + 8 + 3 small parts. |
 | mesh.core_shadow | §4: a launched core is drawn at its height with a soft ground shadow. | 0.9 u quad; scale 1 / (1 + lift x 0.5). | Flat on the floor (y 0.008) under the core. | Unshaded alpha, black 32 %, render_priority -1. | Drawn contact cue, not a light shadow. | QuadMesh. | texture.soft_dot. | Follows the core; shrinks with lift. | Height of a launched core above the floor. | 1 alpha quad. |
 | mesh.floor_plane | Matter floor (§5). | 9 x 160 u, recentred on the core every frame. | Flat ground plane. | floor.gdshader. | Lit, does not cast shadows. | PlaneMesh (engine default subdivision). | Procedural (shader). | Moves with the core; the shader scrolls the pattern. | Ground and lanes. | 1 draw; large screen coverage. |
-| mesh.atmosphere | §7: at most 24 on screen, at most 8 % opacity, each with a reason. | 0.06 u motes (0.07 bubbles, 0.4 puffs) in a 11 x 4.4 x 36 u box ahead of the core. | Camera-facing particle billboards. | Unshaded alpha with texture.soft_dot; colour from world key light or a fixed tint. | Opacity 5-8 %, clamped at 8 % (ATMOSPHERE_MAX_ALPHA). | CPUParticles3D quads; count from world data (6-20, clamped to 24). | texture.soft_dot. | Drift per type (rise, fall, sideways sand, stars streaming towards the camera). | Dust in the key light, embers, bubbles, snow: the world's air. | Scaled by the quality preset; off on low and with battery saver. |
+| mesh.atmosphere | §7: at most 24 on screen, at most 8 % opacity, each with a reason. | 0.06 u motes (0.035 glitter, 0.07 bubbles, 0.09 spores, 0.4 puffs) in a 11 x 4.4 x 36 u box ahead of the core. | Camera-facing particle billboards. | Unshaded alpha with texture.soft_dot; colour from world key light or a fixed tint. | Opacity 5-8 %, clamped at 8 % (AmbientMotes.MAX_ALPHA); glitter twinkles through an alpha ramp under the same cap. | CPUParticles3D quads; count from world data (6-20, clamped to 24). | texture.soft_dot. | Drift per type (rise, fall, sideways sand, stars streaming towards the camera). | Dust in the key light, embers, bubbles, snow: the world's air. | Scaled by the quality preset; off on low and with battery saver. |
 | mesh.bursts | §9: each effect has one job and a fixed budget. | Motes 0.05-0.08 u; glass debris boxes 0.13 x 0.08 x 0.03 u. | Billboard motes; debris are real 3D boxes that tumble. | Energy motes: unshaded additive with texture.glow_dot. Debris: lit glass (roughness 0.1), never emissive. | Motes additive; debris lit. | CPUParticles3D quads / BoxMesh. | texture.glow_dot. | Counts: collect 6, prism 10, streak 5, shatter 12, shield 10, fail 28, perfect 30; scaled down on lower presets, never above budget. | Collect = information, shatter/fail = impact, perfect = reward. | Fixed pools (1-8 emitters per preset); CPU particles so Mobile and Compatibility match. |
 | mesh.trail_ribbon | Short speed cue behind the core (§9). | At most 1.6 u of points, 0.18 u min spacing. | Faces the camera; fades near the lens. | trail.gdshader. | Additive energy. | ImmediateMesh triangle strip of 12-40 points (preset trail_points). | Procedural (shader). | Rebuilt every frame. | Direction and speed of the core. | Per-frame CPU rebuild of a short strip; 1 draw. |
 | mesh.tap_ripple | §9 tap feedback. | 1.4 u. | Flat on the floor. | ripple.gdshader with a per-instance tint. | Additive. | QuadMesh x 3. | Procedural. | 0.18 s. | Tap accepted (form colour) or refused (grey). | 3 quads, reused. |
