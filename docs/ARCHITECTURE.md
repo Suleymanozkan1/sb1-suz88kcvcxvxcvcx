@@ -251,6 +251,11 @@ and objects never below the preset under it):
   (`--worlds=all --presets=high,ultra`, 40 runs) read 75.5 / 80.9 MB and the budgets were tightened
   to 95 / 105 MB.
 * Nodes are 412–716 on every preset (pooled hazard views on dense stretches, plus HUD and screens).
+* **No texture atlas (decision, REQ-202).** The game ships no bitmap sprites: surfaces are procedural
+  shaders, icons and swatches are drawn as vectors, and the only textures are five tiny generated
+  gradients (soft mote, blob shadow, burst glow, slider grabber, menu backdrop) plus the engine's own
+  glyph cache for the font. Packing five gradients into an atlas would add UV bookkeeping to every
+  material for no measurable saving, so none is built; the decision is revisited if bitmap art is added.
   Static memory grows ≈ 0.07 MB per probed run because each run boots a fresh isolated service
   graph; the headless test measures 52 MB on its own and 67 MB at its place in the full suite.
 * The Compatibility renderer (`--rendering-driver opengl3`, the fallback for phones without Vulkan,
