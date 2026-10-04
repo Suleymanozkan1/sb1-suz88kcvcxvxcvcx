@@ -384,7 +384,7 @@ func _progress_query() -> Dictionary:
 
 
 ## Mode unlock facts (see [ModeCatalog.is_unlocked]).
-func mode_progress() -> Dictionary:
+func mode_progress() -> Dictionary[String, int]:
 	# Distinct achievements only: replaying one boss must not unlock modes
 	# that promise "beat 2 bosses" / "finish 2 worlds".
 	var distinct_bosses: int = 0

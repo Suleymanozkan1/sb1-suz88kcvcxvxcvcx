@@ -41,7 +41,7 @@ const MENU_STATES: Array[State] = [
 ]
 
 ## Allowed transitions: from -> [to...]. Menu screens can reach each other.
-static var _transitions: Dictionary = _build_transitions()
+static var _transitions: Dictionary[State, Array] = _build_transitions()
 
 var current: State = State.BOOT
 var previous: State = State.BOOT
@@ -49,8 +49,8 @@ var payload: Dictionary = {}
 var history: Array[State] = []
 
 
-static func _build_transitions() -> Dictionary:
-	var t: Dictionary = {}
+static func _build_transitions() -> Dictionary[State, Array]:
+	var t: Dictionary[State, Array] = {}
 	t[State.BOOT] = [State.MAIN_MENU]
 	for s: State in MENU_STATES:
 		var targets: Array = MENU_STATES.duplicate()

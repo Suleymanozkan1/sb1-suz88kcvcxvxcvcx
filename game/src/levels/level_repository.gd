@@ -7,7 +7,7 @@ const CACHE_SIZE: int = 8
 
 var catalog: WorldCatalog
 var level_dir: String = LEVEL_DIR
-var _cache: Dictionary = {}
+var _cache: Dictionary[String, Dictionary] = {}
 var _order: PackedStringArray = PackedStringArray()
 
 
@@ -27,10 +27,10 @@ static func is_handmade(level: Dictionary) -> bool:
 
 
 func path_for(level_id: String) -> String:
-	var parsed: Dictionary = WorldCatalog.parse_level_id(level_id)
+	var parsed: Dictionary[String, int] = WorldCatalog.parse_level_id(level_id)
 	if parsed.is_empty():
 		return ""
-	return LevelRepository.level_path(level_dir, int(parsed["world_index"]), int(parsed["local_index"]))
+	return LevelRepository.level_path(level_dir, parsed["world_index"], parsed["local_index"])
 
 
 func exists(level_id: String) -> bool:
@@ -42,7 +42,7 @@ func exists(level_id: String) -> bool:
 func load_level(level_id: String) -> Dictionary:
 	if _cache.has(level_id):
 		_touch(level_id)
-		return _cache[level_id] as Dictionary
+		return _cache[level_id]
 	var p: String = path_for(level_id)
 	if p.is_empty():
 		GameLog.warn("levels", "invalid level id %s" % level_id)
@@ -59,17 +59,17 @@ func load_level(level_id: String) -> Dictionary:
 
 
 func level_id_for_number(number: int) -> String:
-	var loc: Dictionary = catalog.locate(number)
+	var loc: Dictionary[String, int] = catalog.locate(number)
 	if loc.is_empty():
 		return ""
-	return WorldCatalog.level_id(int(loc["world_index"]), int(loc["local_index"]))
+	return WorldCatalog.level_id(loc["world_index"], loc["local_index"])
 
 
 func next_level_id(level_id: String) -> String:
-	var parsed: Dictionary = WorldCatalog.parse_level_id(level_id)
+	var parsed: Dictionary[String, int] = WorldCatalog.parse_level_id(level_id)
 	if parsed.is_empty():
 		return ""
-	var n: int = catalog.global_number(int(parsed["world_index"]), int(parsed["local_index"]))
+	var n: int = catalog.global_number(parsed["world_index"], parsed["local_index"])
 	if n >= catalog.total_levels():
 		return ""
 	return level_id_for_number(n + 1)

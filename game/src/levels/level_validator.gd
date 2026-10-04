@@ -96,7 +96,7 @@ func validate(data: Dictionary) -> Report:
 
 
 func _check_schema(data: Dictionary, r: Report) -> void:
-	var required: Dictionary = {
+	var required: Dictionary[String, Variant.Type] = {
 		"id": TYPE_STRING,
 		"number": TYPE_FLOAT,
 		"world": TYPE_STRING,
@@ -126,7 +126,7 @@ func _check_schema(data: Dictionary, r: Report) -> void:
 		if not data.has(key):
 			r.error("schema", "missing field '%s'" % key)
 			continue
-		var want: int = int(required[key])
+		var want: int = required[key]
 		var got: int = typeof(data[key])
 		var numeric_ok: bool = want == TYPE_FLOAT and (got == TYPE_INT or got == TYPE_FLOAT)
 		if got != want and not numeric_ok:
@@ -170,13 +170,13 @@ static func _max_gravity_speed_factor(data: Dictionary) -> float:
 func _check_mechanics(data: Dictionary, r: Report) -> void:
 	var known: Dictionary = mechanics_catalog.get("mechanics", {}) as Dictionary
 	var forms: Array = mechanics_catalog.get("forms", []) as Array
-	var declared: Dictionary = {}
+	var declared: Dictionary[String, bool] = {}
 	for m: Variant in data["mechanics"] as Array:
 		var name: String = str(m)
 		declared[name] = true
 		if not known.has(name) and not forms.has(name):
 			r.error("invalid_mechanic", "unknown mechanic '%s'" % name)
-	var needs: Dictionary = {
+	var needs: Dictionary[String, String] = {
 		"slider": "slider",
 		"pulse_gate": "pulse",
 		"phase_gate": "phase",
@@ -477,7 +477,8 @@ func _check_windows(data: Dictionary, r: Report) -> void:
 	var base: FluxSim = _new_sim(data)
 	# snapshots[i] = state right after tap i-1 was applied (initial state for i=0).
 	var snapshots: Array[FluxSim] = []
-	var states_at: Dictionary = {}
+	# tick -> state signature of the stored solution run
+	var states_at: Dictionary[int, int] = {}
 	var last_snapshot: FluxSim = base.clone()
 	var ti: int = 0
 	while base.is_running():
@@ -528,7 +529,7 @@ func _state_sig(sim: FluxSim) -> int:
 
 ## Replays from [param start] with tap i moved to [param tap_tick] (the next
 ## solution tap unchanged) and checks the run converges back to the baseline.
-func _shift_ok(start: FluxSim, tap_tick: int, next_tap: int, check_tick: int, states_at: Dictionary) -> bool:
+func _shift_ok(start: FluxSim, tap_tick: int, next_tap: int, check_tick: int, states_at: Dictionary[int, int]) -> bool:
 	if tap_tick < start.tick:
 		return false
 	var s: FluxSim = start.clone()
@@ -601,7 +602,7 @@ func _prism_reachable(data: Dictionary, lvl: SimLevel, index: int, taps: PackedI
 	# 1) Maybe the stored solution already collects it; remember the state just
 	#    before every solution tap so delays can resume from there cheaply.
 	var base: FluxSim = _new_sim(data)
-	var before_tap: Dictionary = {}
+	var before_tap: Dictionary[int, FluxSim] = {}
 	var ti: int = 0
 	while base.is_running() and base.d < lvl.e_d[index] + 2.0:
 		var tap: bool = ti < taps.size() and taps[ti] == base.tick
@@ -619,7 +620,7 @@ func _prism_reachable(data: Dictionary, lvl: SimLevel, index: int, taps: PackedI
 	# 2) Delay one of the last solution taps before the prism (others unchanged).
 	var first_k: int = maxi(0, ti - PRISM_TAPS_CONSIDERED)
 	for k: int in range(first_k, ti):
-		var walker: FluxSim = (before_tap[k] as FluxSim).clone()
+		var walker: FluxSim = before_tap[k].clone()
 		var delay: int = 0
 		while walker.is_running() and walker.tick <= tick_at:
 			if k + 1 < taps.size() and walker.tick >= taps[k + 1] - RunReplay.MIN_TAP_GAP_TICKS:

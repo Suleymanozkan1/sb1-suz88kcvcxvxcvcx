@@ -6,8 +6,8 @@ extends RefCounted
 ## (requested from the menu and the level select), so starting a world's music
 ## never blocks a frame.
 
-var _requested: Dictionary = {}
-var _cache: Dictionary = {}
+var _requested: Dictionary[String, bool] = {}
+var _cache: Dictionary[String, Resource] = {}
 
 
 func request(path: String) -> void:
@@ -34,7 +34,7 @@ func is_ready(path: String) -> bool:
 ## Returns the resource, blocking only if it is still loading.
 func get_resource(path: String) -> Resource:
 	if _cache.has(path):
-		return _cache[path] as Resource
+		return _cache[path]
 	var res: Resource = null
 	if _requested.has(path):
 		res = ResourceLoader.load_threaded_get(path)
