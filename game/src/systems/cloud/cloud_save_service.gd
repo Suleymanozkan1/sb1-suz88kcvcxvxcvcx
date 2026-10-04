@@ -206,7 +206,8 @@ func sync() -> StringName:
 	_set_status(STATUS_SYNCING)
 	var outcome: StringName = await _run(_provider)
 	_syncing = false
-	_set_status(outcome)
+	# Remote config may have switched the feature off while the request ran.
+	_set_status(outcome if is_enabled() else STATUS_OFF)
 	sync_finished.emit(outcome, last_conflict)
 	return outcome
 

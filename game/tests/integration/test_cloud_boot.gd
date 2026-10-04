@@ -80,6 +80,7 @@ func test_cloud_merge_refreshes_the_game() -> void:
 	other.ledger.append({"t": NOW - 60, "c": "coins", "d": 2300, "s": "daily_streak:3", "b": 2400})
 	other.bonus_stars = 3
 	other.achievements["first_clear"] = NOW - 600
+	other.levels["w01_l01"] = {"stars": 3, "clears": 1, "perfect": true}
 	server.blob = SaveService.encode(other, NOW - 60)
 	server.revision_number = 4
 	var tracked: Array[String] = []
@@ -90,6 +91,10 @@ func test_cloud_merge_refreshes_the_game() -> void:
 	assert_eq(_app.progression.bonus_stars(), 3)
 	assert_eq(_app.progression.total_stars(), _app.progression.campaign_stars() + 3)
 	assert_true(_app.achievements.progress("first_clear")["unlocked"] as bool, "achievement carried over")
+	assert_true(_app.progression.is_level_unlocked("w01_l02"), "the next level opens")
+	assert_eq(_app.profile.stat(StatsService.UNIQUE_LEVELS_CLEARED), 1, "distinct counters follow the records")
+	assert_eq(_app.profile.stat(StatsService.UNIQUE_PERFECTS), 1)
+	assert_eq(_app.profile.stat(AchievementService.STAT_ACHIEVEMENTS_UNLOCKED), 1)
 	assert_empty(_app.check_integrity(), "wallet and ledger still agree")
 	assert_true(_app.save.dirty, "the merged profile is saved")
 	assert_eq(tracked, ["synced"])

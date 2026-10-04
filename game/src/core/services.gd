@@ -475,6 +475,17 @@ func _on_cloud_merged() -> void:
 	if local_board != null:
 		local_board.store = LocalLeaderboardBackend.profile_store(profile)
 	stats.set_value("cosmetics_owned", cosmetics.owned_count())
+	# Counters of distinct things follow the merged records (levels cleared on
+	# either device are cleared now, and each counts once).
+	var cleared: int = 0
+	var perfects: int = 0
+	for id: Variant in profile.levels:
+		if not WorldCatalog.parse_level_id(str(id)).is_empty() and profile.is_cleared(str(id)):
+			cleared += 1
+			perfects += 1 if bool((profile.levels[id] as Dictionary).get("perfect", false)) else 0
+	stats.set_max(StatsService.UNIQUE_LEVELS_CLEARED, cleared)
+	stats.set_max(StatsService.UNIQUE_PERFECTS, perfects)
+	stats.set_max(AchievementService.STAT_ACHIEVEMENTS_UNLOCKED, achievements.unlocked_count())
 	bus.stars_changed.emit(progression.total_stars())
 	save.mark_dirty()
 	check_integrity()

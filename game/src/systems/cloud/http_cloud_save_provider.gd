@@ -14,12 +14,13 @@ extends CloudSaveProvider
 ## final. A 2xx (or 409) whose body is not the documented shape (an HTML error
 ## page, an empty 204, wrong field types, a blob over
 ## [constant SaveService.MAX_SAVE_CHARS], a revision that is not a
-## [method CloudSaveProvider.valid_revision] token) is never
-## applied and counts as a transient "bad_response".
+## [method CloudSaveProvider.valid_revision] token) is never applied and
+## counts as a transient "bad_response".
 ## An empty base URL or a missing transport or install id disables the
 ## provider. Network calls go through the injected transport Callable
 ## (method: String, url: String, body: Dictionary) -> {"ok", "status", "body",
-## "error"}; it is always awaited.
+## "error"}; it is always awaited, and its replies are normalised with the
+## shared [method HttpLeaderboardBackend.normalize_response].
 
 const SAVES_PATH: String = "/v1/saves/"
 const METHOD_GET: String = "GET"
