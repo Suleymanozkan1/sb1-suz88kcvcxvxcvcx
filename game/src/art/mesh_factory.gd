@@ -17,7 +17,8 @@ const CABLE_SEGMENTS: int = 6
 const PRISM_RING_SEGMENTS: int = 24
 const PRISM_RING_SIDES: int = 5
 
-static var _cache: Dictionary = {}
+## Cache key (kind and parameters) -> the mesh built for it, shared process-wide.
+static var _cache: Dictionary[String, Mesh] = {}
 
 
 ## Box with 45° chamfered edges and corners (flat-shaded facets catch light).

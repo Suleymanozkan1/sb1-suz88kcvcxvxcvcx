@@ -151,7 +151,7 @@ const COMBO_MULT_STEP: float = 0.5
 const COMBO_MULT_MAX: float = 4.0
 const OVERDRIVE_MULT: float = 2.0
 
-const ENTITY_NAMES: Dictionary = {
+const ENTITY_NAMES: Dictionary[String, int] = {
 	"barrier": EntityType.BARRIER,
 	"phase_gate": EntityType.PHASE_GATE,
 	"slider": EntityType.SLIDER,
@@ -169,7 +169,7 @@ const ENTITY_NAMES: Dictionary = {
 	"plate": EntityType.PLATE,
 }
 
-const FORM_NAMES: Dictionary = {
+const FORM_NAMES: Dictionary[String, int] = {
 	"hop": Form.HOP,
 	"phase": Form.PHASE,
 	"dash": Form.DASH,
@@ -183,7 +183,7 @@ static func entity_type_from_name(type_name: String) -> int:
 
 static func entity_name(type_id: int) -> String:
 	for key: String in ENTITY_NAMES:
-		if int(ENTITY_NAMES[key]) == type_id:
+		if ENTITY_NAMES[key] == type_id:
 			return key
 	return ""
 
@@ -194,7 +194,7 @@ static func form_from_name(form_name: String) -> int:
 
 static func form_name(form_id: int) -> String:
 	for key: String in FORM_NAMES:
-		if int(FORM_NAMES[key]) == form_id:
+		if FORM_NAMES[key] == form_id:
 			return key
 	return ""
 

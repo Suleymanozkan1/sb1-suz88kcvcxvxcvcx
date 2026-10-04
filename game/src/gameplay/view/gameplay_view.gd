@@ -96,7 +96,9 @@ var _finish: Node3D
 var _finish_membrane: MeshInstance3D
 var _finish_arch: MeshInstance3D
 var _pool: NodePool
-var _active: Dictionary = {}
+## Course entity index -> its pooled view, for every hazard, gate and pickup
+## currently drawn (sparks and prisms live in [member sparks]).
+var _active: Dictionary[int, EntityView] = {}
 var _spawn_cursor: int = 0
 var _chroma: float = 0.0
 var _shock: float = 0.0
@@ -419,15 +421,15 @@ func set_colorblind(on: bool) -> void:
 	var lvl: SimLevel = session.sim_level if session != null else null
 	if lvl == null:
 		return
-	for idx: Variant in _active.keys():
-		var view: EntityView = _active[idx] as EntityView
+	for idx: int in _active.keys():
+		var view: EntityView = _active[idx]
 		if view.entity_type == SimConst.EntityType.PHASE_GATE:
-			view.configure(int(idx), view.entity_type, lvl, kit)
+			view.configure(idx, view.entity_type, lvl, kit)
 			view.appear = 1.0
-	var hidden: Dictionary = sparks.hidden_entities()
+	var hidden: Dictionary[int, bool] = sparks.hidden_entities()
 	sparks.build(lvl, theme, session.sim.cursor)
-	for idx2: Variant in hidden:
-		sparks.hide_entity(int(idx2), false)
+	for idx2: int in hidden:
+		sparks.hide_entity(idx2, false)
 
 
 ## Rewarded revive: the run continues from the failure point. The core comes
@@ -459,8 +461,8 @@ func on_stream_appended() -> void:
 
 
 func clear_entities() -> void:
-	for idx: Variant in _active.keys():
-		_pool.release(_active[idx] as Node)
+	for idx: int in _active.keys():
+		_pool.release(_active[idx])
 	_active.clear()
 
 
@@ -577,9 +579,8 @@ func _update_frame(delta: float) -> void:
 	# Iterate the dictionary itself (no per-frame keys() copy); releases are
 	# collected in a reused array and applied after the loop.
 	_to_release.clear()
-	for idx: Variant in _active:
-		var i: int = int(idx)
-		var view: EntityView = _active[idx] as EntityView
+	for i: int in _active:
+		var view: EntityView = _active[i]
 		var consumed_pickup: bool = (sim.ent_flags[i] & FluxSim.FLAG_CONSUMED) != 0 and _is_pickup(view.entity_type)
 		if _entity_end(lvl, i) < d - VIEW_BEHIND or consumed_pickup:
 			_to_release.append(i)

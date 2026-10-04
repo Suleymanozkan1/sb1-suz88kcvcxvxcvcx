@@ -138,7 +138,7 @@ const FEEDBACK_STRENGTH: Dictionary[StringName, float] = {
 	&"dash": 0.6,
 	&"surge": 0.5,
 	&"denied": 0.2,
-	# Information and skill rewards.
+	# Information, skill rewards, pickups and course forces.
 	&"collect": 0.3,
 	&"prism": 0.3,
 	&"miss": 0.2,

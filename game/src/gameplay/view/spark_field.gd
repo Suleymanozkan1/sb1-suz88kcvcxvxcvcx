@@ -30,15 +30,18 @@ var _spark_mm: MultiMeshInstance3D
 var _prism_mm: MultiMeshInstance3D
 var _ring_mm: MultiMeshInstance3D
 ## Entity index -> instance index in the relevant multimesh.
-var _spark_slot: Dictionary = {}
-var _prism_slot: Dictionary = {}
-var _hidden: Dictionary = {}
-var _base_pos: Dictionary = {}
+var _spark_slot: Dictionary[int, int] = {}
+var _prism_slot: Dictionary[int, int] = {}
+## Collected entity indices (a set: the value is always true).
+var _hidden: Dictionary[int, bool] = {}
+## Entity index -> its resting position on its lane.
+var _base_pos: Dictionary[int, Vector3] = {}
 ## Sparks currently drawn displaced by the magnet pull -> drawn position.
-var _pulled: Dictionary = {}
-var _tilted: Dictionary = {}
+var _pulled: Dictionary[int, Vector3] = {}
+## Phase-B sparks drawn on their side for the colour-blind aid (a set).
+var _tilted: Dictionary[int, bool] = {}
 ## Collected entity index -> [elapsed seconds, position] while its pop plays.
-var _popping: Dictionary = {}
+var _popping: Dictionary[int, Array] = {}
 
 var _built: bool = false
 
@@ -54,9 +57,8 @@ func _process(delta: float) -> void:
 
 ## Plays the collect pops forward by [param delta] seconds.
 func advance_pops(delta: float) -> void:
-	for idx: Variant in _popping.keys():
-		var k: int = int(idx)
-		var state: Array = _popping[k] as Array
+	for k: int in _popping.keys():
+		var state: Array = _popping[k]
 		var elapsed: float = float(state[0]) + delta
 		if elapsed >= POP_TIME:
 			_popping.erase(k)
@@ -132,14 +134,14 @@ func build(lvl: SimLevel, _theme: WorldTheme = null, from_index: int = 0) -> voi
 ## [param from_index] (the simulation cursor) on are kept, so the cost stays
 ## bounded however long the run lasts.
 func rebuild_append(lvl: SimLevel, from_index: int = 0) -> void:
-	var hidden_before: Dictionary = _hidden.duplicate()
+	var hidden_before: Dictionary[int, bool] = _hidden.duplicate()
 	build(lvl, null, from_index)
-	for idx: Variant in hidden_before:
-		if int(idx) >= from_index:
-			hide_entity(int(idx), false)
+	for idx: int in hidden_before:
+		if idx >= from_index:
+			hide_entity(idx, false)
 
 
-func _fill(mm: MultiMesh, list: Array[int], lvl: SimLevel, slots: Dictionary) -> void:
+func _fill(mm: MultiMesh, list: Array[int], lvl: SimLevel, slots: Dictionary[int, int]) -> void:
 	mm.instance_count = list.size()
 	for n: int in list.size():
 		var i: int = list[n]
@@ -170,10 +172,10 @@ func hide_entity(index: int, pop: bool = true) -> void:
 
 func _set_instance(index: int, xform: Transform3D) -> void:
 	if _spark_slot.has(index):
-		_spark_mm.multimesh.set_instance_transform(int(_spark_slot[index]), xform)
+		_spark_mm.multimesh.set_instance_transform(_spark_slot[index], xform)
 	elif _prism_slot.has(index):
-		_prism_mm.multimesh.set_instance_transform(int(_prism_slot[index]), xform)
-		_ring_mm.multimesh.set_instance_transform(int(_prism_slot[index]), xform)
+		_prism_mm.multimesh.set_instance_transform(_prism_slot[index], xform)
+		_ring_mm.multimesh.set_instance_transform(_prism_slot[index], xform)
 
 
 ## Prism rings in the field (one per prism; a collected prism's ring is
@@ -187,7 +189,8 @@ func popping_count() -> int:
 	return _popping.size()
 
 
-func hidden_entities() -> Dictionary:
+## Collected entity indices (a copy; the value is always true).
+func hidden_entities() -> Dictionary[int, bool]:
 	return _hidden.duplicate()
 
 
@@ -211,19 +214,16 @@ func color_of(index: int, lvl: SimLevel) -> Color:
 func apply_magnet(core: Vector3, lvl: SimLevel, from_index: int, active: bool, phase: int = -1) -> void:
 	if not active:
 		if not _pulled.is_empty():
-			for idx: Variant in _pulled:
-				var k: int = int(idx)
+			for k: int in _pulled:
 				if _spark_slot.has(k) and not _hidden.has(k):
-					_spark_mm.multimesh.set_instance_transform(
-						int(_spark_slot[k]), Transform3D(_basis_of(k), _base_pos[k] as Vector3)
-					)
+					_spark_mm.multimesh.set_instance_transform(_spark_slot[k], Transform3D(_basis_of(k), _base_pos[k]))
 			_pulled.clear()
 		return
 	var n: int = lvl.entity_count()
 	var i: int = from_index
 	while i < n and lvl.e_d[i] < -core.z + 4.0:
 		if _spark_slot.has(i) and not _hidden.has(i):
-			var base: Vector3 = _base_pos[i] as Vector3
+			var base: Vector3 = _base_pos[i]
 			var dist: float = absf(base.z - core.z)
 			var color: int = lvl.e_color[i]
 			var collectable: bool = (
@@ -232,7 +232,7 @@ func apply_magnet(core: Vector3, lvl: SimLevel, from_index: int, active: bool, p
 			if dist < 3.0 and collectable:
 				var t: float = clampf(1.0 - dist / 3.0, 0.0, 1.0)
 				var p: Vector3 = base.lerp(core, t * 0.6)
-				_spark_mm.multimesh.set_instance_transform(int(_spark_slot[i]), Transform3D(_basis_of(i), p))
+				_spark_mm.multimesh.set_instance_transform(_spark_slot[i], Transform3D(_basis_of(i), p))
 				_pulled[i] = p
 		i += 1
 

@@ -4,7 +4,9 @@ extends Node3D
 ## exists for one job; counts scale with the quality preset. CPUParticles3D so
 ## Mobile and Compatibility renderers look identical.
 
-const PRESETS: Dictionary = {
+## Burst preset name -> its budget (amount, life, velocity range, size,
+## gravity, pool size and look flags).
+const PRESETS: Dictionary[String, Dictionary] = {
 	"collect":
 	{"amount": 6, "life": 0.28, "vel": Vector2(1.2, 2.4), "size": 0.06, "gravity": 0.0, "pool": 8, "energy": true},
 	# information
@@ -46,9 +48,12 @@ const RING_LIFE: float = 0.32
 const GLOW_SHADER: Shader = preload("res://assets/shaders/glow_sprite.gdshader")
 
 var amount_scale: float = 1.0
-var _pools: Dictionary = {}
-var _next: Dictionary = {}
-var _ramps: Dictionary = {}
+## Preset name -> its pooled emitters (each an Array[CPUParticles3D]).
+var _pools: Dictionary[String, Array] = {}
+## Preset name -> index of the emitter it uses next (round robin).
+var _next: Dictionary[String, int] = {}
+## Colour (RGBA32) -> its fade-out colour ramp, shared by every burst of it.
+var _ramps: Dictionary[int, Gradient] = {}
 var _rings: Array[MeshInstance3D] = []
 var _ring_age: Array[float] = []
 var _ring_next: int = 0
@@ -77,7 +82,7 @@ func _ensure_built() -> void:
 	_glow_texture.height = 32
 	for name: String in PRESETS:
 		var list: Array[CPUParticles3D] = []
-		var cfg: Dictionary = PRESETS[name] as Dictionary
+		var cfg: Dictionary = PRESETS[name]
 		for _i: int in int(cfg["pool"]):
 			list.append(_make(cfg))
 		_pools[name] = list
@@ -115,7 +120,7 @@ func set_amount_scale(value: float) -> void:
 	_ensure_built()
 	amount_scale = clampf(value, 0.1, 1.5)
 	for name: String in _pools:
-		var cfg: Dictionary = PRESETS[name] as Dictionary
+		var cfg: Dictionary = PRESETS[name]
 		for p: CPUParticles3D in _pools[name] as Array[CPUParticles3D]:
 			# Presets are the art-direction budget: lower presets scale down,
 			# none scales a burst above it.
@@ -181,7 +186,7 @@ func _make(cfg: Dictionary) -> CPUParticles3D:
 func _ramp_for(color: Color) -> Gradient:
 	var key: int = color.to_rgba32()
 	if _ramps.has(key):
-		return _ramps[key] as Gradient
+		return _ramps[key]
 	var ramp: Gradient = Gradient.new()
 	ramp.set_color(0, color)
 	ramp.set_color(1, Color(color.r, color.g, color.b, 0.0))
@@ -197,7 +202,7 @@ func emit(preset: String, at: Vector3, color: Color) -> void:
 	if not _pools.has(preset):
 		return
 	var list: Array[CPUParticles3D] = _pools[preset] as Array[CPUParticles3D]
-	var idx: int = int(_next[preset])
+	var idx: int = _next[preset]
 	_next[preset] = (idx + 1) % list.size()
 	var p: CPUParticles3D = list[idx]
 	p.global_position = at

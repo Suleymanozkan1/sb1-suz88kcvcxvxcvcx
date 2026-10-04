@@ -8,7 +8,7 @@ extends RefCounted
 
 enum Objective { REACH_END = 0, COLLECT = 1, SHATTER = 2, SURVIVE = 3 }
 
-const OBJECTIVE_NAMES: Dictionary = {
+const OBJECTIVE_NAMES: Dictionary[String, int] = {
 	"reach_end": Objective.REACH_END,
 	"collect": Objective.COLLECT,
 	"shatter": Objective.SHATTER,

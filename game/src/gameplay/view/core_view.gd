@@ -114,7 +114,8 @@ var _halo_mat: ShaderMaterial = ShaderMaterial.new()
 var _ink_mat: ShaderMaterial = ShaderMaterial.new()
 var _shield_mat: StandardMaterial3D = StandardMaterial3D.new()
 var _form: int = -1
-var _meshes: Dictionary = {}
+## Body mesh per form (SimConst.Form).
+var _meshes: Dictionary[int, Mesh] = {}
 var _scale_off: Vector3 = Vector3.ZERO
 var _scale_vel: Vector3 = Vector3.ZERO
 var _spin: float = 0.0

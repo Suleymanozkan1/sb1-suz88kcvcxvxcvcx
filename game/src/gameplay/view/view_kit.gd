@@ -20,7 +20,7 @@ const ARCH_POST: float = 0.18
 
 ## Physically motivated presets per structure material: albedo scale,
 ## roughness, metallic, specular, clearcoat.
-const STRUCTURE_PRESETS: Dictionary = {
+const STRUCTURE_PRESETS: Dictionary[String, Array] = {
 	"anodised": [1.0, 0.42, 0.85, 0.5, 0.0],
 	"steel": [1.0, 0.5, 0.9, 0.5, 0.0],
 	"stone": [1.0, 0.88, 0.0, 0.3, 0.0],
@@ -92,16 +92,20 @@ var colorblind: bool = false
 var _phase_materials: Array[ShaderMaterial] = []
 var _phase_marker_meshes: Array[Mesh] = []
 var _phase_marker_materials: Array[ShaderMaterial] = []
-var _arch_meshes: Dictionary = {}
-var _membrane_meshes: Dictionary = {}
-var _track_meshes: Dictionary = {}
-var _chevron_meshes: Dictionary = {}
-var _form_materials: Dictionary = {}
-var _form_icon_meshes: Dictionary = {}
-var _form_icon_materials: Dictionary = {}
-var _gravity_strips: Dictionary = {}
+# Built-once caches, keyed by lane count ...
+var _arch_meshes: Dictionary[int, ArrayMesh] = {}
+var _membrane_meshes: Dictionary[int, QuadMesh] = {}
+var _rail_meshes: Dictionary[int, ArrayMesh] = {}
+# ... by "lanes:from:to" (slider tracks, current chevrons) or "lanes:span"
+# (gravity strips) ...
+var _track_meshes: Dictionary[String, QuadMesh] = {}
+var _chevron_meshes: Dictionary[String, QuadMesh] = {}
+var _gravity_strips: Dictionary[String, QuadMesh] = {}
+# ... and by form (SimConst.Form).
+var _form_materials: Dictionary[int, ShaderMaterial] = {}
+var _form_icon_meshes: Dictionary[int, Mesh] = {}
+var _form_icon_materials: Dictionary[int, ShaderMaterial] = {}
 var _gravity_materials: Array[ShaderMaterial] = []
-var _rail_meshes: Dictionary = {}
 
 
 func _init(world_theme: WorldTheme) -> void:
@@ -228,7 +232,7 @@ func _chevrons(color: Color, direction: float, speed: float, intensity: float) -
 
 func _structure(albedo: Color, kind: String) -> ShaderMaterial:
 	var preset: String = kind if STRUCTURE_PRESETS.has(kind) else "anodised"
-	var p: Array = STRUCTURE_PRESETS[preset] as Array
+	var p: Array = STRUCTURE_PRESETS[preset]
 	var m: ShaderMaterial = ShaderMaterial.new()
 	m.shader = STRUCTURE_SHADER
 	m.set_shader_parameter("albedo", albedo * float(p[0]))
@@ -315,7 +319,7 @@ func phase_marker_material(color: int) -> ShaderMaterial:
 ## structure material.
 func arch_mesh(lanes: int) -> ArrayMesh:
 	if _arch_meshes.has(lanes):
-		return _arch_meshes[lanes] as ArrayMesh
+		return _arch_meshes[lanes]
 	var half: float = float(lanes) * SimConst.LANE_WIDTH * 0.5 + 0.3
 	var st: SurfaceTool = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -340,7 +344,7 @@ func membrane_mesh(lanes: int) -> QuadMesh:
 		var q: QuadMesh = QuadMesh.new()
 		q.size = Vector2(float(lanes) * SimConst.LANE_WIDTH + 0.6 - ARCH_POST, ARCH_HEIGHT - ARCH_POST * 0.5)
 		_membrane_meshes[lanes] = q
-	return _membrane_meshes[lanes] as QuadMesh
+	return _membrane_meshes[lanes]
 
 
 ## Recessed floor track showing a slider's full travel (readability: range).
@@ -354,7 +358,7 @@ func track_mesh(lanes: int, from_lane: int, to_lane: int) -> QuadMesh:
 		q.orientation = PlaneMesh.FACE_Y
 		q.center_offset = Vector3((x0 + x1) * 0.5, 0.012, 0.0)
 		_track_meshes[key] = q
-	return _track_meshes[key] as QuadMesh
+	return _track_meshes[key]
 
 
 func chevron_mesh(lanes: int, from_lane: int, to_lane: int) -> QuadMesh:
@@ -367,7 +371,7 @@ func chevron_mesh(lanes: int, from_lane: int, to_lane: int) -> QuadMesh:
 		q.orientation = PlaneMesh.FACE_Y
 		q.center_offset = Vector3((x0 + x1) * 0.5, 0.015, 0.0)
 		_chevron_meshes[key] = q
-	return _chevron_meshes[key] as QuadMesh
+	return _chevron_meshes[key]
 
 
 ## Floor strip of a gravity well: [param span] long, across every lane. Its
@@ -379,7 +383,7 @@ func gravity_strip_mesh(lanes: int, span: float) -> QuadMesh:
 		q.size = Vector2(span, float(lanes) * SimConst.LANE_WIDTH + 0.3)
 		q.orientation = PlaneMesh.FACE_Y
 		_gravity_strips[key] = q
-	return _gravity_strips[key] as QuadMesh
+	return _gravity_strips[key]
 
 
 func gravity_material(heavy: bool) -> ShaderMaterial:
@@ -390,18 +394,18 @@ func gravity_material(heavy: bool) -> ShaderMaterial:
 func rail_mesh(lanes: int) -> ArrayMesh:
 	if not _rail_meshes.has(lanes):
 		_rail_meshes[lanes] = MeshFactory.chamfered_box(Vector3(float(lanes) * SimConst.LANE_WIDTH + 0.4, 0.05, 0.1))
-	return _rail_meshes[lanes] as ArrayMesh
+	return _rail_meshes[lanes]
 
 
 func form_material(form: int) -> ShaderMaterial:
 	if not _form_materials.has(form):
 		_form_materials[form] = _membrane(Palette.form_color(form, 0, false), false, 0.16)
-	return _form_materials[form] as ShaderMaterial
+	return _form_materials[form]
 
 
 func form_icon_mesh(form: int) -> Mesh:
 	if _form_icon_meshes.has(form):
-		return _form_icon_meshes[form] as Mesh
+		return _form_icon_meshes[form]
 	var mesh: Mesh
 	match form:
 		SimConst.Form.PHASE:
@@ -434,4 +438,4 @@ func form_icon_material(form: int) -> ShaderMaterial:
 		m.set_shader_parameter("color_b", c.darkened(0.3))
 		m.set_shader_parameter("intensity", 1.4)
 		_form_icon_materials[form] = m
-	return _form_icon_materials[form] as ShaderMaterial
+	return _form_icon_materials[form]
