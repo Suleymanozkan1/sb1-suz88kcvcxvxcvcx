@@ -325,17 +325,19 @@ func _collect_reveals(outcome: Dictionary) -> void:
 	services.bus.reward_granted.disconnect(capture)
 	for ach_id: String in unlocked:
 		var def: Dictionary = _achievement_def(ach_id)
-		reveals.append(
-			{
-				"eyebrow": tr_key("reveal.achievement"),
-				"title": tr_key(str(def.get("name_key", ach_id))),
-				"subtitle":
-				tr_key(str(def.get("desc_key", ""))).format(
-					{"target": int(def.get("target", 0)), "n": int(def.get("target", 0))}
-				),
-				"bundle": _granted_for(granted, ach_id)
-			}
-		)
+		var bundle: RewardBundle = _granted_for(granted, ach_id)
+		var reveal: Dictionary = {
+			"eyebrow": tr_key("reveal.achievement"),
+			"title": tr_key(str(def.get("name_key", ach_id))),
+			"subtitle":
+			tr_key(str(def.get("desc_key", ""))).format(
+				{"target": int(def.get("target", 0)), "n": int(def.get("target", 0))}
+			),
+			"bundle": bundle
+		}
+		# A skin or trail reward is named and previewed ("New skin: ...").
+		reveal.merge(Presenters.reward_items(services, bundle))
+		reveals.append(reveal)
 	for item_id: String in services.cosmetics.check_auto_unlocks():
 		var item: Dictionary = services.cosmetics_catalog.item(item_id)
 		var category: String = str(item.get("category", ""))

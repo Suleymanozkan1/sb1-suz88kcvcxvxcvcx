@@ -175,6 +175,10 @@ func _build_ui() -> void:
 	router.register(&"settings", settings)
 	settings.setting_changed.connect(func(key: String, value: Variant) -> void: s.settings.set_value(key, value))
 	settings.restore_requested.connect(_restore_purchases)
+	settings.cloud_sync_requested.connect(func() -> void: s.cloud.sync())
+	s.cloud.status_changed.connect(
+		func(_status: StringName) -> void: settings.set_cloud_status(Presenters.cloud_status(s))
+	)
 	settings.back_requested.connect(_close_settings)
 	var pause: PauseOverlay = PauseOverlay.new()
 	router.register(&"pause", pause)

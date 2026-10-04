@@ -97,6 +97,28 @@ static func worn(s: AppServices, category: String) -> Dictionary:
 	return c.catalog.typed_params(id)
 
 
+## Reveal extras for the skins and trails a granted [param bundle] contains:
+## {"item_names": {item id: localised name}, "cosmetic": {"category",
+## "params"} (preview of the first one)}; {} when it holds none.
+static func reward_items(s: AppServices, bundle: RewardBundle) -> Dictionary:
+	if bundle == null:
+		return {}
+	var names: Dictionary = {}
+	var preview: Dictionary = {}
+	for item: Dictionary in bundle.items:
+		var type: StringName = StringName(str(item.get("type", "")))
+		if type != RewardBundle.TYPE_SKIN and type != RewardBundle.TYPE_TRAIL:
+			continue
+		var id: String = str(item.get("id", ""))
+		var def: Dictionary = s.cosmetics_catalog.item(id)
+		names[id] = t(str(def.get("name_key", id)))
+		if preview.is_empty() and not def.is_empty():
+			preview = {"category": str(def.get("category", "")), "params": def.get("params", {})}
+	if names.is_empty():
+		return {}
+	return {"item_names": names, "cosmetic": preview}
+
+
 static func _hint_title(s: AppServices, hint: Dictionary) -> String:
 	match str(hint.get("type", "")):
 		"world":
@@ -266,8 +288,9 @@ static func progress(s: AppServices, tab: String, board: Dictionary) -> Dictiona
 		"player_level": p.player_level,
 		"xp": int(s.progression.xp_progress().get("into_level", 0)),
 		"xp_next": maxi(1, int(s.progression.xp_progress().get("needed", 1))),
-		"stars": s.progression.total_stars(),
+		"stars": s.progression.campaign_stars(),
 		"max_stars": s.progression.max_stars(),
+		"bonus_stars": s.progression.bonus_stars(),
 		"perfects": perfect_count,
 		"cleared": p.stat("unique_levels_cleared"),
 		"worlds": worlds_rows,
@@ -382,7 +405,18 @@ static func settings(s: AppServices, restore_status: String) -> Dictionary:
 		"settings": s.settings.snapshot(),
 		"version": AppInfo.version(),
 		"licenses": licenses_text(),
-		"restore_status": restore_status
+		"restore_status": restore_status,
+		"cloud": cloud_status(s),
+	}
+
+
+## Cloud save row of Settings: {"enabled", "syncing", "text"}. Without a
+## configured server the text says the feature is not available in this build.
+static func cloud_status(s: AppServices) -> Dictionary:
+	return {
+		"enabled": s.cloud.is_enabled(),
+		"syncing": s.cloud.is_syncing(),
+		"text": t(CloudSaveService.status_text_key(s.cloud.status)),
 	}
 
 

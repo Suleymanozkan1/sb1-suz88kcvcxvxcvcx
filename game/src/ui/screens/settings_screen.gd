@@ -1,10 +1,13 @@
 class_name SettingsScreen
 extends UiScreen
 ## Settings grouped by intent: Audio, Feel, Display, Language, Privacy,
-## Purchases, About. Every row: icon, label, one control; ≥ 64 px targets.
+## Purchases, Cloud save, About. Every row: icon, label, one control; ≥ 64 px
+## targets.
 
 signal setting_changed(key: String, value: Variant)
 signal restore_requested
+## The player asked for a cloud sync now.
+signal cloud_sync_requested
 signal back_requested
 
 const QUALITY_IDS: PackedStringArray = ["auto", "low", "medium", "high", "ultra"]
@@ -15,6 +18,8 @@ var _sliders: Dictionary = {}
 var _quality: UiSegmented
 var _language: UiSegmented
 var _restore_status: Label
+var _cloud_sync: UiButton
+var _cloud_status: Label
 var _version: Label
 var _licenses: Label
 var _licenses_box: VBoxContainer
@@ -114,6 +119,11 @@ func build() -> void:
 	_restore_status = UiKit.text("", &"caption", UiTokens.TEXT_MUTED)
 	_restore_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_child(_section(tr("settings.purchases"), [restore, _restore_status]))
+	_cloud_sync = UiKit.button(tr("cloud.sync_now"), UiKit.ButtonRole.SECONDARY, &"restore")
+	_cloud_sync.pressed.connect(func() -> void: cloud_sync_requested.emit())
+	_cloud_status = UiKit.text("", &"caption", UiTokens.TEXT_MUTED)
+	_cloud_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_child(_section(tr("settings.cloud"), [_cloud_sync, _cloud_status]))
 	_version = UiKit.text("", &"caption", UiTokens.TEXT_MUTED)
 	var show_licenses: UiButton = UiKit.button(tr("settings.licenses"), UiKit.ButtonRole.TERTIARY, &"info")
 	_licenses_box = UiKit.vbox(UiTokens.UNIT)
@@ -186,7 +196,7 @@ func _slider_row(icon_name: StringName, key: String, label: String) -> HBoxConta
 
 
 ## payload: {"settings": Dictionary, "version": String, "licenses": String,
-##           "restore_status": String}
+##           "restore_status": String, "cloud": {"enabled", "syncing", "text"}}
 func enter(payload: Dictionary) -> void:
 	var settings: Dictionary = payload.get("settings", {}) as Dictionary
 	for key: String in _toggles:
@@ -198,10 +208,21 @@ func enter(payload: Dictionary) -> void:
 	_version.text = tr("settings.version").format({"v": str(payload.get("version", ""))})
 	_licenses.text = str(payload.get("licenses", ""))
 	_restore_status.text = str(payload.get("restore_status", ""))
+	set_cloud_status(payload.get("cloud", {}) as Dictionary)
 
 
 func set_restore_status(text: String) -> void:
 	_restore_status.text = text
+
+
+## Cloud save row: [param view] is {"enabled": bool, "syncing": bool, "text":
+## String} (see Presenters.cloud_status). "Sync now" is disabled while the
+## feature is off (the text then says so) and while a sync runs.
+func set_cloud_status(view: Dictionary) -> void:
+	if _cloud_status == null:
+		return
+	_cloud_status.text = str(view.get("text", ""))
+	_cloud_sync.disabled = not bool(view.get("enabled", false)) or bool(view.get("syncing", false))
 
 
 func handle_back() -> bool:

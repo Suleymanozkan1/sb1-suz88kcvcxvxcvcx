@@ -13,7 +13,10 @@ extends RefCounted
 ## the player already owns becomes duplicate_cosmetic_coins coins, a badge the
 ## player already owns is dropped (badges are trophies, not a coin source),
 ## and an id the cosmetic callback refuses although it is not owned is unknown
-## and therefore dropped.
+## and therefore dropped. Typed cosmetic rewards ("skin", "trail") must name an
+## item of their catalog category (core_skin, trail) or they are refused.
+## Stars are bonus stars ([member PlayerProfile.bonus_stars]): they count
+## toward star unlocks, never toward a level's own three stars.
 
 const TABLES_PATH: String = "res://data/rewards/reward_tables.json"
 const SCHEMA_VERSION: int = 1
@@ -36,9 +39,21 @@ const KINDS: Array[String] = [KIND_NORMAL, KIND_CHALLENGE, KIND_BOSS]
 const SPEC_COINS: String = "coins"
 const SPEC_GEMS: String = "gems"
 const SPEC_XP: String = "xp"
+const SPEC_STARS: String = "stars"
 const SPEC_COSMETIC: String = "cosmetic"
+const SPEC_SKIN: String = "skin"
+const SPEC_TRAIL: String = "trail"
 const SPEC_BADGE: String = "badge"
-const SPEC_KEYS: Array[String] = [SPEC_COINS, SPEC_GEMS, SPEC_XP, SPEC_COSMETIC, SPEC_BADGE]
+const SPEC_KEYS: Array[String] = [
+	SPEC_COINS, SPEC_GEMS, SPEC_XP, SPEC_STARS, SPEC_COSMETIC, SPEC_SKIN, SPEC_TRAIL, SPEC_BADGE
+]
+## Spec keys whose value is an item id (all others are whole amounts).
+const SPEC_ID_KEYS: Array[String] = [SPEC_COSMETIC, SPEC_SKIN, SPEC_TRAIL, SPEC_BADGE]
+## Catalog category every typed cosmetic reward must belong to.
+const TYPED_COSMETIC_CATEGORIES: Dictionary = {
+	RewardBundle.TYPE_SKIN: CosmeticCatalog.CORE_SKIN,
+	RewardBundle.TYPE_TRAIL: CosmeticCatalog.TRAIL,
+}
 
 const MAX_STARS: int = 3
 ## Floor for the coins of a completed run, whatever the data says.
@@ -73,6 +88,7 @@ const FALLBACK_LEVEL: Dictionary = {
 	"fail_xp_min_seconds": 5.0,
 }
 const FALLBACK_MAX_XP_PER_ITEM: int = 20000
+const FALLBACK_MAX_STARS_PER_ITEM: int = 3
 const FALLBACK_WORLD_COUNT: int = 10
 
 ## Parsed reward tables (see reward_tables.json). Treat as read-only.
@@ -88,18 +104,22 @@ var _bus: EventBus
 var _economy: EconomyService
 var _grant_xp: Callable
 var _grant_cosmetic: Callable
+var _cosmetic_category: Callable
 
 
 ## [param grant_xp] is (amount: int) -> void; [param grant_cosmetic] is
-## (item_id: String) -> bool, true when the item is newly owned. When
-## [param tables_data] is empty the default tables file is loaded.
+## (item_id: String) -> bool, true when the item is newly owned;
+## [param cosmetic_category] is (item_id: String) -> String, the catalog
+## category ("" for unknown ids; without it typed skin / trail rewards are
+## refused). When [param tables_data] is empty the default tables file is loaded.
 func _init(
 	profile: PlayerProfile,
 	bus: EventBus,
 	economy: EconomyService,
 	grant_xp: Callable,
 	grant_cosmetic: Callable,
-	tables_data: Dictionary = {}
+	tables_data: Dictionary = {},
+	cosmetic_category: Callable = Callable()
 ) -> void:
 	if profile == null:
 		GameLog.error("reward", "no profile injected; using an empty in-memory profile")
@@ -112,6 +132,7 @@ func _init(
 	_economy = economy
 	_grant_xp = grant_xp
 	_grant_cosmetic = grant_cosmetic
+	_cosmetic_category = cosmetic_category
 	tables = tables_data if not tables_data.is_empty() else load_tables()
 	for problem: String in validate_tables(tables, tier_ids()):
 		GameLog.warn("reward", "reward tables: %s" % problem)
@@ -145,14 +166,15 @@ static func validate_tables(data: Dictionary, tier_ids: PackedStringArray) -> Pa
 	return errors
 
 
-## Problems with a reward spec ({"coins", "gems", "xp", "cosmetic", "badge"}).
+## Problems with a reward spec ({"coins", "gems", "xp", "stars", "cosmetic",
+## "skin", "trail", "badge"}). Item categories are checked when granting.
 static func spec_errors(spec: Dictionary) -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
 	for key: Variant in spec:
 		var key_name: String = str(key)
 		if not SPEC_KEYS.has(key_name):
 			errors.append("unknown reward key '%s'" % key_name)
-		elif key_name == SPEC_COSMETIC or key_name == SPEC_BADGE:
+		elif SPEC_ID_KEYS.has(key_name):
 			if typeof(spec[key]) != TYPE_STRING or str(spec[key]).is_empty():
 				errors.append("%s must be a non-empty id" % key_name)
 		elif EconomyService.int_or(spec[key], -1) < 0:
@@ -226,8 +248,9 @@ func compute(table_id: String, ctx: Dictionary = {}) -> RewardBundle:
 	return RewardBundle.new(table_id)
 
 
-## Builds a bundle from {"coins": n, "gems": n, "xp": n, "cosmetic": "id",
-## "badge": "id"}. Invalid entries are skipped (and logged).
+## Builds a bundle from {"coins": n, "gems": n, "xp": n, "stars": n,
+## "cosmetic": "id", "skin": "id", "trail": "id", "badge": "id"}. Invalid
+## entries are skipped (and logged).
 func bundle_from_spec(spec: Dictionary, source: String = "") -> RewardBundle:
 	var bundle: RewardBundle = RewardBundle.new(source)
 	for key: Variant in spec:
@@ -237,7 +260,7 @@ func bundle_from_spec(spec: Dictionary, source: String = "") -> RewardBundle:
 		if not spec.has(key):
 			continue
 		var value: Variant = spec[key]
-		if key == SPEC_COSMETIC or key == SPEC_BADGE:
+		if SPEC_ID_KEYS.has(key):
 			var id: String = str(value) if typeof(value) == TYPE_STRING else ""
 			if id.is_empty():
 				GameLog.warn("reward", "ignoring empty %s id (%s)" % [key, source])
@@ -254,10 +277,11 @@ func bundle_from_spec(spec: Dictionary, source: String = "") -> RewardBundle:
 
 ## Applies every item and returns a NEW bundle listing exactly what was
 ## granted: currencies through the economy (as actually credited), XP through
-## the XP callback, cosmetics and badges through the cosmetic callback. Owned
-## cosmetics become coins (id "duplicate:<item>"), owned badges, stars and
-## invalid items are dropped. Emits [signal EventBus.reward_granted] when
-## anything was granted.
+## the XP callback, stars into [member PlayerProfile.bonus_stars] (up to its
+## cap), cosmetics, skins, trails and badges through the cosmetic callback.
+## Owned cosmetics become coins (id "duplicate:<item>"); owned badges, skins or
+## trails of the wrong category and invalid items are dropped. Emits
+## [signal EventBus.reward_granted] when anything was granted.
 func grant(bundle: RewardBundle) -> RewardBundle:
 	if bundle == null:
 		return RewardBundle.new(DEFAULT_SOURCE)
@@ -272,8 +296,10 @@ func grant(bundle: RewardBundle) -> RewardBundle:
 				_grant_currency(granted, type, amount, id, source)
 			RewardBundle.TYPE_XP:
 				_grant_xp_item(granted, amount, source)
-			RewardBundle.TYPE_COSMETIC:
-				_grant_cosmetic_item(granted, id, source)
+			RewardBundle.TYPE_STARS:
+				_grant_stars_item(granted, amount, source)
+			RewardBundle.TYPE_COSMETIC, RewardBundle.TYPE_SKIN, RewardBundle.TYPE_TRAIL:
+				_grant_cosmetic_item(granted, type, id, source)
 			RewardBundle.TYPE_BADGE:
 				_grant_badge_item(granted, id, source)
 			_:
@@ -298,7 +324,8 @@ func grant_table(request: Dictionary) -> RewardBundle:
 
 ## The portion of [param bundle] to grant a second time after the player chose
 ## to watch a rewarded ad: plain currency items only (by default coins and
-## gems). XP, cosmetics, badges and duplicate compensation are never doubled.
+## gems). XP, stars, cosmetics, badges and duplicate compensation are never
+## doubled.
 func double_for_ad(bundle: RewardBundle) -> RewardBundle:
 	var source: String = (bundle.source if bundle != null else DEFAULT_SOURCE) + AD_DOUBLE_SOURCE_SUFFIX
 	var doubled: RewardBundle = RewardBundle.new(source)
@@ -355,9 +382,30 @@ func _grant_xp_item(granted: RewardBundle, amount: int, source: String) -> void:
 	granted.add(RewardBundle.TYPE_XP, amount)
 
 
-func _grant_cosmetic_item(granted: RewardBundle, id: String, source: String) -> void:
+## Bonus stars, bounded per item by limits.max_stars_per_item and in total by
+## [constant PlayerProfile.MAX_BONUS_STARS]; the bundle lists what was added.
+func _grant_stars_item(granted: RewardBundle, amount: int, source: String) -> void:
+	var limit: int = EconomyService.int_or(_dict(tables.get(SECTION_LIMITS)).get("max_stars_per_item"), -1)
+	if limit <= 0:
+		limit = FALLBACK_MAX_STARS_PER_ITEM
+	if amount <= 0 or amount > limit:
+		GameLog.warn("reward", "dropping stars item with amount %d (%s)" % [amount, source])
+		return
+	var before: int = clampi(_profile.bonus_stars, 0, PlayerProfile.MAX_BONUS_STARS)
+	_profile.bonus_stars = mini(before + amount, PlayerProfile.MAX_BONUS_STARS)
+	if _profile.bonus_stars > before:
+		granted.add(RewardBundle.TYPE_STARS, _profile.bonus_stars - before)
+
+
+## Cosmetics of [param type] cosmetic / skin / trail. Skins and trails must be
+## items of their catalog category; an owned item becomes duplicate coins.
+func _grant_cosmetic_item(granted: RewardBundle, type: StringName, id: String, source: String) -> void:
 	if id.is_empty():
-		GameLog.warn("reward", "dropping cosmetic item without id (%s)" % source)
+		GameLog.warn("reward", "dropping %s item without id (%s)" % [type, source])
+		return
+	if TYPED_COSMETIC_CATEGORIES.has(type) and _category_of(id) != str(TYPED_COSMETIC_CATEGORIES[type]):
+		var wanted: String = str(TYPED_COSMETIC_CATEGORIES[type])
+		GameLog.warn("reward", "%s '%s' is not a %s item; dropped (%s)" % [type, id, wanted, source])
 		return
 	if _profile.cosmetics_owned.has(id):
 		var coins: int = _economy.duplicate_cosmetic_coins()
@@ -366,7 +414,15 @@ func _grant_cosmetic_item(granted: RewardBundle, id: String, source: String) -> 
 			_grant_currency(granted, RewardBundle.TYPE_COINS, coins, DUPLICATE_ID_PREFIX + id, duplicate_source)
 		return
 	if _call_grant_cosmetic(id, source):
-		granted.add(RewardBundle.TYPE_COSMETIC, ITEM_AMOUNT, id)
+		granted.add(type, ITEM_AMOUNT, id)
+
+
+func _category_of(id: String) -> String:
+	if not _cosmetic_category.is_valid():
+		GameLog.error("reward", "no cosmetic category lookup; typed cosmetic '%s' cannot be checked" % id)
+		return ""
+	var category: Variant = _cosmetic_category.call(id)
+	return category as String if typeof(category) == TYPE_STRING else ""
 
 
 func _grant_badge_item(granted: RewardBundle, id: String, source: String) -> void:

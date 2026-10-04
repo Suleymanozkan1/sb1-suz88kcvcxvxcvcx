@@ -71,8 +71,8 @@ const KNOWN_STATS: PackedStringArray = [
 ]
 
 ## Reward spec keys understood by RewardEngine.bundle_from_spec.
-const REWARD_AMOUNT_KEYS: PackedStringArray = ["coins", "gems", "xp"]
-const REWARD_ID_KEYS: PackedStringArray = ["badge", "cosmetic"]
+const REWARD_AMOUNT_KEYS: PackedStringArray = ["coins", "gems", "xp", "stars"]
+const REWARD_ID_KEYS: PackedStringArray = ["badge", "cosmetic", "skin", "trail"]
 
 var _profile: PlayerProfile
 var _bus: EventBus
@@ -257,7 +257,8 @@ func validate_definitions(known_stats: PackedStringArray) -> PackedStringArray:
 	return errors
 
 
-## Validates a reward spec ([code]{"coins", "gems", "xp", "badge", "cosmetic"}[/code]).
+## Validates a reward spec ([code]{"coins", "gems", "xp", "stars", "badge", "cosmetic",
+## "skin", "trail"}[/code]; skin / trail categories are checked by [RewardEngine]).
 ## Returns the problems found (empty when valid).
 static func validate_reward(reward: Variant) -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()

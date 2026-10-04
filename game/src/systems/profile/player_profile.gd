@@ -9,8 +9,11 @@ extends RefCounted
 
 const SCHEMA_VERSION: int = 1
 const LEDGER_LIMIT: int = 50
+## Upper bound of [member bonus_stars]. Rewards pay a handful of stars in
+## total; the cap only bounds a damaged or edited save.
+const MAX_BONUS_STARS: int = 999
 ## Flags other systems read with a fixed type (mode bests are a dictionary of
-## whole numbers).
+## whole numbers; the cloud.* flags are [CloudSaveService] bookkeeping).
 const TYPED_FLAGS: Dictionary = {
 	"mode_best": TYPE_DICTIONARY,
 	"economy_starting_granted": TYPE_BOOL,
@@ -18,6 +21,9 @@ const TYPED_FLAGS: Dictionary = {
 	"last_level": TYPE_STRING,
 	"notifications.daily_day": TYPE_INT,
 	"bonus_chest_day": TYPE_INT,
+	"cloud.dirty": TYPE_BOOL,
+	"cloud.revision": TYPE_STRING,
+	"cloud.synced_at": TYPE_INT,
 }
 
 const DEFAULT_SETTINGS: Dictionary = {
@@ -42,6 +48,11 @@ var coins: int = 0
 var gems: int = 0
 var xp: int = 0
 var player_level: int = 1
+## Stars granted by rewards (achievements, events) on top of the campaign
+## stars of [member levels]. They count toward star unlocks (worlds, modes,
+## cosmetics: see [method ProgressionService.total_stars]) but never toward a
+## level's 3 stars or the campaign "x / max" totals.
+var bonus_stars: int = 0
 ## level_id -> {"stars", "best_score", "perfect", "clears", "attempts", "best_combo", "best_time"}
 var levels: Dictionary = {}
 var unlocked_worlds: Array[String] = ["neon_core"]
@@ -91,6 +102,9 @@ func is_cleared(level_id: String) -> bool:
 	return _int(level_result(level_id), "clears", 0) > 0
 
 
+## Campaign stars only: the sum of the stored level records (0..3 each).
+## [member bonus_stars] are not included; the unlock total that adds them (and
+## ignores records of unknown levels) is [method ProgressionService.total_stars].
 func total_stars() -> int:
 	var total: int = 0
 	for id: Variant in levels:
@@ -117,6 +131,7 @@ func to_dict() -> Dictionary:
 		"gems": gems,
 		"xp": xp,
 		"player_level": player_level,
+		"bonus_stars": bonus_stars,
 		"levels": levels.duplicate(true),
 		"unlocked_worlds": Array(unlocked_worlds),
 		"stats": stats.duplicate(),
@@ -145,6 +160,7 @@ static func from_dict(data: Dictionary) -> PlayerProfile:
 	p.gems = maxi(0, _int(data, "gems", 0))
 	p.xp = maxi(0, _int(data, "xp", 0))
 	p.player_level = maxi(1, _int(data, "player_level", 1))
+	p.bonus_stars = clampi(_int(data, "bonus_stars", 0), 0, MAX_BONUS_STARS)
 	p.levels = _sanitize_levels(data.get("levels", {}))
 	p.unlocked_worlds = _string_array(data.get("unlocked_worlds", ["neon_core"]))
 	if not p.unlocked_worlds.has("neon_core"):
@@ -173,6 +189,40 @@ static func from_dict(data: Dictionary) -> PlayerProfile:
 	while p.ledger.size() > LEDGER_LIMIT:
 		p.ledger.remove_at(0)
 	return p
+
+
+## Replaces every persisted field of this profile with a copy of
+## [param other]'s, keeping this object (every service holds a reference to
+## it) and the identity of its top-level containers. Used when a cloud merge
+## is applied; [param other] should come from [method from_dict].
+func copy_from(other: PlayerProfile) -> void:
+	if other == null:
+		return
+	install_id = other.install_id
+	created_at = other.created_at
+	coins = other.coins
+	gems = other.gems
+	xp = other.xp
+	player_level = other.player_level
+	bonus_stars = other.bonus_stars
+	PlayerProfile._replace_dict(levels, other.levels)
+	unlocked_worlds.assign(other.unlocked_worlds)
+	PlayerProfile._replace_dict(stats, other.stats)
+	cosmetics_owned.assign(other.cosmetics_owned)
+	PlayerProfile._replace_dict(cosmetics_equipped, other.cosmetics_equipped)
+	PlayerProfile._replace_dict(achievements, other.achievements)
+	PlayerProfile._replace_dict(missions, other.missions)
+	PlayerProfile._replace_dict(daily, other.daily)
+	PlayerProfile._replace_dict(settings, other.settings)
+	purchases.assign(other.purchases)
+	pending_submissions.assign(other.pending_submissions.duplicate(true))
+	PlayerProfile._replace_dict(flags, other.flags)
+	ledger.assign(other.ledger.duplicate(true))
+
+
+static func _replace_dict(target: Dictionary, source: Dictionary) -> void:
+	target.clear()
+	target.merge(source.duplicate(true))
 
 
 static func _int(d: Dictionary, key: String, fallback: int) -> int:
