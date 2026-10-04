@@ -415,6 +415,19 @@ These elements have a job, but the audit found a gap. The first seven were close
 * ~~`reward.wav`, `level_up.wav` and `unlock.wav` never play~~: each reveal names its cue (`level_up` for
   level-ups, `unlock` for worlds and cosmetics, `reward` otherwise) and `RevealQueue.show_next` plays it as the reveal opens.
 
-Still open:
+* ~~The sky is screen-locked (`SCREEN_UV`)~~: the background is laid out from the eye direction in the
+  camera's rest frame (identical at rest), so lean, shake and lane follow turn the view across it.
 
-* The sky is screen-locked (`SCREEN_UV`): camera lean and shake move the world but not the sink.
+The round-5 review of 24 levels (2–3 per world, every new mechanic, captured at 15 %, 50 % and 85 %)
+and the independent view review R-6 found and fixed:
+
+* Passed gate arches and pulse-gate shutters crossed the camera's line to the core for over a metre of
+  travel: they now sink into the floor as the core leaves them (`EntityView.arch_sink`).
+* In PHASE / DASH / SURGE the core body mixed the form colour with the skin's second colour, so the
+  warm-white dash core read grey-olive in Cloud Factory: outside HOP the second colour is a shade of the
+  form colour.
+* 8-bit banding rings in the core's floor light on glossy floors: debanding is on.
+* The High-quality reflection probe mirrored hazard orange onto ice and crystal ribs: the probe captures
+  only the environment layer.
+
+None open from this audit.
