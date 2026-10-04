@@ -211,7 +211,7 @@
  },
  "REQ-043": {
   "status": "IMPLEMENTED",
-  "evidence": "Tap is the only input (GameFlow._unhandled_input -> GameplaySession.request_tap, gap RunReplay.MIN_TAP_GAP_TICKS); stored solutions use 7993 hop, 2124 phase, 1246 dash, 2764 surge taps (probe).",
+  "evidence": "Tap is the only input (GameFlow._unhandled_input -> GameplaySession.request_tap, gap RunReplay.MIN_TAP_GAP_TICKS); stored solutions use 10741 hop, 2920 phase, 1783 dash, 3818 surge taps (probe of the shipped levels).",
   "note": "Checked in code, shipped data and headless tests."
  },
  "REQ-044": {
@@ -1166,7 +1166,7 @@
  },
  "REQ-234": {
   "status": "IMPLEMENTED",
-  "evidence": "Constructor-injected RefCounted systems (e.g. QualityService._init(settings, bus, presets)); only src/app and services.gd use the Services autoload (grep); 83 test files / 890 passing tests; untyped declarations are errors in project.godot.",
+  "evidence": "Constructor-injected RefCounted systems (e.g. QualityService._init(settings, bus, presets)); only src/app and services.gd use the Services autoload (grep); 83 test files / 893 passing tests; untyped declarations are errors in project.godot.",
   "note": "Specific gaps are tracked separately: broad coordinators (REQ-235), inline literals (REQ-237) and untyped Dictionary containers (REQ-239)."
  },
  "REQ-235": {
@@ -1286,8 +1286,8 @@
  },
  "REQ-258": {
   "status": "IMPLEMENTED",
-  "evidence": "game/tests/unit: 72 suites of test_* methods (plus 11 integration suites) (sim, levels, save, economy, rewards, cosmetics, progression, stats, meta, online, platform, feel) run by game/tests/run_tests.gd, which also fails tests that hit script errors; full run: 890 tests, 0 failed.",
-  "note": "890 tests, 0 failed in the final full run (83 test files incl. integration); the runner also fails any test file that cannot load."
+  "evidence": "game/tests/unit: 72 suites of test_* methods (plus 11 integration suites) (sim, levels, save, economy, rewards, cosmetics, progression, stats, meta, online, platform, feel) run by game/tests/run_tests.gd, which also fails tests that hit script errors; full run: 893 tests, 0 failed.",
+  "note": "893 tests, 0 failed in the final full run (83 test files incl. integration); the runner also fails any test file that cannot load."
  },
  "REQ-259": {
   "status": "IMPLEMENTED",
@@ -1491,7 +1491,7 @@
  },
  "REQ-299": {
   "status": "PARTIAL",
-  "evidence": "Final steps run at the end on the final tree: git status, Android test APK export (33 MB arm64, v2+v3 verified), iOS Xcode project export (and the unsigned device build in CI), 890 tests, full level validation (520/520) and regeneration check (0 mismatches), licence check, placeholder scan, dead-code probe (20 unused functions removed), gdlint, and a final independent review of the last fix round (R-FINAL: 0 critical / 0 major / 5 minor, 4 fixed, 1 by design); results in report sections 29 and 32-35.",
+  "evidence": "Final steps run at the end on the final tree: git status, Android test APK export (33 MB arm64, v2+v3 verified), iOS Xcode project export (and the unsigned device build in CI), 893 tests, full level validation (520/520) and regeneration check (0 mismatches), licence check, placeholder scan, dead-code probe (20 unused functions removed), gdlint, and a final independent review of the last fix round (R-FINAL: 0 critical / 0 major / 5 minor, 4 fixed, 1 by design); results in report sections 29 and 32-35.",
   "note": "CodeRabbit runs are BLOCKED (CLI unreachable); substitute reviews used."
  },
  "REQ-300": {

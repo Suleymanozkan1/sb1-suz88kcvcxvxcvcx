@@ -35,6 +35,7 @@ fix, verification). To run real CodeRabbit later: install the CLI on a machine w
 | M9 | Optimization & platform services | `3ebda43`→`22bc293`, `933e677`→`f3fab46` | Module reviews R-FEEL, R-PLAT + R-INT (view-perf) |
 | M10 | Release build | `export_presets.cfg`, CI, Android debug APK | R-INT (security-data) + export verification (signed debug APK, all 520 levels packaged) |
 | M11 | Round 5: mass & gravity mechanics, cloud save, music lock, visual quality, performance budgets, refactors | `83c86ef` → `f0f3391` | Independent review R-6 (three areas) + 24-level visual review |
+| M12 | Early-pacing pass after player feedback, iOS device build in CI | `f7cfff3`, `914c96f` | Independent review R-7 |
 
 ## Module reviews (one independent reviewer per module, fixes committed on `review/<module>`)
 
@@ -156,6 +157,29 @@ hiding the core (`9b64e2d`, `69f3f09`), the muddy dash core in high-key worlds, 
 probe mirroring hazard colour onto ribs. Verification after the fixes: full suite 885 tests, 0 failed;
 520/520 levels validate (worst tap window 150 ms); regeneration reproduces all 520 files.
 
+## Pacing review R-7 (one independent reviewer, 2026-10-04)
+
+The first player report on the APK said the game stayed too simple for too long. The pacing pass
+(`914c96f`: front-loaded curve, 10/8 m lead-in and tail, three-level tutorial, sliders at L14, all 520
+levels regenerated) and the CI change that builds the iOS device app with Xcode 26 (`f7cfff3`) were
+reviewed by a reviewer that had not written them. The reviewer reproduced every finding with headless
+probes, changed nothing, and found 0 critical, 2 major and 7 minor issues; all nine are fixed in `a0be5ae`.
+
+| # | Severity | Finding | Fix | Regression test |
+|---|---|---|---|---|
+| R7-1 | major | The 10 m lead-in made 14 World 5 (surge) levels demand a tap 0.53–0.58 s after GO (w05_l16: 0.17–0.40 s), although a tap during READY only starts the run; nothing limited how soon the first decision may be due. | Validator rule: no tap may be due before `FIRST_DECISION_S` (1.0 s) after GO; the generator refuses such windows (the row moves further away or the slot goes calm). | `unit/test_level_pacing.gd::test_the_first_decision_leaves_time_to_read`; all 520 levels validate under the rule |
+| R7-2 | major | Endless, Time Attack and Zen are built from campaign specs, so the curve change retuned them silently (Zen, "slower, no score pressure", went from 0.36 to 0.68 taps/s; Endless 0.24 → 0.66). | Streams pin `change_prob` and `density` per mode in `modes.json` (Zen 0.4/0.6 → about 0.43 taps/s; Endless and Time Attack keep the busier pace on purpose). | `unit/test_level_pacing.gd::test_streamed_modes_keep_their_pace` |
+| R7-3 | minor | `RunController.TUTORIAL_LAST_LEVEL` still named w01_l05, no longer a tutorial level. | `w01_l03`. | `test_the_tutorial_is_short` checks it is the last tutorial level |
+| R7-4 | minor | Docs claimed "a lane change every 1.2–1.8 s" from level 4 (chapter averages, not per level), the shield at L27 and prisms from L4 (data: L28, L5). | Docs give averages and per-level ranges; the shield is now in L27 (R7-6). | — |
+| R7-5 | minor | REQ-078/079/080 evidence still described the old tiers and phases. | Updated. | — |
+| R7-6 | minor | w01_l27 showed "New: a shield absorbs one hit" without a shield. | A chapter that introduces a pickup places it at the first pickup spot of each introduction level. | `test_every_introduction_level_shows_its_idea` |
+| R7-7 | minor | The pacing tests were too weak (a 0.25 taps/s floor, nothing on the lead-in, a tutorial check the generator guarantees anyway). | Floors 0.3 / 0.6 / 0.75 taps/s, first row within 2.8 s, tutorial slower and shorter than level 4, sliders in every L14–25 level. | `unit/test_level_pacing.gd` (7 tests) |
+| R7-8 | minor | The CI step could pick a beta or release-candidate Xcode (`sort -V` puts `26.1_beta_2` after `26.1`). | Betas and release candidates are filtered out. | CI job |
+| R7-9 | minor | Every course changed but `SIM_VERSION` and `GENERATOR_VERSION` did not, so a run from an older build would be rejected as a score mismatch instead of an old version. | `SIM_VERSION` 4, `GENERATOR_VERSION` 2. | Existing replay-version tests |
+
+Verification after the fixes: 520 levels regenerated (0 failures) and validated (0 failed, 0 warnings),
+full suite 893 tests, 0 failed.
+
 ## Milestone review log (per milestone)
 
 | Milestone | Date | Commit(s) | Scope | Critical | Major | Minor | Fixed | Remaining | Final status |
@@ -171,11 +195,12 @@ probe mirroring hazard colour onto ribs. Verification after the fixes: full suit
 | M9 Optimization & platform | 2026-10-03 | `22bc293`, `f3fab46`, `055562e`, follow-up | R-FEEL, R-PLAT, audio/loading/allocations | 0 | 9 | 24 | 33 | 0 | reviewed, fixed |
 | M10 Release build | 2026-10-03 | export presets, CI, follow-up | iOS team ID, licence notices, docs | 0 | 1 | 2 | 3 | 0 | Android debug APK + iOS Xcode project exported; signing BLOCKED |
 | M11 Round 5 | 2026-10-04 | `6cc5fc8`, `69f3f09`, `a6ba2be` | R-6 sim/levels, app/systems (cloud save), view/shaders/tools | 3 | 10 | 12 | 23 | 0 (2 accepted, documented) | reviewed, fixed |
-| **Total** | | | | **16** | **77** | **119** | **207 of 212** | **0 open** | |
+| M12 Pacing pass | 2026-10-04 | `a0be5ae` | R-7 pacing, modes, CI | 0 | 2 | 7 | 9 | 0 | reviewed, fixed |
+| **Total** | | | | **16** | **79** | **126** | **216 of 221** | **0 open** | |
 
 Every critical and major finding above, row by row (issue → fix → commit → regression test → verification → status, critical first): `docs/REVIEW_FINDINGS.md`.
 
-The per-milestone counts assign every module, integrated and round-5 finding (95 + 92 + 25 = 212) to the milestone
+The per-milestone counts assign every module, integrated, round-5 and pacing finding (95 + 92 + 25 + 9 = 221) to the milestone
 whose code it concerns; each finding is counted once. The five findings not fixed are R-SAVE's two
 accepted, documented limits, R-FINAL's Time Attack unlock note (by design, see above) and R-6's two accepted,
 documented items (probe draw calls outside the counter; consent clearing a developer's local analytics log). Real CodeRabbit runs

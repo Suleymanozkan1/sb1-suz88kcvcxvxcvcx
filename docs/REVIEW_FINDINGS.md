@@ -2,8 +2,8 @@
 
 Every critical and major finding of the substitute reviews (CodeRabbit could not run, see
 `docs/CODERABBIT_REPORT.md`) as one row: issue, fix, fix commit, regression test, verification and status.
-Critical rows come first, then major; inside each severity the rows follow the milestones M1–M11 of the
-CodeRabbit report. Minor findings (119) are summarised in `docs/CODERABBIT_REPORT.md` and are not repeated here.
+Critical rows come first, then major; inside each severity the rows follow the milestones M1–M12 of the
+CodeRabbit report. Minor findings (126) are summarised in `docs/CODERABBIT_REPORT.md` and are not repeated here.
 
 ## Method: issue → task → fix → test → full-suite re-run → verify
 
@@ -57,7 +57,7 @@ found by the requirement assessment.
 | R6-APP-2 | critical | Cloud save / M11 | The wallet was last-writer-wins by device clock: purchases on two devices cost once, a slow clock undid a purchase, earnings were lost. | `WalletMerge`: per currency `max(0, remote + (local − base))`; purchases and once-only rewards made on both devices count once; a lost push answer is recognised by a per-device push counter. | `a6ba2be` | `unit/test_online_cloud_regressions.gd::test_device_clock_skew_cannot_undo_a_purchase`; `::test_both_devices_spends_and_star_rewards_apply_once`; `::test_a_purchase_or_reward_made_on_both_devices_counts_once`; `::test_a_lost_push_answer_never_duplicates_the_wallet` | Scripts `skew.gd`, `stars_and_dup.gd` as tests; fail before, pass after. | Fixed |
 | R6-APP-3 | critical | Cloud save / M11 | A merge emitted the wallet delta as earned coins, inflating `coins_earned` and paying achievements nobody earned (`coins_50000`). | Merged currencies are applied without the earning signal; `coins_earned` merges by maximum. | `a6ba2be` | `integration/test_cloud_boot.gd::test_a_merge_is_not_earning` | Script `earned.gd` as a test; fails before, passes after. | Fixed |
 
-## Major (77)
+## Major (79)
 
 | ID | Sev. | Area / milestone | Issue | Fix | Fix commit | Regression test | Verification | Status |
 |---|---|---|---|---|---|---|---|---|
@@ -127,7 +127,7 @@ found by the requirement assessment.
 | R-PLAT-M4 | major | Platform / M9 | Consent copy promised "anonymous" statistics although events carry an install id. | EN/TR copy says what is actually sent. | `f3fab46` | `unit/test_platform_i18n.gd::test_consent_copy_does_not_overclaim_anonymity` | Test added with the fix; platform suite re-run. | Fixed |
 | R-PLAT-M5 | major | Platform / M9 | A granted revive that was never resumed cost the next level its revive. | Resume must match the revived run's level id. | `f3fab46` | `unit/test_platform_ads.gd::test_unresumed_revive_does_not_cost_the_next_level_its_revive` | Test added with the fix; platform suite re-run. | Fixed |
 | R-PLAT-M6 | major | Platform / M9 | The URL guard allowed local HTTP in release, `user@host` tricks, backslashes and redirects. | Debug-only local HTTP, authority checks, no redirects. | `f3fab46` | `unit/test_platform_network.gd::test_url_guard_refuses_credentials_and_lookalike_hosts`; `unit/test_platform_network.gd::test_http_transport_does_not_follow_redirects` | Redirect test runs against a real local TCP server; platform suite re-run. | Fixed |
-| R-STATUS-6 | major | Release build / M10 | The iOS export failed without an Apple team id. | CI passes `IOS_TEAM_ID` (secret) with a non-signing fallback. | `4d3eb5f` | No test function (CI `ios` job, `.github/workflows/ci.yml`) | iOS Xcode project exported on Linux with a team id (`docs/FINAL_IMPLEMENTATION_REPORT.md` §33); CI not yet observed running on GitHub. | Fixed (CI run pending) |
+| R-STATUS-6 | major | Release build / M10 | The iOS export failed without an Apple team id. | CI passes `IOS_TEAM_ID` (secret) with a non-signing fallback; the job now also compiles and links the unsigned arm64 device app with Xcode 26 (`f7cfff3`). | `4d3eb5f` | No test function (CI `ios` job, `.github/workflows/ci.yml`) | GitHub Actions run 37188419595: export and device build green (`** BUILD SUCCEEDED **`, Xcode 26.3). | Fixed |
 | R6-SIM-1 | major | Sim and levels / M11 | Dashing through a stack-crash glass row kept the full plate stack, so a later launch planned for a lighter core could not clear its wall (w10_l33, w10_l50 failed after one reasonable extra tap). | A full stack smashes glass and is spent even mid-dash; the generator plans each launch's landing for the lightest core; the validator flies every launch with every smaller stack; 22 World 10 levels regenerated. | `6cc5fc8` | `unit/test_sim_mass_gravity.gd::test_a_dash_never_keeps_a_full_stack`; `unit/test_level_mass_gravity.gd::test_no_extra_dash_keeps_a_stack_the_level_spends` | Reviewer's `dash_keep_all.gd` scenario; 520/520 levels validate after the regeneration. | Fixed |
 | R6-APP-4 | major | Cloud save / M11 | The cloud dirty flag was set after the save was written, so a pause or quit right after a change lost it and the change was never uploaded. | `AppServices._write_save()` decides the flag before every write; the upload record is saved before the request; a stored fingerprint catches changes saved without the flag. | `a6ba2be` | `integration/test_cloud_boot.gd::test_pause_right_after_a_change_keeps_the_cloud_flag_on_disk`; `::test_commit_on_leave_keeps_the_cloud_flag_on_disk`; `unit/test_online_cloud_regressions.gd::test_a_change_saved_without_the_flag_still_goes_up` | Script `pause_flag.gd` as tests. | Fixed |
 | R6-APP-5 | major | Cloud save / M11 | Changes made while a download was in flight were marked synced and never uploaded. | The profile is fingerprinted when the request leaves; changes made meanwhile go up in the same sync. | `a6ba2be` | `unit/test_online_cloud_regressions.gd::test_changes_during_a_download_still_go_up` | Script `inflight.gd` as a test. | Fixed |
@@ -137,6 +137,8 @@ found by the requirement assessment.
 | R6-VIEW-3 | major | Gameplay view / M11 | A pooled hazard view kept the previous entity's per-instance shader values (a current drew a gravity well's arrow count). | `EntityView.pool_reset` restores the shaders' defaults. | `69f3f09` | `integration/test_view_detail_audit.gd::test_reused_views_and_motes_start_clean` | Reviewer's `pool_run.gd` (w09_l48, w09_l50). | Fixed |
 | R6-VIEW-4 | major | Shop UI / M11 | The core-skin swatch overwrote the incoming colour, so screen fades did not reach it. | The swatch multiplies by the incoming colour. | `69f3f09` | None dedicated (shader) | Reviewer's swatch renders; shader line checked. | Fixed |
 | R6-VIEW-5 | major | Gameplay view / M11 | On High/Ultra the reflection probe mirrored hazards and energy onto ice and crystal ribs (WARNING orange on structure). | Gameplay pieces render on their own layer; the probe captures only the environment layer. | `69f3f09` | `integration/test_view_detail_audit.gd::test_the_probe_mirrors_only_the_environment` | Re-render of w07_l20 on High (Mobile renderer): no orange on the ribs. | Fixed |
+| R7-1 | major | Level system / M12 | After the pacing pass's 10 m lead-in, 14 World 5 (surge) levels demanded a tap 0.53–0.58 s after GO (w05_l16: 0.17–0.40 s); a tap during READY only starts the run, and no rule limited how soon the first decision may be due. | `LevelValidator.FIRST_DECISION_S` (1.0 s): the validator refuses an earlier first tap and the generator refuses such windows; 520 levels regenerated. | `a0be5ae` | `unit/test_level_pacing.gd::test_the_first_decision_leaves_time_to_read` | Reviewer's first-tap deadline probe; 520/520 levels validate under the rule. | Fixed |
+| R7-2 | major | Modes / M12 | Endless, Time Attack and Zen are built from campaign specs, so the curve change retuned them unannounced (Zen 0.36 → 0.68 taps/s, Endless 0.24 → 0.66). | `modes.json` pins `change_prob` and `density` per stream; Zen back to about 0.43 taps/s, Endless and Time Attack kept busier on purpose. | `a0be5ae` | `unit/test_level_pacing.gd::test_streamed_modes_keep_their_pace` | Reviewer's 400 m planned-tap probe re-run per mode. | Fixed |
 | R6-VIEW-6 | major | Tools / M11 | The perf probe's draw-call counter does not include reflection-probe re-captures, so High/Ultra draw-call budgets cannot see them. | Accepted and documented: the cost shows in frame time and video memory (`docs/ARCHITECTURE.md` §9). | — | n/a | Reviewer's `probe_drawcalls2/3.gd`. | Accepted, documented |
 
 ## Summary
@@ -156,19 +158,21 @@ By milestone (rows in this file), matching the per-milestone table of `docs/CODE
 | M9 Optimization & platform | 0 | 9 |
 | M10 Release build | 0 | 1 |
 | M11 Round 5 (R-6) | 3 | 10 |
-| **Total** | **16** | **77** |
+| M12 Pacing pass (R-7) | 0 | 2 |
+| **Total** | **16** | **79** |
 
 (`view-perf-05` touches the quality service of M9 but is counted under M2 with the rest of the view review, as
 in the CodeRabbit report's M2 row: 2 critical, 7 major.)
 
-Status: 91 of 93 fixed, 1 closed as refuted without a code change (`security-data-4`), 1 accepted and documented (`R6-VIEW-6`). The CodeRabbit report's
-"184 of 187 fixed" counts that refuted finding among the fixed ones; its three "not fixed" items are minor.
+Status: 93 of 95 fixed, 1 closed as refuted without a code change (`security-data-4`), 1 accepted and documented (`R6-VIEW-6`). The CodeRabbit report's
+"216 of 221 fixed" counts that refuted finding among the fixed ones; its five "not fixed" items are `R6-VIEW-6` and four minor
+ones (R-SAVE's two documented limits, R-FINAL's by-design note, R-6's analytics-consent note).
 
 Loop gaps (honest list): 9 fixed rows have no dedicated automated regression test and rest on the reviewer's
 re-run probe (not committed): `app-flow-02`, `app-flow-05`, `app-flow-06`, `app-flow-07` (presenter),
 `app-flow-09`, `app-flow-10`, `gameplay-core-2`, `view-perf-08`, `R-ONLINE-M8`; `app-flow-01` has a test for its
 residual only. Round 5: `R6-VIEW-1` and `R6-VIEW-4` rest on the reviewer's measurement and render. `R-STATUS-2` is guarded by the level validator in CI rather than a test function, and
-`R-STATUS-6` by the CI iOS job, which has not been observed running. These are the next tests to add.
+`R-STATUS-6` by the CI iOS job (observed green, run 37188419595). These are the next tests to add.
 
 ### Re-run for this tracker
 
