@@ -16,6 +16,35 @@ const MAX_SPRING_DELTA: float = 0.1
 ## How much the camera rises with a launched core (and how much its aim does).
 const LIFT_FOLLOW: float = 0.4
 const LIFT_LOOK: float = 0.25
+## FOV kicks fade at this many degrees per second.
+const FOV_PUNCH_DECAY: float = 30.0
+## Lane follow: the camera slides a share of the core's x, eased at this rate.
+const LATERAL_FOLLOW: float = 0.35
+const LATERAL_RATE: float = 6.0
+## Its aim follows a share of that slide (the core drifts in frame, the horizon
+## stays calm).
+const LOOK_LATERAL: float = 0.6
+## Level-start reveal: the sweep (1 → 0) runs at this rate per second on an
+## ease-in curve, starting this much higher and further back (world units) and
+## wider (degrees of FOV).
+const REVEAL_SPEED: float = 1.3
+const REVEAL_EASE: float = 2.2
+const REVEAL_RISE: float = 6.0
+const REVEAL_PULL_BACK: float = 9.0
+const REVEAL_FOV: float = 8.0
+## Shake noise: two sine waves per axis at unrelated rates (radians per second),
+## the second at SHAKE_OVERTONE of the first's amplitude, so it never repeats
+## visibly.
+const SHAKE_RATE_X: float = 47.0
+const SHAKE_RATE_X2: float = 31.0
+const SHAKE_RATE_Y: float = 53.0
+const SHAKE_RATE_Y2: float = 23.0
+const SHAKE_OVERTONE: float = 0.5
+## The aim shakes at this share of the position, so the frame jolts rather
+## than swings.
+const SHAKE_ON_AIM: float = 0.5
+## Roll (degrees) per unit of lateral lean impulse.
+const ROLL_PER_IMPULSE: float = 3.0
 
 var camera: Camera3D
 var shake_scale: float = 1.0
@@ -77,24 +106,22 @@ func follow(core_pos: Vector3, delta: float, lift: float = 0.0) -> void:
 		_impulse += _impulse_vel * h
 		remaining -= h
 	trauma = maxf(0.0, trauma - TRAUMA_DECAY * delta)
-	_fov_punch = move_toward(_fov_punch, 0.0, delta * 30.0)
-	reveal = move_toward(reveal, 0.0, delta * 1.3)
-	_lateral = lerpf(_lateral, core_pos.x * 0.35, 1.0 - exp(-6.0 * delta))
-	var r: float = ease(reveal, 2.2)
-	var offset: Vector3 = BASE_OFFSET + Vector3(0.0, 6.0 * r, 9.0 * r)
+	_fov_punch = move_toward(_fov_punch, 0.0, delta * FOV_PUNCH_DECAY)
+	reveal = move_toward(reveal, 0.0, delta * REVEAL_SPEED)
+	_lateral = lerpf(_lateral, core_pos.x * LATERAL_FOLLOW, 1.0 - exp(-LATERAL_RATE * delta))
+	var r: float = ease(reveal, REVEAL_EASE)
+	var offset: Vector3 = BASE_OFFSET + Vector3(0.0, REVEAL_RISE * r, REVEAL_PULL_BACK * r)
 	var target: Vector3 = Vector3(_lateral, lift * LIFT_FOLLOW, core_pos.z)
 	var shake: float = trauma * trauma * MAX_SHAKE * shake_scale
-	var shake_v: Vector3 = (
-		Vector3(
-			sin(_noise_t * 47.0) + sin(_noise_t * 31.0) * 0.5, cos(_noise_t * 53.0) + sin(_noise_t * 23.0) * 0.5, 0.0
-		)
-		* shake
-	)
+	var shake_x: float = sin(_noise_t * SHAKE_RATE_X) + sin(_noise_t * SHAKE_RATE_X2) * SHAKE_OVERTONE
+	var shake_y: float = cos(_noise_t * SHAKE_RATE_Y) + sin(_noise_t * SHAKE_RATE_Y2) * SHAKE_OVERTONE
+	var shake_v: Vector3 = Vector3(shake_x, shake_y, 0.0) * shake
 	global_position = target + offset + _impulse * shake_scale + shake_v
 	var look_y: float = LOOK_HEIGHT + lift * LIFT_LOOK
-	camera.look_at(Vector3(_lateral * 0.6, look_y, core_pos.z - LOOK_AHEAD) + shake_v * 0.5, Vector3.UP)
-	camera.rotate_object_local(Vector3.FORWARD, deg_to_rad(-_impulse.x * 3.0 * shake_scale))
-	camera.fov = BASE_FOV + (_fov_punch + 8.0 * r) * shake_scale
+	var aim: Vector3 = Vector3(_lateral * LOOK_LATERAL, look_y, core_pos.z - LOOK_AHEAD)
+	camera.look_at(aim + shake_v * SHAKE_ON_AIM, Vector3.UP)
+	camera.rotate_object_local(Vector3.FORWARD, deg_to_rad(-_impulse.x * ROLL_PER_IMPULSE * shake_scale))
+	camera.fov = BASE_FOV + (_fov_punch + REVEAL_FOV * r) * shake_scale
 
 
 func reset_state() -> void:

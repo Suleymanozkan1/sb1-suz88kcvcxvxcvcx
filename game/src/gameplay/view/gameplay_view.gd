@@ -5,7 +5,8 @@ extends Node3D
 ## effect has one job (information, impact, reward, progression, atmosphere).
 ##
 ## Emits [signal feedback] so audio/haptics systems react without the view
-## depending on them.
+## depending on them. How strongly it reacts to each simulation event (hit-stop,
+## shake, squash, post effects, feedback strength) is named in [FeelTuning].
 
 signal feedback(kind: StringName, strength: float, pitch_step: int)
 
@@ -14,8 +15,6 @@ const FLOOR_SHADER: Shader = preload("res://assets/shaders/floor.gdshader")
 const POST_SHADER: Shader = preload("res://assets/shaders/post_fx.gdshader")
 const MEMBRANE_SHADER: Shader = preload("res://assets/shaders/membrane.gdshader")
 const VIEW_AHEAD: float = 75.0
-## Camera shake, lean and FOV kicks with "reduce motion" on (fraction of full).
-const REDUCED_CAMERA_MOTION: float = 0.2
 const VIEW_BEHIND: float = 6.0
 const RIB_SPACING: float = 7.0
 const RIB_COUNT: int = 16
@@ -26,16 +25,16 @@ const CORE_Y: float = 0.38
 const SILHOUETTE_DISTANCE: float = 150.0
 const SILHOUETTE_PARALLAX: float = 0.03
 const SILHOUETTE_MAX_APPROACH: float = 40.0
-const ATMOSPHERE_MAX_ALPHA: float = 0.08
 ## Bursts whose colour and size follow the equipped particle style.
 const SKINNED_BURSTS: PackedStringArray = ["collect", "prism", "streak"]
+## Colour slots of the equipped particle style for those bursts.
+const PARTICLE_SLOT_SPARK: int = 0
+const PARTICLE_SLOT_PRISM: int = 1
+const PARTICLE_SLOT_STREAK: int = 2
+## GRAVITY_ENTER carries the well's gravity in percent: above normal is heavy.
+const NORMAL_GRAVITY_PERCENT: int = 100
 const FOG_BEGIN: float = 28.0
 const FOG_END: float = 115.0
-## Juice budgets (ART_DIRECTION §9).
-const SHAKE_FAIL: float = 0.6
-const SHAKE_SHIELD: float = 0.35
-const SHAKE_SHATTER: float = 0.12
-const SHAKE_LAND: float = 0.08
 const SHAFT_SHADER: Shader = preload("res://assets/shaders/light_shaft.gdshader")
 ## Light shafts: a few tall beams spread across the shaft far ahead of the
 ## core, at most 8 % opacity (ART_DIRECTION §7).
@@ -49,8 +48,6 @@ const PROBE_HEIGHT: float = 2.0
 const CORE_SHADOW_SIZE: float = 0.9
 const CORE_SHADOW_ALPHA: float = 0.32
 const CORE_SHADOW_FALLOFF: float = 0.5
-const HOP_LEAN: float = 0.15
-const NEAR_MISS_SLOWMO_COMBO: int = 10
 
 var session: GameplaySession
 var theme: WorldTheme
@@ -76,7 +73,7 @@ var reduce_motion: bool = false:
 	set(value):
 		reduce_motion = value
 		if camera_rig != null:
-			camera_rig.shake_scale = REDUCED_CAMERA_MOTION if value else 1.0
+			camera_rig.shake_scale = FeelTuning.REDUCED_CAMERA_MOTION if value else 1.0
 var _core_skin: Dictionary = {}
 ## Equipped particle / effect / background cosmetics ({} = the art direction's
 ## own palette, i.e. the default item).
@@ -99,7 +96,9 @@ var _finish: Node3D
 var _finish_membrane: MeshInstance3D
 var _finish_arch: MeshInstance3D
 var _pool: NodePool
-var _active: Dictionary = {}
+## Course entity index -> its pooled view, for every hazard, gate and pickup
+## currently drawn (sparks and prisms live in [member sparks]).
+var _active: Dictionary[int, EntityView] = {}
 var _spawn_cursor: int = 0
 var _chroma: float = 0.0
 var _shock: float = 0.0
@@ -149,7 +148,7 @@ func _ensure_built() -> void:
 	key_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	add_child(key_light)
 	camera_rig = CameraRig.new()
-	camera_rig.shake_scale = REDUCED_CAMERA_MOTION if reduce_motion else 1.0
+	camera_rig.shake_scale = FeelTuning.REDUCED_CAMERA_MOTION if reduce_motion else 1.0
 	add_child(camera_rig)
 	_floor = MeshInstance3D.new()
 	var plane: PlaneMesh = PlaneMesh.new()
@@ -422,15 +421,15 @@ func set_colorblind(on: bool) -> void:
 	var lvl: SimLevel = session.sim_level if session != null else null
 	if lvl == null:
 		return
-	for idx: Variant in _active.keys():
-		var view: EntityView = _active[idx] as EntityView
+	for idx: int in _active.keys():
+		var view: EntityView = _active[idx]
 		if view.entity_type == SimConst.EntityType.PHASE_GATE:
-			view.configure(int(idx), view.entity_type, lvl, kit)
+			view.configure(idx, view.entity_type, lvl, kit)
 			view.appear = 1.0
-	var hidden: Dictionary = sparks.hidden_entities()
+	var hidden: Dictionary[int, bool] = sparks.hidden_entities()
 	sparks.build(lvl, theme, session.sim.cursor)
-	for idx2: Variant in hidden:
-		sparks.hide_entity(int(idx2), false)
+	for idx2: int in hidden:
+		sparks.hide_entity(idx2, false)
 
 
 ## Rewarded revive: the run continues from the failure point. The core comes
@@ -462,8 +461,8 @@ func on_stream_appended() -> void:
 
 
 func clear_entities() -> void:
-	for idx: Variant in _active.keys():
-		_pool.release(_active[idx] as Node)
+	for idx: int in _active.keys():
+		_pool.release(_active[idx])
 	_active.clear()
 
 
@@ -537,7 +536,10 @@ func _update_frame(delta: float) -> void:
 	else:
 		var form_color: Color = Palette.form_color(sim.form, sim.phase, sim.heavy)
 		trail.set_colors(form_color, Palette.with_alpha(form_color.darkened(0.5), 0.0), 1.0)
-	trail.width = 0.12 + clampf(float(sim.combo) / 40.0, 0.0, 1.0) * 0.06 + (0.05 if sim.overdrive_timer > 0.0 else 0.0)
+	# The trail widens with the core's combo glow and thickens in overdrive.
+	var combo_glow: float = clampf(float(sim.combo) / CoreView.COMBO_GLOW_FULL, 0.0, 1.0)
+	var overdrive_width: float = FeelTuning.TRAIL_OVERDRIVE_WIDTH if sim.overdrive_timer > 0.0 else 0.0
+	trail.width = FeelTuning.TRAIL_WIDTH + combo_glow * FeelTuning.TRAIL_COMBO_WIDTH + overdrive_width
 	if core_view.visible:
 		trail.push_point(core_pos + Vector3(0.0, -0.02, 0.16))
 	camera_rig.follow(core_pos, delta, lift)
@@ -577,9 +579,8 @@ func _update_frame(delta: float) -> void:
 	# Iterate the dictionary itself (no per-frame keys() copy); releases are
 	# collected in a reused array and applied after the loop.
 	_to_release.clear()
-	for idx: Variant in _active:
-		var i: int = int(idx)
-		var view: EntityView = _active[idx] as EntityView
+	for i: int in _active:
+		var view: EntityView = _active[i]
 		var consumed_pickup: bool = (sim.ent_flags[i] & FluxSim.FLAG_CONSUMED) != 0 and _is_pickup(view.entity_type)
 		if _entity_end(lvl, i) < d - VIEW_BEHIND or consumed_pickup:
 			_to_release.append(i)
@@ -588,7 +589,7 @@ func _update_frame(delta: float) -> void:
 	for i: int in _to_release:
 		_release_entity(i)
 	sparks.apply_magnet(core_pos, lvl, sim.cursor, sim.magnet_timer > 0.0 or sim.overdrive_timer > 0.0, sim.phase)
-	_music_pulse = move_toward(_music_pulse, 0.0, delta * 3.0)
+	_music_pulse = move_toward(_music_pulse, 0.0, delta * FeelTuning.BEAT_PULSE_DECAY)
 	_floor_mat.set_shader_parameter("beat", 0.0 if reduce_motion else _music_pulse)
 
 
@@ -679,107 +680,28 @@ func _place_ribs(d: float) -> void:
 			_details.multimesh.set_instance_transform(i, Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, z - RIB_SPACING * 0.5)))
 
 
+## Ambient motes for the world's atmosphere style ([AmbientMotes]), then the
+## quality preset's amount.
 func _setup_atmosphere() -> void:
-	var p: CPUParticles3D = _atmosphere
-	p.lifetime = 5.0
-	p.preprocess = 5.0
-	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	p.emission_box_extents = Vector3(5.5, 2.2, 18.0)
-	p.direction = Vector3(0, 1, 0)
-	p.spread = 25.0
-	p.gravity = Vector3.ZERO
-	p.initial_velocity_min = 0.08
-	p.initial_velocity_max = 0.25
-	p.scale_amount_min = 0.6
-	p.scale_amount_max = 1.0
-	var quad: QuadMesh = QuadMesh.new()
-	quad.size = Vector2(0.06, 0.06)
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.vertex_color_use_as_albedo = true
-	# Soft round mote (never a hard square sprite).
-	mat.albedo_texture = ViewKit.soft_dot_texture()
-	quad.material = mat
-	p.mesh = quad
-	var color: Color = theme.key_color
-	var alpha: float = 0.06
-	match theme.atmosphere:
-		"embers":
-			color = Color("#ffb37a")
-			p.gravity = Vector3(0, 0.35, 0)
-			alpha = 0.08
-		"bubbles":
-			color = theme.key_color
-			p.gravity = Vector3(0, 0.3, 0)
-			quad.size = Vector2(0.07, 0.07)
-		"snow":
-			color = Color.WHITE
-			p.gravity = Vector3(0, -0.35, 0)
-			alpha = 0.08
-		"sand":
-			color = theme.key_color
-			p.gravity = Vector3(0.6, -0.05, 0)
-		"stars":
-			color = Color("#c8c6e8")
-			p.direction = Vector3(0, 0, 1)
-			p.initial_velocity_min = 2.0
-			p.initial_velocity_max = 3.0
-			alpha = 0.08
-		"puffs":
-			color = Color.WHITE
-			quad.size = Vector2(0.4, 0.4)
-			alpha = 0.05
-		"sprinkles":
-			color = theme.story_accent.lightened(0.4)
-			p.gravity = Vector3(0, -0.25, 0)
-			alpha = 0.08
-		"glitter":
-			# Crystal dust: tiny, nearly still, each mote catching the light in turn.
-			color = Color.WHITE.lerp(theme.key_color, 0.3)
-			quad.size = Vector2(0.035, 0.035)
-			p.gravity = Vector3(0, -0.04, 0)
-			p.color_ramp = _twinkle_ramp()
-			alpha = 0.08
-		"spores":
-			# Garden spores: larger, soft, rising slowly on a sideways drift.
-			color = theme.key_color.lightened(0.35)
-			quad.size = Vector2(0.09, 0.09)
-			p.direction = Vector3(0.35, 1.0, 0.0)
-			p.initial_velocity_min = 0.04
-			p.initial_velocity_max = 0.12
-			p.gravity = Vector3(0.05, 0.08, 0)
-			alpha = 0.07
-	# ART_DIRECTION §7: decoration stays at or under 8 % opacity.
-	p.color = Palette.with_alpha(color, minf(alpha, ATMOSPHERE_MAX_ALPHA))
+	AmbientMotes.configure(_atmosphere, theme)
 	_apply_atmosphere_quality()
 
 
-# --- Juice (ART_DIRECTION §9) ----------------------------------------------------
-
-
-## Alpha over a mote's life: dark, a flash, dark, a second fainter flash.
-static func _twinkle_ramp() -> Gradient:
-	var g: Gradient = Gradient.new()
-	g.offsets = PackedFloat32Array([0.0, 0.2, 0.3, 0.55, 0.65, 0.8, 1.0])
-	var off: Color = Color(1, 1, 1, 0)
-	var dim: Color = Color(1, 1, 1, 0.15)
-	g.colors = PackedColorArray([off, dim, Color.WHITE, dim, Color(1, 1, 1, 0.7), dim, off])
-	return g
+# --- Juice (ART_DIRECTION §9; budgets in FeelTuning) -------------------------------
 
 
 func _update_juice(delta: float) -> void:
-	_chroma = move_toward(_chroma, 0.0, delta * 3.0)
-	_shock = move_toward(_shock, 0.0, delta * 2.2)
-	_shock_radius += delta * 1.5
-	_tint = move_toward(_tint, 0.0, delta * 1.6)
+	_chroma = move_toward(_chroma, 0.0, delta * FeelTuning.CHROMA_DECAY)
+	_shock = move_toward(_shock, 0.0, delta * FeelTuning.SHOCK_DECAY)
+	_shock_radius += delta * FeelTuning.SHOCK_EXPAND
+	_tint = move_toward(_tint, 0.0, delta * FeelTuning.TINT_DECAY)
 	if _slowmo_left > 0.0:
 		_slowmo_left -= delta
 		session.time_scale = _slowmo_scale
 		if _slowmo_left <= 0.0 and not _end_slow:
 			session.time_scale = 1.0
-	var active: bool = post_fx_enabled and (_chroma > 0.01 or _shock > 0.01 or _tint > 0.01)
+	var spent: float = FeelTuning.POST_EPSILON
+	var active: bool = post_fx_enabled and (_chroma > spent or _shock > spent or _tint > spent)
 	post_rect.visible = active
 	if active:
 		_post_mat.set_shader_parameter("chroma", _chroma)
@@ -790,7 +712,7 @@ func _update_juice(delta: float) -> void:
 
 
 func hit_stop(seconds: float) -> void:
-	session.hit_stop = maxf(session.hit_stop, seconds * (0.5 if reduce_motion else 1.0))
+	session.hit_stop = maxf(session.hit_stop, seconds * (FeelTuning.REDUCED_HIT_STOP if reduce_motion else 1.0))
 
 
 func slow_motion(scale_value: float, seconds: float) -> void:
@@ -801,8 +723,8 @@ func slow_motion(scale_value: float, seconds: float) -> void:
 
 
 func shockwave(strength: float) -> void:
-	var style: float = clampf(float(_effect_skin.get("shockwave", 1.0)), 0.0, 2.0)
-	_shock = maxf(_shock, strength * style * (0.5 if reduce_motion else 1.0))
+	var style: float = clampf(float(_effect_skin.get("shockwave", 1.0)), 0.0, FeelTuning.SHOCK_STYLE_MAX)
+	_shock = maxf(_shock, strength * style * (FeelTuning.REDUCED_SHOCKWAVE if reduce_motion else 1.0))
 	_shock_radius = 0.0
 
 
@@ -836,8 +758,8 @@ func _handle_event(type: int, ent: int, value: int) -> void:
 			_handle_tap(type, value)
 		SimConst.EventType.TAP_DASH_DENIED:
 			ripples.emit(core, Palette.FOG)
-			core_view.punch(-0.12)
-			feedback.emit(&"denied", 0.2, 0)
+			core_view.punch(FeelTuning.PUNCH_DENIED)
+			feedback.emit(&"denied", FeelTuning.strength(&"denied"), 0)
 		SimConst.EventType.SPARK, SimConst.EventType.PRISM:
 			var pos: Vector3 = sparks.position_of(ent)
 			sparks.hide_entity(ent)
@@ -845,78 +767,90 @@ func _handle_event(type: int, ent: int, value: int) -> void:
 			if session.sim_level.e_color[ent] < 0:
 				# Neutral sparks and prisms take the equipped particle colours;
 				# phase-coloured sparks keep their phase (it is information).
-				col = _particle_color(0 if type == SimConst.EventType.SPARK else 1, col)
+				col = _particle_color(
+					PARTICLE_SLOT_SPARK if type == SimConst.EventType.SPARK else PARTICLE_SLOT_PRISM, col
+				)
 			bursts.emit("collect" if type == SimConst.EventType.SPARK else "prism", pos, col)
-			core_view.punch(0.08 if type == SimConst.EventType.SPARK else 0.2)
-			feedback.emit(&"collect" if type == SimConst.EventType.SPARK else &"prism", 0.3, sim.combo)
+			core_view.punch(FeelTuning.PUNCH_SPARK if type == SimConst.EventType.SPARK else FeelTuning.PUNCH_PRISM)
+			if type == SimConst.EventType.SPARK:
+				feedback.emit(&"collect", FeelTuning.strength(&"collect"), sim.combo)
+			else:
+				feedback.emit(&"prism", FeelTuning.strength(&"prism"), sim.combo)
 		SimConst.EventType.SPARK_MISSED:
-			feedback.emit(&"miss", 0.2, 0)
+			feedback.emit(&"miss", FeelTuning.strength(&"miss"), 0)
 		SimConst.EventType.NEAR_MISS:
-			bursts.emit("streak", _entity_pos(ent), _particle_color(2, Palette.BONE))
-			if sim.combo >= NEAR_MISS_SLOWMO_COMBO:
-				slow_motion(0.75, 0.08)
-			feedback.emit(&"near_miss", 0.5, sim.combo)
+			bursts.emit("streak", _entity_pos(ent), _particle_color(PARTICLE_SLOT_STREAK, Palette.BONE))
+			if sim.combo >= FeelTuning.NEAR_MISS_SLOWMO_COMBO:
+				slow_motion(FeelTuning.NEAR_MISS_SLOWMO_SCALE, FeelTuning.NEAR_MISS_SLOWMO_TIME)
+			feedback.emit(&"near_miss", FeelTuning.strength(&"near_miss"), sim.combo)
 		SimConst.EventType.SHATTER, SimConst.EventType.CHAIN:
-			bursts.emit("shatter", _entity_pos(ent) + Vector3(0, 0.1, 0), Palette.GLASS_TINT)
+			bursts.emit("shatter", _entity_pos(ent) + FeelTuning.SHATTER_BURST_LIFT, Palette.GLASS_TINT)
 			_release_entity(ent)
-			hit_stop(0.03 if type == SimConst.EventType.SHATTER else 0.015)
-			camera_rig.add_trauma(SHAKE_SHATTER)
-			feedback.emit(&"shatter" if type == SimConst.EventType.SHATTER else &"chain", 0.6, value)
+			hit_stop(FeelTuning.HIT_STOP_SHATTER if type == SimConst.EventType.SHATTER else FeelTuning.HIT_STOP_CHAIN)
+			camera_rig.add_trauma(FeelTuning.SHAKE_SHATTER)
+			if type == SimConst.EventType.SHATTER:
+				feedback.emit(&"shatter", FeelTuning.strength(&"shatter"), value)
+			else:
+				feedback.emit(&"chain", FeelTuning.strength(&"chain"), value)
 		SimConst.EventType.GATE_PASS:
 			_flash_entity(ent, 1.0)
-			feedback.emit(&"gate", 0.4, sim.combo)
+			feedback.emit(&"gate", FeelTuning.strength(&"gate"), sim.combo)
 		SimConst.EventType.HIT_SHIELDED:
-			hit_stop(0.06)
-			camera_rig.add_trauma(SHAKE_SHIELD)
+			hit_stop(FeelTuning.HIT_STOP_SHIELD)
+			camera_rig.add_trauma(FeelTuning.SHAKE_SHIELD)
 			bursts.emit("shield", core, Palette.SUCCESS)
 			_release_entity(ent)
-			feedback.emit(&"shield_break", 0.8, 0)
+			feedback.emit(&"shield_break", FeelTuning.strength(&"shield_break"), 0)
 		SimConst.EventType.ZEN_BUMP:
-			camera_rig.add_trauma(0.15)
-			core_view.punch(-0.2)
-			feedback.emit(&"bump", 0.3, 0)
+			camera_rig.add_trauma(FeelTuning.SHAKE_ZEN_BUMP)
+			core_view.punch(FeelTuning.PUNCH_ZEN_BUMP)
+			feedback.emit(&"bump", FeelTuning.strength(&"bump"), 0)
 		SimConst.EventType.FAIL:
-			hit_stop(0.09)
-			camera_rig.add_trauma(SHAKE_FAIL)
-			_chroma = 0.8
-			edge_tint(_effect_color("fail_color", Palette.FAILURE), 0.55)
+			hit_stop(FeelTuning.HIT_STOP_FAIL)
+			camera_rig.add_trauma(FeelTuning.SHAKE_FAIL)
+			_chroma = FeelTuning.FAIL_CHROMA
+			edge_tint(_effect_color("fail_color", Palette.FAILURE), FeelTuning.FAIL_EDGE_TINT)
 			core_view.implode()
-			bursts.emit_delayed("fail", core, Palette.form_color(sim.form, sim.phase, sim.heavy), 0.06)
-			feedback.emit(&"fail", 1.0, 0)
+			bursts.emit_delayed(
+				"fail", core, Palette.form_color(sim.form, sim.phase, sim.heavy), FeelTuning.FAIL_BURST_DELAY
+			)
+			feedback.emit(&"fail", FeelTuning.strength(&"fail"), 0)
 		SimConst.EventType.COMPLETE:
 			_end_slow = true
-			session.time_scale = 0.4
+			session.time_scale = FeelTuning.END_TIME_SCALE
 			var perfect: bool = sim.damage == 0 and sim.sparks >= session.sim_level.spark_total
 			if perfect:
 				var perfect_col: Color = _effect_color("perfect_color", Palette.ACCENT)
-				bursts.emit("perfect", core + Vector3(0, 0.2, -0.6), perfect_col)
-				shockwave(0.6)
-				edge_tint(perfect_col, 0.25)
-			feedback.emit(&"perfect" if perfect else &"complete", 1.0, 0)
+				bursts.emit("perfect", core + FeelTuning.PERFECT_BURST_OFFSET, perfect_col)
+				shockwave(FeelTuning.SHOCK_PERFECT)
+				edge_tint(perfect_col, FeelTuning.PERFECT_EDGE_TINT)
+				feedback.emit(&"perfect", FeelTuning.strength(&"perfect"), 0)
+			else:
+				feedback.emit(&"complete", FeelTuning.strength(&"complete"), 0)
 		SimConst.EventType.FORM_CHANGE:
 			core_view.morph()
 			_flash_entity(ent, 1.0)
-			shockwave(0.35)
-			feedback.emit(&"form", 0.7, value)
+			shockwave(FeelTuning.SHOCK_FORM_CHANGE)
+			feedback.emit(&"form", FeelTuning.strength(&"form"), value)
 		SimConst.EventType.PORTAL:
 			_flash_entity(ent, 1.0)
 			trail.clear_points()
-			feedback.emit(&"portal", 0.6, 0)
+			feedback.emit(&"portal", FeelTuning.strength(&"portal"), 0)
 		SimConst.EventType.CURRENT:
-			camera_rig.impulse(Vector3(HOP_LEAN, 0.0, 0.0))
-			feedback.emit(&"current", 0.4, 0)
+			camera_rig.impulse(Vector3(FeelTuning.HOP_LEAN, 0.0, 0.0))
+			feedback.emit(&"current", FeelTuning.strength(&"current"), 0)
 		SimConst.EventType.SHIELD_UP, SimConst.EventType.MAGNET_UP:
-			core_view.punch(0.25)
-			feedback.emit(&"pickup", 0.5, 0 if type == SimConst.EventType.SHIELD_UP else 1)
+			core_view.punch(FeelTuning.PUNCH_PICKUP)
+			feedback.emit(&"pickup", FeelTuning.strength(&"pickup"), 0 if type == SimConst.EventType.SHIELD_UP else 1)
 		SimConst.EventType.OVERDRIVE_START:
 			# Shockwave only: the chromatic split belongs to the fail (ART_DIRECTION §9).
-			shockwave(0.45)
-			feedback.emit(&"overdrive", 0.9, 0)
+			shockwave(FeelTuning.SHOCK_OVERDRIVE)
+			feedback.emit(&"overdrive", FeelTuning.strength(&"overdrive"), 0)
 		SimConst.EventType.OVERDRIVE_END:
-			feedback.emit(&"overdrive_end", 0.3, 0)
+			feedback.emit(&"overdrive_end", FeelTuning.strength(&"overdrive_end"), 0)
 		SimConst.EventType.COMBO_STEP:
 			bursts.emit("ring", core, Palette.form_color(sim.form, sim.phase, sim.heavy))
-			feedback.emit(&"combo", clampf(float(value) / 30.0, 0.3, 1.0), value)
+			feedback.emit(&"combo", FeelTuning.combo_strength(value), value)
 		_:
 			_handle_mass_event(type, ent, value)
 
@@ -928,19 +862,21 @@ func _handle_tap(type: int, value: int) -> void:
 		SimConst.EventType.TAP_HOP:
 			var target_x: float = SimConst.lane_x(value, session.sim_level.lane_count)
 			core_view.hop_motion(signf(target_x - core.x))
-			camera_rig.impulse(Vector3(HOP_LEAN * signf(target_x - core.x), 0.0, 0.0))
-			feedback.emit(&"tap", 0.4, value)
+			camera_rig.impulse(Vector3(FeelTuning.HOP_LEAN * signf(target_x - core.x), 0.0, 0.0))
+			feedback.emit(&"tap", FeelTuning.strength(&"tap"), value)
 		SimConst.EventType.TAP_PHASE:
 			core_view.phase_motion()
-			feedback.emit(&"phase", 0.5, value)
+			feedback.emit(&"phase", FeelTuning.strength(&"phase"), value)
 		SimConst.EventType.TAP_DASH:
-			core_view.squash(Vector3(0, 0, 1), 0.45)
-			camera_rig.fov_punch(4.0)
-			feedback.emit(&"dash", 0.6, 0)
+			core_view.squash(Vector3.BACK, FeelTuning.SQUASH_DASH)
+			camera_rig.fov_punch(FeelTuning.FOV_PUNCH_DASH)
+			feedback.emit(&"dash", FeelTuning.strength(&"dash"), 0)
 		SimConst.EventType.TAP_SURGE:
-			core_view.squash(Vector3(0, 1, 0), -0.3 if value == 1 else 0.25)
-			camera_rig.fov_punch(3.0 if value == 1 else 0.0)
-			feedback.emit(&"surge", 0.5, value)
+			# value 1: the surge went heavy (flatten, FOV kick); 0: light.
+			var heavy: bool = value == 1
+			core_view.squash(Vector3.UP, FeelTuning.SQUASH_SURGE_HEAVY if heavy else FeelTuning.SQUASH_SURGE_LIGHT)
+			camera_rig.fov_punch(FeelTuning.FOV_PUNCH_HEAVY if heavy else 0.0)
+			feedback.emit(&"surge", FeelTuning.strength(&"surge"), value)
 
 
 ## Launch pads, gravity wells and mass plates.
@@ -948,28 +884,28 @@ func _handle_mass_event(type: int, ent: int, value: int) -> void:
 	var core: Vector3 = core_view.position
 	match type:
 		SimConst.EventType.LAUNCH:
-			core_view.squash(Vector3(0, 1, 0), 0.4)
+			core_view.squash(Vector3.UP, FeelTuning.SQUASH_LAUNCH)
 			_flash_entity(ent, 1.0)
 			bursts.emit("ring", core, Palette.PRIMARY)
-			feedback.emit(&"launch", 0.6, value)
+			feedback.emit(&"launch", FeelTuning.strength(&"launch"), value)
 		SimConst.EventType.LAND:
-			core_view.squash(Vector3(0, 1, 0), -0.35)
-			camera_rig.add_trauma(SHAKE_LAND)
-			feedback.emit(&"land", 0.4, 0)
+			core_view.squash(Vector3.UP, FeelTuning.SQUASH_LAND)
+			camera_rig.add_trauma(FeelTuning.SHAKE_LAND)
+			feedback.emit(&"land", FeelTuning.strength(&"land"), 0)
 		SimConst.EventType.VAULT:
-			bursts.emit("streak", _entity_pos(ent), _particle_color(2, Palette.BONE))
-			feedback.emit(&"near_miss", 0.5, session.sim.combo)
+			bursts.emit("streak", _entity_pos(ent), _particle_color(PARTICLE_SLOT_STREAK, Palette.BONE))
+			feedback.emit(&"near_miss", FeelTuning.strength(&"near_miss"), session.sim.combo)
 		SimConst.EventType.STACK_CRASH:
-			hit_stop(0.05)
-			core_view.punch(0.3)
-			feedback.emit(&"stack_crash", 0.8, 0)
+			hit_stop(FeelTuning.HIT_STOP_STACK_CRASH)
+			core_view.punch(FeelTuning.PUNCH_STACK_CRASH)
+			feedback.emit(&"stack_crash", FeelTuning.strength(&"stack_crash"), 0)
 		SimConst.EventType.GRAVITY_ENTER:
-			var heavy: bool = value > 100
-			edge_tint(Palette.FORM_SURGE_HEAVY if heavy else Palette.FORM_SURGE_LIGHT, 0.18)
-			feedback.emit(&"gravity", 0.4, 1 if heavy else 0)
+			var heavy: bool = value > NORMAL_GRAVITY_PERCENT
+			edge_tint(Palette.FORM_SURGE_HEAVY if heavy else Palette.FORM_SURGE_LIGHT, FeelTuning.GRAVITY_EDGE_TINT)
+			feedback.emit(&"gravity", FeelTuning.strength(&"gravity"), 1 if heavy else 0)
 		SimConst.EventType.PLATE_UP:
-			core_view.punch(0.15)
-			feedback.emit(&"plate", 0.4, value)
+			core_view.punch(FeelTuning.PUNCH_PLATE)
+			feedback.emit(&"plate", FeelTuning.strength(&"plate"), value)
 
 
 func _flash_entity(index: int, amount: float) -> void:

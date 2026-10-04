@@ -18,7 +18,8 @@ static var _shared: ModeCatalog
 
 var modes: Array[Dictionary] = []
 var score_rewards: Dictionary = {}
-var _by_id: Dictionary = {}
+## Mode id -> its mode document (the same dictionaries as in [member modes]).
+var _by_id: Dictionary[String, Dictionary] = {}
 
 
 ## Process-wide read-only instance (client and server read the same rules).
