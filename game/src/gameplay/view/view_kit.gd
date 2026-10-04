@@ -5,6 +5,11 @@ extends RefCounted
 ## matter is lit PBR and never emissive; only energy (membranes, pickups,
 ## functional lamps) uses emission.
 
+## Render layers: the environment the reflection probe captures, and the
+## gameplay pieces (core, hazards, collectibles, effects) it must not, so no
+## hazard orange or energy is mirrored onto structure (ART_DIRECTION §2).
+const ENVIRONMENT_LAYER: int = 1
+const GAMEPLAY_LAYER: int = 2
 const GLASS_SHADER: Shader = preload("res://assets/shaders/glass.gdshader")
 ## Analytic-crack glass for Low and Medium (no per-fragment Voronoi search).
 const GLASS_LITE_SHADER: Shader = preload("res://assets/shaders/glass_lite.gdshader")
@@ -247,6 +252,14 @@ func _structure(albedo: Color, kind: String) -> ShaderMaterial:
 ## Surface relief on structure (off on the Low preset).
 func set_detail(enabled: bool) -> void:
 	structure_material.set_shader_parameter("detail_strength", 1.0 if enabled else 0.0)
+
+
+## Puts [param node] and every geometry under it on the gameplay layer.
+static func mark_gameplay(node: Node) -> void:
+	if node is VisualInstance3D:
+		(node as VisualInstance3D).layers = GAMEPLAY_LAYER
+	for child: Node in node.get_children():
+		mark_gameplay(child)
 
 
 ## Fine Voronoi fractures (High and Ultra) or the analytic variant.

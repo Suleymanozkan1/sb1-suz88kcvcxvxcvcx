@@ -35,5 +35,6 @@ void fragment() {
 	vec3 col = fd_core_style(style, n * CORE_RADIUS, ndv, TIME * anim_speed, color_a.rgb, color_b.rgb, rim_color.rgb, 0.0);
 	col += rim_color.rgb * pow(1.0 - ndv, 2.4) * SWATCH_RIM;
 	col = col / (1.0 + col * SHOULDER);
-	COLOR = vec4(col, edge * dim);
+	// Times the incoming colour: screen fades (modulate) reach the swatch too.
+	COLOR = vec4(col, edge * dim) * COLOR;
 }

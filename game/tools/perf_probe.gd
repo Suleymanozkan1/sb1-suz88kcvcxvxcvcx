@@ -110,7 +110,8 @@ func _run() -> void:
 	var renderer: Dictionary = _renderer_info()
 	print("perf probe: %s / %s on %s" % [renderer["method"], renderer["driver"], renderer["adapter"]])
 	var expected: String = str(_budget_doc.get("renderer", ""))
-	if not expected.is_empty() and expected != str(renderer["method"]):
+	var mismatch: bool = not expected.is_empty() and expected != str(renderer["method"])
+	if mismatch:
 		print("NOTE: ", RENDERER_NOTE % [expected, renderer["method"]])
 	var started: int = Time.get_ticks_msec()
 	var runs: Array[Dictionary] = []
@@ -141,6 +142,11 @@ func _run() -> void:
 	for v: String in violations:
 		print("OVER BUDGET: ", v)
 	var failed: bool = not failures.is_empty() or (_check and not violations.is_empty())
+	if _check and mismatch:
+		# Counts from another renderer cannot pass or fail these budgets: a CI
+		# fallback to OpenGL must be loud, not a silent pass.
+		printerr("RENDERER MISMATCH: ", RENDERER_NOTE % [expected, renderer["method"]])
+		failed = true
 	quit(1 if failed else 0)
 
 

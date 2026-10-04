@@ -12,6 +12,8 @@ const LAMP_WARN_TIME: float = 0.35
 const PICKUP_BOB: float = 0.05
 ## Mass plates float at collect height like the other pickups.
 const PLATE_Y: float = 0.4
+## chevron.gdshader's default `tiles` (restored when a pooled view is reused).
+const CHEVRON_TILES: float = 4.0
 ## A passed gate arch sinks between these distances behind the core (m), by
 ## its full height plus the beam (it ends below the floor).
 const ARCH_SINK_FROM: float = 0.2
@@ -37,6 +39,7 @@ func _init() -> void:
 	for _i: int in MAX_PARTS:
 		var mi: MeshInstance3D = MeshInstance3D.new()
 		mi.visible = false
+		mi.layers = ViewKit.GAMEPLAY_LAYER
 		add_child(mi)
 		_parts.append(mi)
 
@@ -58,6 +61,11 @@ func pool_reset() -> void:
 		mi.position = Vector3.ZERO
 		mi.rotation = Vector3.ZERO
 		mi.scale = Vector3.ONE
+		# Per-instance shader values outlive the material swap: back to the
+		# shaders' defaults so a reused view never inherits them.
+		mi.set_instance_shader_parameter("tiles", CHEVRON_TILES)
+		mi.set_instance_shader_parameter("ripple", 0.0)
+		mi.set_instance_shader_parameter("visibility", 1.0)
 	scale = Vector3.ONE
 
 
@@ -263,7 +271,12 @@ func animate(delta: float, lvl: SimLevel, sim_time: float, core_d: float = 0.0) 
 	# Appear: matter rises out of the floor (mechanical ease-out, no overshoot).
 	var a: float = ease(appear, 0.4)
 	position.y = (a - 1.0) * 0.6
-	if entity_type == SimConst.EntityType.PHASE_GATE or entity_type == SimConst.EntityType.FORM_GATE:
+	if (
+		entity_type == SimConst.EntityType.PHASE_GATE
+		or entity_type == SimConst.EntityType.FORM_GATE
+		or entity_type == SimConst.EntityType.PULSE_GATE
+	):
+		# Gates (arches, shutters and their posts) go back into the floor once passed.
 		position.y -= arch_sink(core_d - lvl.e_d[entity_index]) * ARCH_SINK_DEPTH
 
 

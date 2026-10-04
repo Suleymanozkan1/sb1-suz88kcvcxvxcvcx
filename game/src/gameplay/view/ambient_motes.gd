@@ -72,6 +72,8 @@ static func configure(p: CPUParticles3D, theme: WorldTheme) -> void:
 	p.direction = Vector3(0, 1, 0)
 	p.spread = SPREAD_DEGREES
 	p.gravity = Vector3.ZERO
+	# Only glitter twinkles: the ramp never carries over into the next world.
+	p.color_ramp = null
 	p.initial_velocity_min = SPEED_MIN
 	p.initial_velocity_max = SPEED_MAX
 	p.scale_amount_min = SCALE_MIN

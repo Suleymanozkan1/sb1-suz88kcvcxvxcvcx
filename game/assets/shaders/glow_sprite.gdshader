@@ -20,7 +20,8 @@ void fragment() {
 	float g = pow(clamp(1.0 - r, 0.0, 1.0), falloff);
 	if (ring > 0.0) {
 		float rr = mix(ring * 0.3, ring, progress);
-		g = exp(-pow((r - rr) * 22.0, 2.0));
+		float off = (r - rr) * 22.0;
+		g = exp(-off * off);
 	}
 	ALBEDO = glow_color.rgb * g * intensity * fade;
 }

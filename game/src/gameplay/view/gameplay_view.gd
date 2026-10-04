@@ -122,6 +122,10 @@ var _surface_detail: bool = true
 ## lengths, so it re-captures the (periodic) shaft rarely and cheaply.
 var _probe: ReflectionProbe
 var _probe_cell: int = -1
+## Quality state the next ViewKit (built per world) must inherit.
+var _fine_glass: bool = true
+## Last field-of-view tangents sent to the sky (a sky parameter write re-bakes its radiance).
+var _sky_tan_half: Vector2 = Vector2.ZERO
 var _shafts: Node3D
 ## Side details between the ribs (one per rib gap, same MultiMesh rhythm).
 var _details: MultiMeshInstance3D
@@ -189,6 +193,7 @@ func _ensure_built() -> void:
 	_probe.interior = true
 	_probe.max_distance = PROBE_SIZE.z
 	_probe.visible = false
+	_probe.cull_mask = ViewKit.ENVIRONMENT_LAYER
 	add_child(_probe)
 	_shafts = _make_shafts()
 	add_child(_shafts)
@@ -244,6 +249,8 @@ func apply_world(world_theme: WorldTheme) -> void:
 	kit = ViewKit.new(theme)
 	kit.colorblind = _colorblind
 	kit.set_detail(_surface_detail)
+	kit.set_fine_glass(_fine_glass)
+	_probe_cell = -1
 	_apply_environment()
 	key_light.light_color = theme.key_color
 	key_light.light_energy = theme.key_energy
@@ -380,6 +387,9 @@ func _apply_sky_skin() -> void:
 ## Builds visuals for the session's current level.
 func setup_level() -> void:
 	_ensure_built()
+	# Children build their meshes when they enter the tree: marked here, after.
+	for gameplay_node: Node in [sparks, core_view, core_shadow, ripples, trail, bursts]:
+		ViewKit.mark_gameplay(gameplay_node)
 	var lvl: SimLevel = session.sim_level
 	_floor_mat.set_shader_parameter("lane_count", lvl.lane_count)
 	_floor_mat.set_shader_parameter("lane_width", SimConst.LANE_WIDTH)
@@ -390,6 +400,7 @@ func setup_level() -> void:
 
 func reset_for_run(full_reveal: bool) -> void:
 	clear_entities()
+	_probe_cell = -1
 	sparks.build(session.sim_level, theme)
 	_spawn_cursor = 0
 	trail.clear_points()
@@ -489,6 +500,7 @@ func set_quality(
 	# Surface relief follows dynamic lighting: both are off on Low and in
 	# battery saver, where a flat lit surface is the budget.
 	_surface_detail = dynamic_light
+	_fine_glass = fine_glass
 	if kit != null:
 		kit.set_detail(_surface_detail)
 		kit.set_fine_glass(fine_glass)
@@ -545,7 +557,11 @@ func _update_frame(delta: float) -> void:
 	camera_rig.follow(core_pos, delta, lift)
 	if _sky_mat != null:
 		var vp: Vector2 = Vector2(get_viewport().get_visible_rect().size)
-		_sky_mat.set_shader_parameter("tan_half", camera_rig.tan_half_fov(vp.x / maxf(vp.y, 1.0)))
+		var tan_half: Vector2 = camera_rig.tan_half_fov(vp.x / maxf(vp.y, 1.0))
+		# Written only when it moves: any sky parameter change re-bakes the sky's radiance.
+		if not tan_half.is_equal_approx(_sky_tan_half):
+			_sky_tan_half = tan_half
+			_sky_mat.set_shader_parameter("tan_half", tan_half)
 	trail.rebuild(camera_rig.camera)
 	_floor.position = Vector3(0.0, 0.0, -d - FLOOR_LENGTH * 0.5 + 12.0)
 	_floor_mat.set_shader_parameter("scroll", d + FLOOR_LENGTH * 0.5 - 12.0)

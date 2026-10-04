@@ -16,7 +16,8 @@ void fragment() {
 	if (shock > 0.0) {
 		vec2 dir = uv - shock_center;
 		float dist = length(dir * vec2(1.0, 1.7));
-		float ring = exp(-pow((dist - shock_radius) * 16.0, 2.0));
+		float off = (dist - shock_radius) * 16.0;
+		float ring = exp(-off * off);
 		uv -= normalize(dir + 1e-5) * ring * shock * 0.018;
 	}
 	vec3 col;

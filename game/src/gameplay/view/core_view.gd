@@ -110,6 +110,8 @@ var skin_anim_speed: float = 1.0
 var reduce_motion: bool = false
 var high_key: bool = false
 
+## Height of the current form's top: the plate discs sit on it.
+var _stack_top: float = SimConst.CORE_RADIUS
 var _mat: ShaderMaterial = ShaderMaterial.new()
 var _accent_mat: ShaderMaterial = ShaderMaterial.new()
 var _halo_mat: ShaderMaterial = ShaderMaterial.new()
@@ -281,6 +283,15 @@ func set_light_enabled(enabled: bool) -> void:
 	light.visible = enabled
 
 
+## Height of a form mesh's top as it is drawn: the dash capsule lies along
+## the motion axis, so its radius (z extent) is its height.
+static func form_top(mesh: Mesh, form: int) -> float:
+	if mesh == null:
+		return SimConst.CORE_RADIUS
+	var box: AABB = mesh.get_aabb()
+	return box.end.z if form == SimConst.Form.DASH else box.end.y
+
+
 func set_form(form: int, phase: int, heavy: bool) -> void:
 	if form != _form:
 		_form = form
@@ -288,6 +299,7 @@ func set_form(form: int, phase: int, heavy: bool) -> void:
 		ink_shell.mesh = body.mesh
 		body.rotation = Vector3.ZERO
 		ring.visible = form == SimConst.Form.SURGE
+		_stack_top = form_top(body.mesh, form)
 	# Form tint only where it carries meaning (phase / dash / surge weight).
 	var tint: Color = skin_color_a if form == SimConst.Form.HOP else Palette.form_color(form, phase, heavy)
 	_mat.set_shader_parameter("color_a", tint)
@@ -367,6 +379,9 @@ func update_visuals(delta: float, sim: FluxSim) -> void:
 		if _implode > IMPLODE_TIME:
 			visible = false
 	body.scale = s
+	for i: int in stack_discs.size():
+		# On the form's own top, and with its squash and stretch.
+		stack_discs[i].position.y = _stack_top * s.y + STACK_DISC_GAP * (float(i) + 0.6)
 	var spin_rate: float = (SPIN_BASE + sim.speed * SPIN_PER_SPEED) * (REDUCED_SPIN if reduce_motion else 1.0)
 	_spin += delta * spin_rate
 	match _form:

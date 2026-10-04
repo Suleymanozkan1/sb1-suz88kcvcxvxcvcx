@@ -143,3 +143,49 @@ func _sightline_crossing(sinks: bool) -> float:
 		if top - ViewKit.ARCH_POST < sightline + SimConst.CORE_RADIUS and top > sightline - SimConst.CORE_RADIUS:
 			metres += 0.1
 	return metres
+
+
+func test_quality_survives_a_world_change() -> void:
+	# R-6: each world builds a new ViewKit; Low/Medium kept getting Voronoi glass.
+	var view: GameplayView = _view_for("w01_l20")
+	view.set_quality(false, 0.4, 12, false, false, false, false, false, false)
+	view.apply_world(WorldTheme.from_world(_app.catalog.world("cloud_factory")))
+	assert_eq(view.kit.glass_material.shader, ViewKit.GLASS_LITE_SHADER, "the new world keeps the analytic glass")
+	assert_eq(float(view.kit.structure_material.get_shader_parameter("detail_strength")), 0.0, "and no relief")
+
+
+func test_the_probe_mirrors_only_the_environment() -> void:
+	# R-6: on High the probe painted hazard orange onto ice and crystal ribs.
+	var view: GameplayView = _view_for("w07_l20")
+	assert_eq(view._probe.cull_mask, ViewKit.ENVIRONMENT_LAYER)
+	assert_eq(view.core_view.body.layers, ViewKit.GAMEPLAY_LAYER, "the core is not mirrored")
+	assert_eq(view.trail.layers, ViewKit.GAMEPLAY_LAYER)
+	var ent: EntityView = EntityView.new()
+	assert_eq((ent.get_child(0) as MeshInstance3D).layers, ViewKit.GAMEPLAY_LAYER, "nor any hazard part")
+	ent.free()
+
+
+func test_reused_views_and_motes_start_clean() -> void:
+	var view: GameplayView = _view_for("w09_l45")
+	var lvl: SimLevel = _session.sim_level
+	var well: int = -1
+	for i: int in lvl.entity_count():
+		if lvl.e_type[i] == SimConst.EntityType.GRAVITY:
+			well = i
+			break
+	assert_gt(float(well), -1.0, "w09_l45 has a gravity well")
+	var ent: EntityView = EntityView.new()
+	ent.configure(well, SimConst.EntityType.GRAVITY, lvl, view.kit)
+	ent.pool_reset()
+	for part: Node in ent.get_children():
+		var mi: MeshInstance3D = part as MeshInstance3D
+		if mi != null:
+			assert_eq(float(mi.get_instance_shader_parameter("tiles")), EntityView.CHEVRON_TILES, "no arrow count kept")
+	ent.free()
+	view.apply_world(WorldTheme.from_world(_app.catalog.world("crystal_valley")))
+	assert_true(view._atmosphere.color_ramp != null)
+	view.apply_world(WorldTheme.from_world(_app.catalog.world("desert_reactor")))
+	assert_true(view._atmosphere.color_ramp == null, "sand does not twinkle after glitter")
+	var orb: float = CoreView.form_top(view.core_view._meshes[SimConst.Form.HOP], SimConst.Form.HOP)
+	var shard: float = CoreView.form_top(view.core_view._meshes[SimConst.Form.PHASE], SimConst.Form.PHASE)
+	assert_gt(shard, orb, "plate discs sit higher on the tall phase shard")
