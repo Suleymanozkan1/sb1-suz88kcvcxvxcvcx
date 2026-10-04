@@ -30,14 +30,15 @@ game/
   data/                     worlds, levels (520 JSON), difficulty curve, mechanics, modes, economy,
                             rewards, cosmetics, store products, achievements, missions, daily,
                             analytics schema, remote-config defaults, ads policy, audio bank,
-                            quality presets, haptic patterns, i18n (en, tr)
+                            quality presets and performance budgets, haptic patterns, i18n (en, tr)
   assets/                   fonts (Outfit, OFL), shaders, synthesised audio, icons, LICENSES.json
   server/                   verify_replay.gd CLI + README (server-side anti-cheat entry point)
   tests/                    dependency-free runner, unit/ and integration/ suites
-  tools/                    generate_levels, validate_levels, capture_level, capture_ui
+  tools/                    generate_levels, validate_levels, capture_level, capture_ui, perf_probe
 tools/ci/                   placeholder_scan.py, license_check.py
 tools/audio/                synth_bank.py (procedural, deterministic SFX + music)
-.github/workflows/ci.yml    lint, scans, import, tests, level validation + regen diff, Android, iOS
+.github/workflows/ci.yml    lint, scans, import, tests, level validation + regen diff, perf budgets,
+                            Android, iOS
 ```
 
 ## 1. Principles
@@ -158,4 +159,91 @@ save corruption/recovery/migration, economy invariants, the replay verifier (gen
 streamed), the app flow end to end (boot, first clear, failed run, daily once-only rewards, endless,
 boss-rush gating, 100 restarts without node leaks, main scene boot). CI (`.github/workflows/ci.yml`)
 runs gdlint, placeholder/licence scans, JSON checks, import, tests, full level validation and
-regeneration diff, then Android debug and iOS project exports.
+regeneration diff, the performance probe against its budgets (§9), then Android debug and iOS project
+exports.
+
+## 9. Performance budgets
+
+`game/data/quality/budgets.json` caps, per quality preset, what the engine reports during a gameplay
+frame (REQ-210 draw calls, REQ-205 memory). `PerfBudgets` (`src/systems/quality/perf_budgets.gd`)
+loads and validates it and lists violations.
+
+| Metric | Measured as |
+| --- | --- |
+| `draw_calls` | `RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME`, max over the sampled frames |
+| `primitives` | `RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME`, max |
+| `objects` | `RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME`, max |
+| `nodes` | `Performance.OBJECT_NODE_COUNT` (the whole app tree: view, HUD, screens), max |
+| `static_memory_mb` | `Performance.MEMORY_STATIC` after the last sampled frame |
+| `video_memory_mb` | `RENDERING_INFO_VIDEO_MEM_USED` after the last sampled frame |
+
+**Probe.** `game/tools/perf_probe.gd` boots an isolated app (in-memory save, fixed clock) with the real
+main scene and sets the preset through the Settings path (`SettingsService` → `QualityService` →
+`quality_changed` → viewport render scale / MSAA / fps cap, and `GameFlow._apply_quality` →
+`GameplayView.set_quality`). It starts a classic run on each world's level 20 and its boss (level 52),
+lets the READY beat play, steps the stored solution to the level's busiest stretch (the view window
+holding the most pooled hazards), plays 20 frames and samples 30, one tick per frame. Presets run
+lowest first in one process: a richer preset's GPU allocations stay for the rest of a session, so they
+are never charged to a lower one. Frame time (mean, 95th percentile) goes into the report with the fps
+cap lifted; it is never budgeted.
+
+```
+xvfb-run -a -s "-screen 0 1280x1024x24" godot --path game -s res://tools/perf_probe.gd -- \
+    [--worlds=all|w05,w08] [--presets=low,high] [--levels=20,52] [--frames=30] \
+    [--report=out.json] [--check]
+```
+
+Without `--worlds` the probe runs w05, w08 and w10 (they set every maximum of the full matrix; 24 runs,
+a few minutes under software rendering); `--worlds=all` is the 80-run matrix the budgets come from.
+`--check` exits 1 and prints each metric over budget. The Mobile renderer needs a Vulkan driver (CI
+installs Xvfb and Mesa's `mesa-vulkan-drivers` and runs the probe after the tests, uploading the
+report as `perf-report`); without one Godot falls back to OpenGL and the probe notes that its numbers
+are not comparable. `tests/unit/test_perf_budgets.gd` checks the document headless (every preset has
+every metric as a positive number, draw calls and primitives never shrink from Low to Ultra, broken
+documents are caught) and, since a headless run has no renderer and every rendering counter reads 0
+there, only the node count and static memory of w10_l52 on Low through the same flow.
+
+**Measured** (2026-10-04, `--worlds=all`: Godot 4.7.2, Mobile renderer on Mesa lavapipe under Xvfb,
+360×640). Worst of the 20 runs per preset → budget (worst + 25 %, rounded up; draw calls, primitives
+and objects never below the preset under it):
+
+| Preset | Draw calls | Primitives | Objects | Nodes | Static MB | Video MB | Frame ms, mean (not budgeted) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Low | 165 → **210** | 61 312 → **77 000** | 186 → **235** | 716 → **900** | 73.7 → **95** | 34.5 → **45** | 18–44 |
+| Medium | 210 → **265** | 71 080 → **89 000** | 231 → **290** | 716 → **900** | 73.9 → **95** | 42.2 → **55** | 28–88 |
+| High | 210 → **265** | 71 098 → **89 000** | 227 → **290** | 716 → **900** | 76.3 → **100** | 308.2 → **390** | 41–63 |
+| Ultra | 210 → **265** | 71 098 → **89 000** | 217 → **290** | 716 → **900** | 76.8 → **100** | 313.6 → **395** | 46–126 |
+
+* Draw calls and objects peak on w08_l20 (Desert Reactor), primitives on w10_l52 (Candy Reactor),
+  nodes on both; a 200-frame sample of w08_l20 read at most 211 draw calls and 232 objects, inside
+  the same budgets. Assumption, not a measurement: a mid-range phone handles roughly 300–500 draw
+  calls per frame on the Mobile renderer at 60 fps, so every budget stays under 300.
+* Medium adds the directional-shadow pass and glow (up to +45 draw calls on the same frame; Cloud
+  Factory is the exception, 15 fewer on Medium than on Low on both renderers, cause not identified).
+  High and Ultra add MSAA and the reflection probe but no draw calls here: the probe re-captures its
+  cubemap outside the viewport's counters (the 200-frame sample spans several re-captures and shows
+  the same peak), so its cost shows only in frame time and video memory.
+* **Outlier: video memory on High/Ultra** (308–314 MB against 34–42 MB). The first visible
+  `ReflectionProbe` allocates the reflection atlas, which the project leaves at Godot's default of 64
+  cubemaps (`rendering/reflections/reflection_atlas/reflection_count`) although the view uses one
+  probe: 64 × 6 faces × 256² × RGBA16F with mipmaps ≈ 268 MB at the desktop atlas size, the
+  measured jump. With the count overridden to 2 the same High run measured 66 MB; on a phone
+  (`reflection_size.mobile` = 128) the default atlas would be ≈ 67 MB. The budgets record the
+  measured state; lowering `reflection_count` (then the High/Ultra video budgets) is the fix and is
+  not applied here.
+* Nodes are 412–716 on every preset (pooled hazard views on dense stretches, plus HUD and screens).
+  Static memory grows ≈ 0.07 MB per probed run because each run boots a fresh isolated service
+  graph; the headless test measures 52 MB on its own and 67 MB at its place in the full suite.
+* The Compatibility renderer (`--rendering-driver opengl3`, the fallback for phones without Vulkan,
+  which auto-detection puts on Low) fits the same budgets: Low 170 draw calls, 61 314 primitives,
+  192 objects, 716 nodes, 62 MB static, 14 MB video; High/Ultra video memory 277–280 MB for the same
+  atlas.
+
+**Caveats.** The numbers come from desktop software rendering (Mesa lavapipe, the Godot 4.7.2 editor
+binary, a 360×640 window under Xvfb). Draw calls, primitives, objects and nodes are properties of the
+scene and the renderer path and carry over to the Mobile renderer on a phone; project `.mobile`
+overrides (the 1024 shadow map, the 128 reflection size) do not apply on desktop and only shrink GPU
+memory. Static memory comes from a debug build (`MEMORY_STATIC` is not tracked in release exports,
+which are smaller); video memory counts Godot's own GPU allocations at desktop sizes and formats
+(phones import textures as ETC2/ASTC). Frame time under software rendering says nothing about a phone
+and is not budgeted. No phone was measured.

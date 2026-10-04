@@ -1,6 +1,7 @@
 # FLUX DROP continuous integration.
 # Lint + static scans, headless Godot import/tests, level validation and
-# regeneration diff, then Android debug and iOS (unsigned project) exports.
+# regeneration diff, performance budgets under Xvfb, then Android debug and
+# iOS (unsigned project) exports.
 name: ci
 
 on:
@@ -83,11 +84,27 @@ jobs:
       - name: Regenerate levels and diff against committed data
         working-directory: game
         run: ~/godot/godot --headless --path . -s res://tools/generate_levels.gd -- --check
+      - name: Install Xvfb and a software Vulkan driver (performance probe)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb mesa-vulkan-drivers
+      - name: Performance budgets per quality preset (draw calls, primitives, nodes, memory)
+        working-directory: game
+        # Mobile renderer on Mesa lavapipe: the counts are real, frame times are not.
+        run: |
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            ~/godot/godot --path . -s res://tools/perf_probe.gd -- --check --report=/tmp/perf.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: validation-report
           path: /tmp/validation.json
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-report
+          path: /tmp/perf.json
           if-no-files-found: ignore
 
   android:
