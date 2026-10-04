@@ -86,6 +86,21 @@ func test_rejects_impossible_currency_deltas() -> void:
 	assert_has(capped["reasons"], ReplayVerifier.CLAIM_IMPOSSIBLE_DELTA, "global caps are not what a level pays")
 
 
+## Reward claims bound currencies only: bonus stars, skins and trails are not
+## something a client may claim, so such deltas are refused as unknown.
+func test_rejects_star_skin_and_trail_deltas() -> void:
+	var history: Dictionary = _history(["daily_" + DATE, "w02_l07"])
+	for deltas: Dictionary in [{"stars": 1}, {"skin": "core_shadow"}, {"trail": 1}, {"coins": 10, "stars": 3}]:
+		var daily: Dictionary = _daily_claim(1)
+		daily["deltas"] = deltas
+		var verdict: Dictionary = _verifier.verify_reward_claim(daily, history)
+		assert_false(bool(verdict["valid"]), "daily %s" % str(deltas))
+		assert_has(verdict["reasons"], ReplayVerifier.CLAIM_UNKNOWN_CURRENCY)
+		var level: Dictionary = {"type": "level", "level_id": "w02_l07", "first_clear": true, "deltas": deltas}
+		var level_verdict: Dictionary = _verifier.verify_reward_claim(level, history)
+		assert_has(level_verdict["reasons"], ReplayVerifier.CLAIM_UNKNOWN_CURRENCY, "level %s" % str(deltas))
+
+
 func test_level_claim_is_bounded_by_what_the_level_pays() -> void:
 	var level: Dictionary = LevelRepository.new().load_level("w03_l52")
 	var tables: Dictionary = RewardEngine.load_tables()
