@@ -157,10 +157,21 @@ jobs:
 
   ios:
     name: iOS project export (unsigned)
-    runs-on: macos-14
+    runs-on: macos-15
     needs: [lint, test]
     steps:
       - uses: actions/checkout@v4
+      - name: Select Xcode 26 (the 4.7 iOS template links against the iOS 26 SDK)
+        # With an older Xcode the link fails on CADynamicRange*, MTLTensorDomain and
+        # the Swift 6.2 runtime the engine library references.
+        run: |
+          set -euo pipefail
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -z "$XC" ]; then
+            echo "No Xcode 26 on this runner image:"; ls -d /Applications/Xcode*.app; exit 1
+          fi
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
       - name: Download Godot and export templates
         run: |
           curl -fsSL -o /tmp/godot.zip "${GODOT_URL}/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
@@ -175,7 +186,7 @@ jobs:
         env:
           # Godot refuses to export without a team ID. The release team ID comes
           # from the IOS_TEAM_ID secret; without it a non-signing ID is used,
-          # which is enough for the unsigned simulator build below.
+          # which is enough for the unsigned device build below.
           IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
           GODOT=/tmp/godot/Godot.app/Contents/MacOS/Godot
