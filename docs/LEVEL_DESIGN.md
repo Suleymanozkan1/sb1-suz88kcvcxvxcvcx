@@ -37,7 +37,9 @@ validation, the autopilot, the replay verifier and the tests, so "solvable in th
   0.70 → 1.00, spark density 0.90 → 0.60, score-target ratio 0.55 → 0.72.
 * **Chapters**: every world is a sequence of 13-level chapters, each introducing one mechanic and then
   walking it through four phases — *introduction* (3 levels, wave −1, density ×0.75: a breather),
-  *mastery* (4), *combination* with earlier mechanics (4), *high pressure* (2, wave +1). This is the
+  *mastery* (4), *combination* with earlier mechanics (4: the previous chapter's hazards, forms and
+  special elements come back at 30 % of their weight, `chapter_phases.combination.blend_previous`),
+  *high pressure* (2, wave +1). This is the
   sawtooth: difficulty rises inside a chapter, relaxes when the next idea arrives. A new idea arrives
   every 13 levels (40 introductions: hop, shield, slider, pulse, phase, form gate, moving colours,
   3 lanes, currents, dash, chains, surge, portals, overdrive, ice, beat lock, speed ramp, …).

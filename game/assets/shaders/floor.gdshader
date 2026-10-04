@@ -15,6 +15,8 @@ uniform vec4 caustic_color : source_color = vec4(0.6, 0.95, 0.9, 1.0);
 // Music beat (0..1, decaying): the lane lips catch a little more light on the
 // beat, so the track breathes with the music without any glow.
 uniform float beat = 0.0;
+// Polished floors (ice, wet stone, obsidian) reflect the shaft (0 = matte).
+uniform float gloss = 0.0;
 
 varying vec3 local_pos;
 
@@ -62,7 +64,7 @@ void fragment() {
 		col = mix(col, caustic_color.rgb, caustic * caustics);
 	}
 	ALBEDO = col;
-	ROUGHNESS = 0.82 - groove * 0.2;
+	ROUGHNESS = mix(0.82 - groove * 0.2, 0.24, gloss);
 	METALLIC = 0.18;
 	SPECULAR = 0.4;
 }

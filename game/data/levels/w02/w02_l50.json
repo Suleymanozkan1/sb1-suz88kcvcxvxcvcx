@@ -2,7 +2,7 @@
 	"beat_seconds": 0.4839,
 	"chapter": "D",
 	"chapter_phase": "combination",
-	"combo_target": 57,
+	"combo_target": 55,
 	"difficulty": 0.21,
 	"duration": 26.3,
 	"entities": [
@@ -71,9 +71,12 @@
 			"t": "spark"
 		},
 		{
-			"color": 0,
 			"d": 39.74,
-			"t": "phase_gate"
+			"from": 0,
+			"offset": 0.4425,
+			"period": 1.9355,
+			"t": "slider",
+			"to": 1
 		},
 		{
 			"d": 35.47,
@@ -82,11 +85,6 @@
 		},
 		{
 			"d": 36.68,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 37.88,
 			"lane": 1,
 			"t": "spark"
 		},
@@ -636,17 +634,17 @@
 	"music": "crystal_valley",
 	"number": 102,
 	"objective": {
-		"target": 42,
+		"target": 41,
 		"type": "collect"
 	},
-	"perfect_target": 77,
+	"perfect_target": 76,
 	"schema_version": 1,
-	"score_target": 3520,
+	"score_target": 3410,
 	"seed": 441527097,
 	"solution": {
-		"max_combo": 95,
-		"score": 6040,
-		"sparks": 77,
+		"max_combo": 93,
+		"score": 5855,
+		"sparks": 76,
 		"taps": [
 			234,
 			319,

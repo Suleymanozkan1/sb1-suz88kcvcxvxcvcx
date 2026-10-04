@@ -1,7 +1,7 @@
 extends TestCase
 ## CosmeticCatalog parsing helpers and validation of broken / hostile data.
 
-const CORE_STYLE_COUNT: int = 10
+const CORE_STYLE_COUNT: int = 19
 
 var _catalog: CosmeticCatalog = null
 
@@ -98,7 +98,7 @@ func test_detects_missing_and_invalid_params() -> void:
 	items.append(no_params)
 	items.append(_item("t_mp", "core_skin", {"type": "coins", "value": 5}, {"style": 1}))
 	var bad: Dictionary = _params_for("core_skin")
-	bad["style"] = 12
+	bad["style"] = CORE_STYLE_COUNT
 	bad["rim"] = "white"
 	bad["anim_speed"] = 9.0
 	items.append(_item("t_bp", "core_skin", {"type": "coins", "value": 5}, bad))

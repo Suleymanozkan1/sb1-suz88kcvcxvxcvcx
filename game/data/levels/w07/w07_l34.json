@@ -2,7 +2,7 @@
 	"beat_seconds": 0.4412,
 	"chapter": "C",
 	"chapter_phase": "combination",
-	"combo_target": 72,
+	"combo_target": 70,
 	"difficulty": 0.68,
 	"duration": 33.77,
 	"entities": [
@@ -49,9 +49,14 @@
 			"t": "spark"
 		},
 		{
-			"color": 0,
 			"d": 33.98,
-			"t": "phase_gate"
+			"lanes": [
+				1
+			],
+			"offset": 0.9367,
+			"open": 0.5,
+			"period": 1.7647,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 30.41,
@@ -349,14 +354,14 @@
 			"t": "spark"
 		},
 		{
-			"color": 0,
 			"d": 151.52,
-			"t": "phase_gate"
-		},
-		{
-			"d": 147.41,
-			"lane": 1,
-			"t": "spark"
+			"lanes": [
+				0
+			],
+			"offset": 0.6378,
+			"open": 0.5,
+			"period": 0.8824,
+			"t": "pulse_gate"
 		},
 		{
 			"d": 148.65,
@@ -961,22 +966,22 @@
 	"music": "frozen_pulse",
 	"number": 346,
 	"objective": {
-		"target": 47,
+		"target": 46,
 		"type": "collect"
 	},
-	"perfect_target": 86,
+	"perfect_target": 85,
 	"schema_version": 1,
-	"score_target": 5810,
+	"score_target": 5890,
 	"seed": 3288959468,
 	"solution": {
-		"max_combo": 120,
-		"score": 8770,
-		"sparks": 86,
+		"max_combo": 117,
+		"score": 8885,
+		"sparks": 85,
 		"taps": [
 			53,
 			129,
 			155,
-			181,
+			177,
 			202,
 			229,
 			281,

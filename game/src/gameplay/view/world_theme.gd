@@ -6,6 +6,10 @@ extends RefCounted
 ## Environment colour caps (ART_DIRECTION §3).
 const ENV_MAX_SATURATION: float = 0.45
 const ENV_MAX_VALUE: float = 0.55
+## Structure hues closer than this (25° of the wheel) to a gameplay role are
+## desaturated to ROLE_SAFE_SATURATION.
+const ROLE_HUE_GAP: float = 25.0 / 360.0
+const ROLE_SAFE_SATURATION: float = 0.18
 const RIB_PROFILES: PackedStringArray = [
 	"gate", "arch", "hex", "monolith", "lattice", "facet", "truss", "icicle", "ring", "candy"
 ]
@@ -32,8 +36,14 @@ var rib_profile: String = "gate"
 var rib_material: String = "anodised"
 var atmosphere: String = "dust"
 var atmosphere_count: int = 16
+## Faint light shafts of the key light far ahead (worlds with open light).
+var shafts: bool = false
+## Side detail between the ribs (MeshFactory.DETAIL_KINDS; "" for none).
+var detail: String = ""
 var silhouette: String = "turbine"
 var caustics: bool = false
+## Floor polish 0..1 (reflections of the shaft on High/Ultra).
+var floor_gloss: float = 0.0
 var bpm: float = 120.0
 var boss_name: String = ""
 ## High-key world (light background): UI and hazard bodies adapt contrast.
@@ -71,8 +81,12 @@ static func from_world(world: Dictionary) -> WorldTheme:
 	var atmo: Dictionary = a.get("atmosphere", {}) as Dictionary
 	t.atmosphere = str(atmo.get("type", t.atmosphere))
 	t.atmosphere_count = clampi(int(atmo.get("count", t.atmosphere_count)), 0, 24)
+	t.shafts = bool(atmo.get("shafts", false))
+	var detail_kind: String = str(a.get("detail", ""))
+	t.detail = detail_kind if MeshFactory.DETAIL_KINDS.has(detail_kind) else ""
 	t.silhouette = str(a.get("silhouette", t.silhouette))
 	t.caustics = bool(a.get("caustics", false))
+	t.floor_gloss = clampf(float(a.get("floor_gloss", 0.0)), 0.0, 1.0)
 	t.bpm = float((world.get("music", {}) as Dictionary).get("bpm", 120))
 	t.boss_name = str((world.get("boss", {}) as Dictionary).get("name", ""))
 	t.bright = t.sky_bottom.get_luminance() > 0.5
@@ -84,6 +98,8 @@ static func from_world(world: Dictionary) -> WorldTheme:
 	t.fog = WorldTheme.quiet(t.fog, t.bright)
 	t.floor_color = WorldTheme.quiet(t.floor_color, t.bright)
 	t.lane_color = WorldTheme.quiet(t.lane_color, t.bright)
+	# Structure (ribs, arches, posts, pads) never wears a gameplay role colour.
+	t.structure = WorldTheme.off_roles(t.structure)
 	return t
 
 
@@ -92,6 +108,25 @@ static func _c(dict: Dictionary, key: String, fallback: Color) -> Color:
 	if v.is_empty() or not Color.html_is_valid(v):
 		return fallback
 	return Color(v)
+
+
+## [param c] kept out of the gameplay colour roles: a structure colour whose
+## hue is within ROLE_HUE_GAP of PRIMARY, SECONDARY, ACCENT or WARNING is
+## desaturated to ROLE_SAFE_SATURATION, so it reads as a neutral tint of that
+## hue rather than as a hazard, an energy or a reward.
+static func off_roles(c: Color) -> Color:
+	if c.s <= ROLE_SAFE_SATURATION:
+		return c
+	for role: Color in [Palette.PRIMARY, Palette.SECONDARY, Palette.ACCENT, Palette.WARNING]:
+		if WorldTheme.hue_distance(c.h, role.h) < ROLE_HUE_GAP:
+			return Color.from_hsv(c.h, ROLE_SAFE_SATURATION, c.v, c.a)
+	return c
+
+
+## Shortest distance between two hues on the colour wheel (0..0.5).
+static func hue_distance(a: float, b: float) -> float:
+	var d: float = absf(a - b)
+	return minf(d, 1.0 - d)
 
 
 ## [param c] limited to the environment caps: saturation ≤ ENV_MAX_SATURATION

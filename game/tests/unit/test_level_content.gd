@@ -58,3 +58,28 @@ func test_validator_reports_unreachable_targets() -> void:
 	data["combo_target"] = 9999
 	assert_true(v.validate(data).codes().has("unreachable_state"), "and a combo target above it")
 
+
+
+func test_combination_phase_brings_back_the_previous_chapter() -> void:
+	var model: DifficultyModel = DifficultyModel.new()
+	var catalog: WorldCatalog = WorldCatalog.load_default()
+	var checked: int = 0
+	for wi: int in range(1, catalog.world_count() + 1):
+		var chapters: Array = catalog.world_at(wi).get("chapters", []) as Array
+		for ci: int in chapters.size():
+			if wi == 1 and ci == 0:
+				continue
+			var previous: Dictionary = (
+				chapters[ci - 1] as Dictionary
+				if ci > 0
+				else (catalog.world_at(wi - 1)["chapters"] as Array).back() as Dictionary
+			)
+			var local: int = int((chapters[ci] as Dictionary)["start"]) + 7
+			var spec: LevelSpec = model.build_spec(catalog.global_number(wi, local))
+			assert_eq(spec.chapter_phase, "combination", spec.id)
+			for h: String in previous.get("hazards", {}) as Dictionary:
+				assert_gt(float(spec.hazards.get(h, 0.0)), 0.0, "%s brings back %s" % [spec.id, h])
+			for f: String in previous.get("forms", {}) as Dictionary:
+				assert_gt(float(spec.forms.get(f, 0.0)), 0.0, "%s brings back the %s form" % [spec.id, f])
+			checked += 1
+	assert_eq(checked, 39, "every combination phase after the first chapter")

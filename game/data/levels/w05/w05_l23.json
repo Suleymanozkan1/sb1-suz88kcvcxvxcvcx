@@ -2,7 +2,7 @@
 	"beat_seconds": 0.6,
 	"chapter": "B",
 	"chapter_phase": "combination",
-	"combo_target": 64,
+	"combo_target": 66,
 	"difficulty": 0.458,
 	"duration": 28.28,
 	"entities": [
@@ -197,23 +197,19 @@
 		},
 		{
 			"d": 60.16,
-			"lanes": [
-				0
-			],
-			"offset": 0.1875,
-			"open": 0.5,
+			"from": 1,
+			"offset": 0.9375,
 			"period": 2.4,
-			"t": "pulse_gate"
-		},
-		{
-			"d": 60.16,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
+			"t": "slider",
+			"to": 0
 		},
 		{
 			"d": 55.85,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 57.12,
 			"lane": 0,
 			"t": "spark"
 		},
@@ -1031,20 +1027,11 @@
 		},
 		{
 			"d": 226.8,
-			"lanes": [
-				0
-			],
-			"offset": 0.3472,
-			"open": 0.5,
+			"from": 1,
+			"offset": 0.0972,
 			"period": 2.4,
-			"t": "pulse_gate"
-		},
-		{
-			"d": 226.8,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
+			"t": "slider",
+			"to": 0
 		},
 		{
 			"d": 223.22,
@@ -1053,6 +1040,11 @@
 		},
 		{
 			"d": 224.47,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 225.65,
 			"lane": 0,
 			"t": "spark"
 		},
@@ -1259,6 +1251,7 @@
 	"mechanics": [
 		"hop",
 		"pulse",
+		"slider",
 		"spark",
 		"surge"
 	],
@@ -1274,14 +1267,14 @@
 		"target": 0,
 		"type": "reach_end"
 	},
-	"perfect_target": 108,
+	"perfect_target": 110,
 	"schema_version": 1,
-	"score_target": 4030,
+	"score_target": 4120,
 	"seed": 1470539474,
 	"solution": {
-		"max_combo": 108,
-		"score": 6445,
-		"sparks": 108,
+		"max_combo": 110,
+		"score": 6595,
+		"sparks": 110,
 		"taps": [
 			220,
 			254,

@@ -2,9 +2,9 @@
 	"beat_seconds": 0.4688,
 	"chapter": "B",
 	"chapter_phase": "combination",
-	"combo_target": 43,
+	"combo_target": 45,
 	"difficulty": 0.258,
-	"duration": 24.33,
+	"duration": 25.62,
 	"entities": [
 		{
 			"d": 22.7,
@@ -367,11 +367,10 @@
 		},
 		{
 			"d": 122.02,
-			"from": 0,
-			"offset": 0.5704,
-			"period": 1.4063,
-			"t": "slider",
-			"to": 1
+			"lanes": [
+				0
+			],
+			"t": "barrier"
 		},
 		{
 			"d": 122.02,
@@ -381,22 +380,17 @@
 			"t": "barrier"
 		},
 		{
-			"d": 116.9,
+			"d": 118.14,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 119.95,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 127.43,
-			"from": 0,
-			"offset": 0.1081,
-			"period": 1.4063,
-			"t": "slider",
-			"to": 1
+			"d": 128.08,
+			"lanes": [
+				1
+			],
+			"t": "current",
+			"to": 2
 		},
 		{
 			"d": 123.14,
@@ -404,240 +398,266 @@
 			"t": "spark"
 		},
 		{
-			"d": 132.89,
+			"d": 124.38,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 125.63,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 126.88,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 139.3,
 			"lanes": [
-				1
+				2
 			],
 			"t": "current",
-			"to": 0
+			"to": 1
 		},
 		{
-			"d": 128.54,
-			"lane": 1,
+			"d": 134.92,
+			"lane": 2,
 			"t": "spark"
 		},
 		{
-			"d": 129.79,
-			"lane": 1,
+			"d": 136.17,
+			"lane": 2,
 			"t": "spark"
 		},
 		{
-			"d": 131.04,
-			"lane": 1,
+			"d": 137.42,
+			"lane": 2,
 			"t": "spark"
 		},
 		{
-			"d": 144.02,
+			"d": 150.43,
 			"lanes": [
-				0
+				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 144.02,
+			"d": 150.43,
 			"lanes": [
 				2
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 138.53,
+			"d": 144.91,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 146.29,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 139.78,
-			"lane": 1,
+			"d": 147.54,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 141.02,
-			"lane": 1,
+			"d": 148.79,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 142.27,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 149.56,
+			"d": 155.97,
 			"lanes": [
-				0
+				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 146.43,
-			"lane": 1,
+			"d": 152.81,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 147.68,
-			"lane": 1,
+			"d": 154.06,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 155.18,
+			"d": 161.59,
 			"lanes": [
-				0
+				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 150.73,
-			"lane": 1,
+			"d": 157.11,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 151.98,
-			"lane": 1,
+			"d": 158.36,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 161.74,
+			"d": 168.15,
 			"lanes": [
-				0
+				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 158.91,
-			"lane": 1,
+			"d": 165.29,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 160.16,
-			"lane": 1,
+			"d": 166.54,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 167.39,
+			"d": 173.8,
 			"lanes": [
-				0
+				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 167.39,
+			"d": 173.8,
 			"lanes": [
 				2
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 162.93,
+			"d": 169.31,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 170.56,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 171.81,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 179.22,
+			"lanes": [
+				1
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 179.22,
+			"lanes": [
+				2
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 175.0,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 176.25,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 177.49,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 185.73,
+			"lanes": [
+				0
+			],
+			"t": "current",
+			"to": 1
+		},
+		{
+			"d": 180.41,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 181.65,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 184.15,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 195.57,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 195.57,
+			"lanes": [
+				2
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 191.36,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 164.18,
+			"d": 192.61,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 165.43,
+			"d": 193.86,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 172.81,
+			"d": 201.13,
 			"from": 0,
-			"offset": 0.8311,
+			"offset": 0.2044,
 			"period": 0.9375,
 			"t": "slider",
 			"to": 1
 		},
 		{
-			"d": 172.81,
+			"d": 201.13,
 			"lanes": [
 				2
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 168.62,
+			"d": 196.77,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 169.87,
+			"d": 198.02,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 171.11,
+			"d": 199.26,
 			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 178.28,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 178.28,
-			"lanes": [
-				2
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 175.27,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 176.52,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 184.83,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 179.43,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 182.62,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 190.39,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 190.39,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 185.95,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 187.2,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 188.45,
-			"lane": 2,
 			"t": "spark"
 		}
 	],
@@ -651,7 +671,7 @@
 	"intro_mechanic": "",
 	"kind": "normal",
 	"lanes": 3,
-	"length": 202.39,
+	"length": 213.13,
 	"local_index": 23,
 	"mechanics": [
 		"current",
@@ -672,14 +692,14 @@
 		"target": 0,
 		"type": "reach_end"
 	},
-	"perfect_target": 72,
+	"perfect_target": 76,
 	"schema_version": 1,
-	"score_target": 2280,
+	"score_target": 2400,
 	"seed": 2682673084,
 	"solution": {
-		"max_combo": 72,
-		"score": 3870,
-		"sparks": 72,
+		"max_combo": 76,
+		"score": 4070,
+		"sparks": 76,
 		"taps": [
 			78,
 			185,
@@ -688,8 +708,7 @@
 			643,
 			688,
 			857,
-			1000,
-			1309
+			1047
 		]
 	},
 	"spawn": {

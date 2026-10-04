@@ -11,7 +11,8 @@
       "shadows": false,
       "glow": false,
       "fps_cap": 60,
-      "ambient_particles": false
+      "ambient_particles": false,
+      "reflections": false
     },
     "medium": {
       "render_scale": 0.85,
@@ -20,10 +21,11 @@
       "particle_scale": 0.7,
       "trail_points": 20,
       "dynamic_light": true,
-      "shadows": false,
+      "shadows": true,
       "glow": true,
       "fps_cap": 60,
-      "ambient_particles": true
+      "ambient_particles": true,
+      "reflections": false
     },
     "high": {
       "render_scale": 1.0,
@@ -35,7 +37,8 @@
       "shadows": true,
       "glow": true,
       "fps_cap": 60,
-      "ambient_particles": true
+      "ambient_particles": true,
+      "reflections": true
     },
     "ultra": {
       "render_scale": 1.0,
@@ -47,7 +50,8 @@
       "shadows": true,
       "glow": true,
       "fps_cap": 120,
-      "ambient_particles": true
+      "ambient_particles": true,
+      "reflections": true
     }
   },
   "battery_saver": {
@@ -56,19 +60,35 @@
     "overrides": {
       "post_fx": false,
       "dynamic_light": false,
-      "ambient_particles": false
+      "ambient_particles": false,
+      "reflections": false
     }
   },
   "auto_detect": {
     "compatibility_preset": "low",
     "mobile": [
-      {"min_cores": 8, "preset": "medium"},
-      {"min_cores": 0, "preset": "low"}
+      {
+        "min_cores": 8,
+        "preset": "medium"
+      },
+      {
+        "min_cores": 0,
+        "preset": "low"
+      }
     ],
     "desktop": [
-      {"min_cores": 8, "preset": "high"},
-      {"min_cores": 4, "preset": "medium"},
-      {"min_cores": 0, "preset": "low"}
+      {
+        "min_cores": 8,
+        "preset": "high"
+      },
+      {
+        "min_cores": 4,
+        "preset": "medium"
+      },
+      {
+        "min_cores": 0,
+        "preset": "low"
+      }
     ]
   },
   "auto_downgrade": {

@@ -74,7 +74,9 @@ func test_glass_rows_wait_for_a_full_stack() -> void:
 		for e: Variant in level["entities"] as Array:
 			if str((e as Dictionary)["t"]) == "breakable":
 				glass_rows[float((e as Dictionary)["d"])] = true
-		assert_eq(sim.stack_crashes, glass_rows.size(), "%s: each glass row is a stack crash" % str(level["id"]))
+		# Combination levels bring back the dash form, which breaks glass too.
+		if not (level["mechanics"] as Array).has("dash"):
+			assert_eq(sim.stack_crashes, glass_rows.size(), "%s: each glass row is a stack crash" % str(level["id"]))
 	assert_gt(float(crashes), 5.0, "the plates chapter really crashes glass")
 
 

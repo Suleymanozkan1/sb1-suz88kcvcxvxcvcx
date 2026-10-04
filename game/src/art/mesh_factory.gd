@@ -8,6 +8,11 @@ const CHAMFER_RATIO: float = 0.08
 const RIB_SPAN: float = 3.5
 const RIB_HEIGHT: float = 3.8
 const RIB_THICK: float = 0.22
+## Side details sit just outside the rib pillars and fill most of a rib gap.
+const DETAIL_X: float = 3.95
+const DETAIL_LENGTH: float = 6.0
+const DETAIL_KINDS: PackedStringArray = ["conduits", "pipes", "panels", "crystals", "cables"]
+const CABLE_SEGMENTS: int = 6
 
 static var _cache: Dictionary = {}
 
@@ -397,6 +402,67 @@ static func silhouette(kind: String) -> ArrayMesh:
 			st.append_from(
 				ring, 0, Transform3D(Basis(Vector3.RIGHT, PI * 0.5).scaled(Vector3(1, 1, 0.25)), Vector3(0, 12, 0))
 			)
+	var mesh: ArrayMesh = st.commit()
+	_cache[key] = mesh
+	return mesh
+
+
+## Side detail between two ribs, mirrored on both walls of the shaft (one
+## per world, `art.detail`): it gives the walls a second rhythm without
+## touching the lanes. Built from the same chamfered boxes as everything else.
+static func detail(kind: String) -> ArrayMesh:
+	var key: String = "detail:" + kind
+	if _cache.has(key):
+		return _cache[key] as ArrayMesh
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for side: float in [-1.0, 1.0]:
+		var x: float = side * DETAIL_X
+		match kind:
+			"conduits":
+				for y: float in [0.55, 0.95]:
+					_append_chamfered_box(
+						st, Vector3(0.12, 0.12, DETAIL_LENGTH), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, y, 0))
+					)
+				_append_chamfered_box(st, Vector3(0.2, 0.62, 0.14), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, 0.75, 0)))
+			"pipes":
+				_append_chamfered_box(
+					st, Vector3(0.24, 0.24, DETAIL_LENGTH), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, 0.4, 0))
+				)
+				for z: float in [-DETAIL_LENGTH * 0.5, DETAIL_LENGTH * 0.5]:
+					_append_chamfered_box(st, Vector3(0.36, 0.36, 0.1), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, 0.4, z)))
+			"panels":
+				_append_chamfered_box(
+					st, Vector3(0.06, 1.4, DETAIL_LENGTH * 0.9), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, 0.9, 0))
+				)
+				_append_chamfered_box(
+					st,
+					Vector3(0.1, 0.05, DETAIL_LENGTH * 0.9),
+					CHAMFER_RATIO,
+					Transform3D(Basis.IDENTITY, Vector3(x - side * 0.03, 1.2, 0))
+				)
+			"crystals":
+				for k: int in 3:
+					var h: float = 0.5 + 0.3 * float(k)
+					var lean: float = side * (0.18 - 0.14 * float(k))
+					var basis: Basis = Basis(Vector3.BACK, lean)
+					var base: Vector3 = Vector3(x - side * 0.15 * float(k), 0.0, -0.9 + 0.8 * float(k))
+					_append_chamfered_box(st, Vector3(0.18, h, 0.18), 0.2, Transform3D(basis, base + basis * Vector3(0, h * 0.5, 0)))
+			"cables":
+				# A sagging cable between the ribs, approximated by short struts.
+				var prev: Vector3 = Vector3(x, 2.6, -DETAIL_LENGTH * 0.5)
+				for s: int in range(1, CABLE_SEGMENTS + 1):
+					var u: float = float(s) / float(CABLE_SEGMENTS)
+					var z: float = lerpf(-DETAIL_LENGTH * 0.5, DETAIL_LENGTH * 0.5, u)
+					var sag: float = 4.0 * u * (1.0 - u) * 0.6
+					var p: Vector3 = Vector3(x, 2.6 - sag, z)
+					_append_chamfered_box(
+						st,
+						Vector3(0.05, 0.05, prev.distance_to(p) + 0.05),
+						CHAMFER_RATIO,
+						Transform3D(Basis(Vector3.RIGHT, atan2(prev.y - p.y, p.z - prev.z)), (prev + p) * 0.5)
+					)
+					prev = p
 	var mesh: ArrayMesh = st.commit()
 	_cache[key] = mesh
 	return mesh

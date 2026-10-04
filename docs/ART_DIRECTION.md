@@ -91,14 +91,22 @@ height 0.32 u. Everything is measured against the core.
 | Floor panels | 0.08–0.18 | 0.8 | 0.2 | 0.4 | 0 | Seams are recessed (darker), never lit lines |
 | Energy | colour | — | — | — | 1.5–3.0 HDR | Only energy may exceed 1.0 and bloom |
 
-There are no image textures for surfaces. Detail comes from geometry (chamfers, grooves) and from a few
-authored procedural masks (panel seams, fracture lines, facets) whose scale is tied to world units, so
-nothing stretches or tiles visibly.
+There are no image textures for surfaces. Detail comes from geometry (chamfers, grooves), from a few
+authored procedural masks (panel seams, fracture lines, facets) and, on structure, from a procedural
+relief per material (`structure.gdshader`): brushed streaks on anodised metal and steel, grain on stone
+and sandstone (with wind strata), crackle glaze on ceramic, orange peel on coated metal, facets on ice
+and crystal, conchoidal ripples on obsidian, none on lacquer. The relief is a height field turned into
+a normal with screen-space derivatives (no textures, no tangents), a few millimetres deep, tied to
+world units so nothing stretches or tiles visibly; Low quality and battery saver switch it off.
 
 ## 6. Lighting language
 
 * **Key:** one directional light per world (colour and angle from world data); shadows on Medium and
-  above.
+  above (the default on phones). Hazards, pads and the core cast; ribs and wall details do not (their
+  thin shadows read as cracks across the floor).
+* **Reflections (High/Ultra):** one reflection probe steps along the shaft every 21 u (three ribs; the
+  shaft is periodic, so it re-captures rarely); polished floors (`floor_gloss`: Crystal Valley, Deep
+  Ocean, Frozen Pulse, Void Space) and metals reflect the structure. Lower presets use the sky only.
 * **Fill:** ambient colour at 25–40 % of the key.
 * **Rim / local:** the core's own point light. Hazards near the core light up, which is gameplay
   information: you see what is close to you.
@@ -107,11 +115,16 @@ nothing stretches or tiles visibly.
 * **Glow/bloom:** HDR threshold ≥ 1.0. Only energy exceeds it. Tonemapper: AgX (Mobile) / ACES
   (Compatibility).
 * No lens flares, no volumetric fog, no motion blur. Fog is distance-only, for depth.
+* **Light shafts:** in worlds with open light (Crystal Valley, Deep Ocean, Cyber Garden, Desert Reactor)
+  four faint beams of the key light colour lean through the far shaft at 6 % opacity (within the 8 %
+  atmosphere cap), Medium and above; they are the volumetric look without volumetric fog.
 
 ## 7. Environment layering
 
 * **Foreground:** floor panels and lane grooves (orientation and speed read).
-* **Midground:** ribs every 7 u (rhythm, speed and depth via parallax).
+* **Midground:** ribs every 7 u (rhythm, speed and depth via parallax), and one kind of wall detail
+  between them per world (`art.detail`: conduits, pipes, panels, crystals or sagging cables), outside
+  the rib pillars so the lanes stay clear.
 * **Background:** the sky gradient and sink, plus one world "story" silhouette far away (for example
   The Turbine's rotor for Neon Core's boss, a crystal ridge, foundry chimneys), drawn in fog colour.
 * **Atmosphere particles:** at most 24 on screen, at most 8 % opacity, with a reason (dust in the key

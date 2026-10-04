@@ -12,8 +12,8 @@ const SPEC_MINIMUMS: Dictionary = {
 	"frame": 8,
 	"avatar": 12,
 }
-const CORE_STYLE_COUNT: int = 10
-const TRAIL_STYLE_COUNT: int = 8
+const CORE_STYLE_COUNT: int = 19
+const TRAIL_STYLE_COUNT: int = 12
 
 var _catalog: CosmeticCatalog = null
 
@@ -56,6 +56,15 @@ func test_every_trail_shader_style_used() -> void:
 	for style: int in TRAIL_STYLE_COUNT:
 		assert_true(used.has(style), "trail style %d used" % style)
 	assert_eq(_catalog.options("trail_styles").size(), TRAIL_STYLE_COUNT)
+
+
+func test_every_core_skin_and_trail_has_its_own_style() -> void:
+	for category: String in [CosmeticCatalog.CORE_SKIN, CosmeticCatalog.TRAIL]:
+		var owner: Dictionary = {}
+		for it: Dictionary in _catalog.in_category(category):
+			var style: int = int(_catalog.typed_params(str(it["id"]))["style"])
+			assert_false(owner.has(style), "%s shares style %d with %s" % [it["id"], style, str(owner.get(style))])
+			owner[style] = it["id"]
 
 
 func test_extra_core_skins_vary_colours_and_animation() -> void:

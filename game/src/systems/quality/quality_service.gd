@@ -25,6 +25,7 @@ const PARAM_TYPES: Dictionary = {
 	"glow": TYPE_BOOL,
 	"fps_cap": TYPE_INT,
 	"ambient_particles": TYPE_BOOL,
+	"reflections": TYPE_BOOL,
 }
 ## Safe values used for any missing or malformed parameter.
 const FALLBACK_PARAMS: Dictionary = {
@@ -38,6 +39,7 @@ const FALLBACK_PARAMS: Dictionary = {
 	"glow": false,
 	"fps_cap": 60,
 	"ambient_particles": false,
+	"reflections": false,
 }
 const MIN_RENDER_SCALE: float = 0.25
 const MAX_RENDER_SCALE: float = 2.0

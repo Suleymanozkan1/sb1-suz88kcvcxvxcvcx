@@ -744,7 +744,8 @@ func _apply_quality() -> void:
 		bool(p.get("dynamic_light", true)),
 		bool(p.get("shadows", true)),
 		bool(p.get("glow", true)),
-		bool(p.get("ambient_particles", true))
+		bool(p.get("ambient_particles", true)),
+		bool(p.get("reflections", false))
 	)
 
 

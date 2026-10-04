@@ -120,6 +120,8 @@ func build_spec(number: int) -> LevelSpec:
 	spec.combo_ratio = float(curve.get("combo_target_ratio", 0.6))
 
 	_apply_chapter(spec, chapter)
+	if spec.chapter_phase == "combination":
+		_blend_previous(spec, _previous_chapter(wi, chapter), float(phase_cfg.get("blend_previous", 0.0)))
 	spec.intro_mechanic = str(chapter.get("intro", "")) if spec.chapter_phase == "introduction" else ""
 
 	var tutorial_until: int = int(chapter.get("tutorial_until", 0))
@@ -165,6 +167,42 @@ func _apply_chapter(spec: LevelSpec, chapter: Dictionary) -> void:
 		# Teach the new idea safely: slower, fewer simultaneous threats.
 		spec.speed *= 0.94
 		spec.change_prob *= 0.8
+	spec.start_form = _first_form(spec)
+
+
+## The chapter before [param chapter] (the previous world's last one for a
+## world's first chapter; empty at the very start of the campaign).
+func _previous_chapter(wi: int, chapter: Dictionary) -> Dictionary:
+	var chapters: Array = catalog.world_at(wi).get("chapters", []) as Array
+	var idx: int = chapters.find(chapter)
+	if idx > 0:
+		return chapters[idx - 1] as Dictionary
+	if wi > 1:
+		var before: Array = catalog.world_at(wi - 1).get("chapters", []) as Array
+		if not before.is_empty():
+			return before[before.size() - 1] as Dictionary
+	return {}
+
+
+## Combination phase: the previous chapter's idea comes back explicitly. Its
+## hazards and forms join the mix at [param amount] of their weight, and its
+## special elements (currents, portals, pads, wells, plates, clusters) keep at
+## least [param amount] of their chance.
+func _blend_previous(spec: LevelSpec, previous: Dictionary, amount: float) -> void:
+	if previous.is_empty() or amount <= 0.0:
+		return
+	var hazards: Dictionary = previous.get("hazards", {}) as Dictionary
+	for h: String in hazards:
+		spec.hazards[h] = float(spec.hazards.get(h, 0.0)) + amount * float(hazards[h])
+	var forms: Dictionary = previous.get("forms", {}) as Dictionary
+	for f: String in forms:
+		spec.forms[f] = float(spec.forms.get(f, 0.0)) + amount * float(forms[f])
+	spec.current_chance = maxf(spec.current_chance, amount * float(previous.get("current", 0.0)))
+	spec.portal_chance = maxf(spec.portal_chance, amount * float(previous.get("portal", 0.0)))
+	spec.launch_chance = maxf(spec.launch_chance, amount * float(previous.get("launch", 0.0)))
+	spec.gravity_chance = maxf(spec.gravity_chance, amount * float(previous.get("gravity", 0.0)))
+	spec.plate_chance = maxf(spec.plate_chance, amount * float(previous.get("plate", 0.0)))
+	spec.cluster_chance = maxf(spec.cluster_chance, amount * float(previous.get("cluster", 0.0)))
 	spec.start_form = _first_form(spec)
 
 

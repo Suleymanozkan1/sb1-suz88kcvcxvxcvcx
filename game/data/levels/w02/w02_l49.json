@@ -2,9 +2,9 @@
 	"beat_seconds": 0.4839,
 	"chapter": "D",
 	"chapter_phase": "combination",
-	"combo_target": 56,
+	"combo_target": 55,
 	"difficulty": 0.208,
-	"duration": 25.5,
+	"duration": 25.1,
 	"entities": [
 		{
 			"color": 0,
@@ -87,11 +87,13 @@
 		},
 		{
 			"d": 46.3,
-			"from": 0,
-			"offset": 0.0119,
+			"lanes": [
+				0
+			],
+			"offset": 0.7619,
+			"open": 0.5,
 			"period": 1.9355,
-			"t": "slider",
-			"to": 1
+			"t": "pulse_gate"
 		},
 		{
 			"d": 41.58,
@@ -393,9 +395,12 @@
 			"t": "spark"
 		},
 		{
-			"color": 1,
 			"d": 138.37,
-			"t": "phase_gate"
+			"from": 0,
+			"offset": 0.1578,
+			"period": 0.9677,
+			"t": "slider",
+			"to": 1
 		},
 		{
 			"d": 133.01,
@@ -408,22 +413,16 @@
 			"t": "spark"
 		},
 		{
-			"d": 135.42,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 136.62,
+			"d": 136.09,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 145.23,
-			"from": 1,
-			"offset": 0.2794,
-			"period": 0.9677,
-			"t": "slider",
-			"to": 0
+			"d": 144.69,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
 		},
 		{
 			"d": 139.57,
@@ -436,158 +435,159 @@
 			"t": "spark"
 		},
 		{
-			"d": 142.77,
-			"lane": 0,
+			"d": 141.97,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 143.98,
-			"lane": 0,
+			"d": 143.17,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 150.16,
+			"d": 149.78,
 			"form": "phase",
 			"t": "form_gate"
 		},
 		{
-			"d": 146.38,
-			"lane": 0,
+			"d": 145.85,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 148.79,
-			"lane": 0,
+			"d": 147.05,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"color": 0,
-			"d": 156.14,
+			"d": 156.55,
 			"t": "phase_gate"
 		},
 		{
 			"color": 0,
-			"d": 153.74,
-			"lane": 0,
+			"d": 153.33,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"color": 0,
-			"d": 154.94,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 162.69,
-			"t": "phase_gate"
-		},
-		{
-			"color": 1,
-			"d": 159.75,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 160.95,
-			"lane": 0,
+			"d": 154.54,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"color": 0,
-			"d": 168.16,
+			"d": 162.11,
 			"t": "phase_gate"
 		},
 		{
 			"color": 0,
-			"d": 165.1,
-			"lane": 0,
+			"d": 157.75,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"color": 0,
-			"d": 166.3,
-			"lane": 0,
+			"d": 158.95,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 0,
+			"d": 160.15,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 0,
+			"d": 167.68,
+			"t": "phase_gate"
+		},
+		{
+			"color": 0,
+			"d": 163.23,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 0,
+			"d": 164.43,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 0,
+			"d": 165.63,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"color": 1,
-			"d": 174.77,
+			"d": 173.73,
 			"t": "phase_gate"
 		},
 		{
-			"d": 170.58,
-			"lane": 0,
+			"color": 1,
+			"d": 171.25,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 172.45,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 179.17,
+			"t": "phase_gate"
+		},
+		{
+			"color": 1,
+			"d": 174.86,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 176.06,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 177.26,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 184.9,
+			"t": "phase_gate"
+		},
+		{
+			"color": 1,
+			"d": 180.34,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 182.75,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 189.3,
+			"form": "hop",
+			"t": "form_gate"
+		},
+		{
+			"d": 186.09,
+			"lane": 1,
 			"t": "shield"
-		},
-		{
-			"color": 1,
-			"d": 171.78,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 172.99,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 180.48,
-			"t": "phase_gate"
-		},
-		{
-			"color": 1,
-			"d": 177.13,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 178.33,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"color": 0,
-			"d": 186.58,
-			"t": "phase_gate"
-		},
-		{
-			"d": 184.08,
-			"lane": 0,
-			"t": "shield"
-		},
-		{
-			"color": 0,
-			"d": 192.43,
-			"t": "phase_gate"
-		},
-		{
-			"color": 0,
-			"d": 187.69,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"color": 0,
-			"d": 188.89,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"color": 0,
-			"d": 190.1,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"color": 0,
-			"d": 191.3,
-			"lane": 0,
-			"t": "spark"
 		}
 	],
 	"environment": "crystal_valley",
@@ -600,12 +600,13 @@
 	"intro_mechanic": "",
 	"kind": "normal",
 	"lanes": 2,
-	"length": 204.43,
+	"length": 201.3,
 	"local_index": 49,
 	"mechanics": [
 		"form_gate",
 		"hop",
 		"phase",
+		"pulse",
 		"shield",
 		"slider",
 		"spark"
@@ -624,11 +625,11 @@
 	},
 	"perfect_target": 75,
 	"schema_version": 1,
-	"score_target": 3690,
+	"score_target": 3640,
 	"seed": 491712859,
 	"solution": {
-		"max_combo": 94,
-		"score": 6340,
+		"max_combo": 92,
+		"score": 6260,
 		"sparks": 75,
 		"taps": [
 			324,
@@ -638,13 +639,9 @@
 			867,
 			918,
 			966,
-			1014,
-			1060,
-			1147,
-			1194,
-			1239,
-			1285,
-			1375
+			1010,
+			1148,
+			1279
 		]
 	},
 	"spawn": {

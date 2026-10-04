@@ -2,9 +2,9 @@
 	"beat_seconds": 0.5085,
 	"chapter": "C",
 	"chapter_phase": "combination",
-	"combo_target": 37,
+	"combo_target": 39,
 	"difficulty": 0.079,
-	"duration": 20.1,
+	"duration": 20.62,
 	"entities": [
 		{
 			"d": 22.59,
@@ -81,11 +81,15 @@
 		},
 		{
 			"d": 42.2,
-			"from": 1,
-			"offset": 0.2311,
-			"period": 1.0169,
-			"t": "slider",
-			"to": 0
+			"lanes": [
+				1
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 36.98,
+			"lane": 0,
+			"t": "spark"
 		},
 		{
 			"d": 38.18,
@@ -208,11 +212,10 @@
 		},
 		{
 			"d": 74.53,
-			"from": 1,
-			"offset": 0.9112,
-			"period": 2.0339,
-			"t": "slider",
-			"to": 0
+			"lanes": [
+				1
+			],
+			"t": "barrier"
 		},
 		{
 			"d": 69.28,
@@ -235,7 +238,7 @@
 			"t": "spark"
 		},
 		{
-			"d": 80.66,
+			"d": 81.8,
 			"lanes": [
 				0
 			],
@@ -252,22 +255,26 @@
 			"t": "spark"
 		},
 		{
-			"d": 78.52,
+			"d": 78.04,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 79.24,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 86.86,
-			"from": 0,
-			"offset": 0.1344,
-			"period": 1.0169,
-			"t": "slider",
-			"to": 1
-		},
-		{
-			"d": 81.77,
+			"d": 80.44,
 			"lane": 1,
 			"t": "spark"
+		},
+		{
+			"d": 88.56,
+			"lanes": [
+				1
+			],
+			"t": "barrier"
 		},
 		{
 			"d": 82.97,
@@ -280,74 +287,59 @@
 			"t": "spark"
 		},
 		{
-			"d": 93.61,
+			"d": 87.29,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 95.18,
 			"lanes": [
 				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 88.01,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 89.21,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 91.13,
+			"d": 89.69,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 92.33,
+			"d": 90.89,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 99.67,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 94.73,
+			"d": 93.29,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 95.93,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 97.13,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 98.33,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 105.97,
+			"d": 101.42,
 			"lanes": [
 				0
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 100.86,
+			"d": 96.29,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 102.06,
+			"d": 97.49,
 			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 108.54,
+			"lanes": [
+				1
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 102.54,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
@@ -356,107 +348,121 @@
 			"t": "spark"
 		},
 		{
-			"d": 112.72,
+			"d": 104.94,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 106.14,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 107.34,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 107.02,
+			"lane": 1,
+			"t": "prism"
+		},
+		{
+			"d": 114.53,
+			"from": 1,
+			"offset": 0.1825,
+			"period": 2.0339,
+			"t": "slider",
+			"to": 0
+		},
+		{
+			"d": 109.74,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 110.94,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 113.34,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 121.93,
 			"lanes": [
 				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 107.1,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 108.3,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 110.34,
+			"d": 115.74,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 111.54,
+			"d": 118.15,
 			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 119.78,
+			"d": 119.35,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 120.55,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 129.31,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 123.07,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 124.27,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 125.47,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 126.67,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 136.47,
 			"lanes": [
 				1
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 115.02,
-			"lane": 0,
+			"d": 130.51,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 116.22,
-			"lane": 0,
+			"d": 132.91,
+			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 117.43,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 118.63,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 126.33,
-			"from": 1,
-			"offset": 0.7425,
-			"period": 1.0169,
-			"t": "slider",
-			"to": 0
-		},
-		{
-			"d": 120.91,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 122.11,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 123.31,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 124.51,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 132.72,
-			"from": 1,
-			"offset": 0.8739,
-			"period": 1.0169,
-			"t": "slider",
-			"to": 0
-		},
-		{
-			"d": 127.51,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 128.71,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 131.11,
+			"d": 134.11,
 			"lane": 0,
 			"t": "spark"
 		}
@@ -471,7 +477,7 @@
 	"intro_mechanic": "",
 	"kind": "normal",
 	"lanes": 2,
-	"length": 144.72,
+	"length": 148.47,
 	"local_index": 34,
 	"mechanics": [
 		"hop",
@@ -491,23 +497,25 @@
 		"target": 34,
 		"type": "collect"
 	},
-	"perfect_target": 62,
+	"perfect_target": 63,
 	"schema_version": 1,
-	"score_target": 1940,
+	"score_target": 2260,
 	"seed": 2069466774,
 	"solution": {
-		"max_combo": 63,
-		"score": 3475,
-		"sparks": 62,
+		"max_combo": 65,
+		"score": 4030,
+		"sparks": 63,
 		"taps": [
 			90,
 			213,
 			427,
 			537,
-			646,
-			751,
-			856,
-			911
+			651,
+			709,
+			819,
+			874,
+			1046,
+			1107
 		]
 	},
 	"spawn": {

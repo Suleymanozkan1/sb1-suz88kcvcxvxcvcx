@@ -4,6 +4,7 @@ extends SceneTree
 ##   xvfb-run -a godot --path game --rendering-driver opengl3 --resolution 540x960 \
 ##       -s res://tools/capture_level.gd -- --level=w01_l05 --out=/tmp/shots --at=1.5,4,7 [--stop] [--fail]
 ## --stop quits after the last --at shot instead of playing the level to its end.
+## --quality=<low|medium|high|ultra> applies that preset's view settings.
 
 var _session: GameplaySession
 var _view: GameplayView
@@ -16,6 +17,7 @@ var _frames: int = 0
 var _done: bool = false
 var _fail_on_purpose: bool = false
 var _stop_after_shots: bool = false
+var _quality: String = ""
 
 
 func _initialize() -> void:
@@ -27,6 +29,8 @@ func _initialize() -> void:
 		elif arg.begins_with("--at="):
 			for s: String in arg.get_slice("=", 1).split(","):
 				_shots.append(s.to_float())
+		elif arg.begins_with("--quality="):
+			_quality = arg.get_slice("=", 1)
 		elif arg == "--stop":
 			_stop_after_shots = true
 		elif arg == "--fail":
@@ -53,6 +57,19 @@ func _setup() -> void:
 	_view.bind(_session)
 	_view.apply_world(WorldTheme.from_world(catalog.world(str(data["world"]))))
 	_view.setup_level()
+	if not _quality.is_empty():
+		var presets: Dictionary = JsonIO.read_dict("res://data/quality/presets.json").get("presets", {}) as Dictionary
+		var p: Dictionary = presets.get(_quality, {}) as Dictionary
+		_view.set_quality(
+			bool(p.get("post_fx", true)),
+			float(p.get("particle_scale", 1.0)),
+			int(p.get("trail_points", 18)),
+			bool(p.get("dynamic_light", true)),
+			bool(p.get("shadows", true)),
+			bool(p.get("glow", true)),
+			bool(p.get("ambient_particles", true)),
+			bool(p.get("reflections", false))
+		)
 	if not _fail_on_purpose:
 		for t: Variant in (data["solution"] as Dictionary)["taps"] as Array:
 			_taps.append(int(t))

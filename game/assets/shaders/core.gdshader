@@ -61,6 +61,50 @@ void fragment() {
 		m = fd_fbm(p * 0.9 + vec3(t * 0.2));
 		float stars = step(0.985, fd_hash13(floor(p * 9.0)));
 		col = mix(color_b.rgb * 0.4, color_a.rgb, m) + stars * 2.0;
+	} else if (style == 10) { // Toxic: bubbles rise through the core and pop
+		float c = fd_cells(p * 1.6 - vec3(0.0, t * 0.9, 0.0));
+		float bubble = 1.0 - smoothstep(0.0, 0.18, c);
+		float rim_b = smoothstep(0.14, 0.2, c) * (1.0 - smoothstep(0.2, 0.26, c));
+		col = mix(color_b.rgb * 0.5, color_a.rgb, bubble) + color_a.rgb * rim_b * 0.8;
+	} else if (style == 11) { // Solar: granulated surface, flares licking the limb
+		float gran = fd_cells(p * 3.4 + vec3(t * 0.25));
+		float flare = fd_fbm(vec3(atan(obj_pos.x, obj_pos.z) * 2.0, obj_pos.y * 3.0, t * 1.6));
+		col = mix(color_b.rgb, color_a.rgb, smoothstep(0.1, 0.5, gran));
+		col += color_a.rgb * smoothstep(0.55, 0.9, flare) * pow(1.0 - ndv, 1.5) * 1.6;
+	} else if (style == 12) { // Frostbite: frost creeps inward from the rim
+		float frost = fd_fbm(p * 2.4 + vec3(0.0, 0.0, t * 0.1));
+		float reach = 1.0 - ndv + 0.25 * sin(t * 0.8);
+		m = smoothstep(0.35, 0.36, frost * reach * 1.4);
+		col = mix(color_b.rgb * 0.6, color_a.rgb * 1.4, m) + step(0.97, fd_hash13(floor(p * 14.0))) * 0.8;
+	} else if (style == 13) { // Shadow: dark smoke swirls and swallows the light
+		float swirl = fd_fbm(p * 1.3 + vec3(sin(t * 0.7), t * 0.5, cos(t * 0.6)));
+		m = smoothstep(0.35, 0.75, swirl);
+		col = mix(color_b.rgb, color_a.rgb * 0.35, m) + color_a.rgb * pow(1.0 - ndv, 3.0) * 1.8;
+	} else if (style == 14) { // Prism: hard facets, each splitting light into its own hue
+		vec3 facet = floor(normalize(obj_pos) * 3.0);
+		float hue = fd_hash13(facet) + t * 0.15;
+		vec3 spectrum = 0.5 + 0.5 * cos(6.2831 * (hue + vec3(0.0, 0.33, 0.67)));
+		col = mix(color_a.rgb, spectrum, 0.65) * (0.75 + 0.35 * fd_hash13(facet + 5.0));
+	} else if (style == 15) { // Neon pulse: rings pulse outward from the centre
+		float r = length(obj_pos.xz) * 6.0;
+		float ring_m = smoothstep(0.75, 0.95, sin(r * 3.0 - t * 6.0) * 0.5 + 0.5);
+		col = mix(color_b.rgb * 0.3, color_a.rgb * 1.6, ring_m);
+	} else if (style == 16) { // Inferno: heat bands rise and shimmer
+		float y = obj_pos.y * 7.0 - t * 3.0 + fd_noise3(p * 2.0 + vec3(0.0, -t, 0.0)) * 1.5;
+		m = smoothstep(0.2, 0.8, sin(y) * 0.5 + 0.5);
+		col = mix(color_a.rgb, color_b.rgb * 1.3, m);
+	} else if (style == 17) { // Deep space: a slow spiral galaxy
+		float ang = atan(obj_pos.x, obj_pos.y);
+		float rad = length(obj_pos.xy) * 5.0;
+		float arms = sin(ang * 2.0 + log(rad + 0.2) * 4.0 - t * 0.8) * 0.5 + 0.5;
+		m = smoothstep(0.35, 0.85, arms) * (1.0 - smoothstep(0.9, 2.4, rad));
+		col = mix(color_b.rgb * 0.12, color_a.rgb * 1.5, m) + step(0.99, fd_hash13(floor(p * 11.0))) * 1.5;
+	} else if (style == 18) { // Starlight: points of light twinkle one by one
+		vec3 cell = floor(p * 5.0);
+		float star = step(0.7, fd_hash13(cell));
+		float twinkle = 0.5 + 0.5 * sin(t * 4.0 + fd_hash13(cell + 3.0) * 6.2831);
+		float point_m = 1.0 - smoothstep(0.0, 0.42, length(fract(p * 5.0) - 0.5));
+		col = mix(color_b.rgb * 0.3, color_a.rgb * 0.55, 0.5 + 0.5 * obj_pos.y) + star * point_m * twinkle * 2.4;
 	} else { // Plasma (default)
 		m = fd_fbm(p + vec3(0.0, t * 1.4, t * 0.6));
 		m = smoothstep(0.2, 0.85, m);

@@ -2,9 +2,9 @@
 	"beat_seconds": 0.4688,
 	"chapter": "D",
 	"chapter_phase": "combination",
-	"combo_target": 49,
+	"combo_target": 50,
 	"difficulty": 0.304,
-	"duration": 24.88,
+	"duration": 25.53,
 	"entities": [
 		{
 			"d": 21.98,
@@ -263,21 +263,34 @@
 			"t": "spark"
 		},
 		{
-			"color": 1,
 			"d": 111.01,
-			"t": "phase_gate"
+			"lanes": [
+				0
+			],
+			"t": "barrier"
 		},
 		{
-			"d": 109.81,
+			"d": 111.01,
+			"from": 2,
+			"offset": 0.1022,
+			"period": 1.875,
+			"t": "slider",
+			"to": 1
+		},
+		{
+			"d": 107.8,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 109.24,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 116.74,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
+			"color": 1,
+			"d": 116.46,
+			"t": "phase_gate"
 		},
 		{
 			"d": 112.24,
@@ -290,280 +303,293 @@
 			"t": "spark"
 		},
 		{
-			"d": 114.96,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 122.44,
-			"from": 2,
-			"offset": 0.8548,
-			"period": 1.4063,
-			"t": "slider",
-			"to": 1
-		},
-		{
-			"d": 117.97,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"d": 119.26,
-			"lane": 2,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 127.99,
-			"t": "phase_gate"
-		},
-		{
-			"d": 123.55,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 124.84,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 126.13,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 134.38,
-			"t": "phase_gate"
-		},
-		{
-			"d": 129.14,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 130.42,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 133.0,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 140.71,
-			"from": 0,
-			"offset": 0.5244,
-			"period": 0.9375,
-			"t": "slider",
-			"to": 1
-		},
-		{
-			"d": 140.71,
-			"lanes": [
-				2
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 135.58,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 136.87,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 138.59,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 145.09,
-			"form": "phase",
-			"t": "form_gate"
-		},
-		{
-			"d": 143.17,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 150.39,
-			"t": "phase_gate"
-		},
-		{
-			"color": 1,
-			"d": 147.6,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 148.89,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 156.5,
-			"t": "phase_gate"
-		},
-		{
-			"color": 1,
-			"d": 151.61,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 152.9,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 154.19,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 162.25,
-			"t": "phase_gate"
-		},
-		{
-			"color": 1,
-			"d": 157.63,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 158.91,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 160.2,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 0,
-			"d": 168.19,
-			"t": "phase_gate"
-		},
-		{
-			"color": 0,
-			"d": 165.93,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 0,
-			"d": 174.0,
-			"t": "phase_gate"
-		},
-		{
-			"color": 0,
-			"d": 170.65,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 0,
-			"d": 171.94,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 179.37,
-			"t": "phase_gate"
-		},
-		{
-			"color": 1,
-			"d": 176.52,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 177.81,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 184.18,
-			"form": "hop",
-			"t": "form_gate"
-		},
-		{
-			"d": 190.17,
+			"d": 121.78,
 			"lanes": [
 				0
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 190.17,
+			"d": 118.97,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 127.33,
+			"t": "phase_gate"
+		},
+		{
+			"d": 122.98,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 124.27,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 125.56,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 133.72,
+			"t": "phase_gate"
+		},
+		{
+			"d": 128.56,
+			"lane": 2,
+			"t": "spark"
+		},
+		{
+			"d": 132.14,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 140.05,
+			"from": 1,
+			"offset": 0.5956,
+			"period": 0.9375,
+			"t": "slider",
+			"to": 0
+		},
+		{
+			"d": 140.05,
 			"lanes": [
 				2
 			],
 			"t": "barrier"
 		},
 		{
-			"d": 185.4,
+			"d": 134.86,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 186.69,
+			"d": 136.15,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 187.98,
-			"lane": 1,
+			"d": 138.01,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 196.42,
-			"lanes": [
-				1
-			],
-			"t": "barrier"
+			"d": 144.43,
+			"form": "phase",
+			"t": "form_gate"
 		},
 		{
-			"d": 191.27,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 192.56,
-			"lane": 1,
+			"d": 142.45,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
 			"color": 1,
-			"d": 201.72,
+			"d": 149.73,
 			"t": "phase_gate"
 		},
 		{
-			"d": 197.57,
-			"lane": 2,
+			"color": 1,
+			"d": 146.89,
+			"lane": 0,
 			"t": "spark"
 		},
 		{
-			"d": 200.15,
-			"lane": 2,
+			"color": 1,
+			"d": 148.18,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 155.84,
+			"t": "phase_gate"
+		},
+		{
+			"color": 1,
+			"d": 150.9,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 152.19,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 153.47,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 161.59,
+			"t": "phase_gate"
+		},
+		{
+			"color": 1,
+			"d": 157.05,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 158.34,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 159.63,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 0,
+			"d": 167.53,
+			"t": "phase_gate"
+		},
+		{
+			"color": 0,
+			"d": 165.36,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 0,
+			"d": 173.34,
+			"t": "phase_gate"
+		},
+		{
+			"color": 0,
+			"d": 169.94,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 0,
+			"d": 171.23,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 178.71,
+			"t": "phase_gate"
+		},
+		{
+			"color": 1,
+			"d": 175.81,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"color": 1,
+			"d": 177.1,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 183.52,
+			"form": "hop",
+			"t": "form_gate"
+		},
+		{
+			"color": 1,
+			"d": 182.39,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 189.74,
+			"lanes": [
+				0
+			],
+			"t": "current",
+			"to": 1
+		},
+		{
+			"d": 184.68,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 185.97,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 187.26,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 188.55,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 200.79,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 200.79,
+			"lanes": [
+				2
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 195.57,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 198.14,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 199.43,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 207.29,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 202.01,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 203.3,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 204.59,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 205.87,
+			"lane": 1,
 			"t": "spark"
 		}
 	],
@@ -577,7 +603,7 @@
 	"intro_mechanic": "",
 	"kind": "normal",
 	"lanes": 3,
-	"length": 213.72,
+	"length": 219.29,
 	"local_index": 47,
 	"mechanics": [
 		"current",
@@ -588,7 +614,7 @@
 		"slider",
 		"spark"
 	],
-	"min_tap_window": 0.433,
+	"min_tap_window": 0.417,
 	"modifiers": {
 		"hop_time": 0.13,
 		"ramp_distance": 204.1,
@@ -600,26 +626,24 @@
 		"target": 0,
 		"type": "reach_end"
 	},
-	"perfect_target": 67,
+	"perfect_target": 70,
 	"schema_version": 1,
-	"score_target": 3150,
+	"score_target": 3190,
 	"seed": 2615268418,
 	"solution": {
-		"max_combo": 82,
-		"score": 5260,
-		"sparks": 67,
+		"max_combo": 84,
+		"score": 5340,
+		"sparks": 70,
 		"taps": [
 			510,
 			640,
 			684,
-			759,
-			795,
-			835,
-			920,
-			960,
-			1156,
-			1236,
-			1350
+			755,
+			798,
+			915,
+			956,
+			1151,
+			1232
 		]
 	},
 	"spawn": {

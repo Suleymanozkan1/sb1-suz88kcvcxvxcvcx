@@ -2,7 +2,7 @@
 	"beat_seconds": 0.5085,
 	"chapter": "D",
 	"chapter_phase": "combination",
-	"combo_target": 41,
+	"combo_target": 42,
 	"difficulty": 0.106,
 	"duration": 22.08,
 	"entities": [
@@ -396,10 +396,7 @@
 			"lanes": [
 				1
 			],
-			"offset": 0.7708,
-			"open": 0.5,
-			"period": 1.0169,
-			"t": "pulse_gate"
+			"t": "barrier"
 		},
 		{
 			"d": 114.68,
@@ -408,6 +405,11 @@
 		},
 		{
 			"d": 115.91,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 117.14,
 			"lane": 0,
 			"t": "spark"
 		},
@@ -567,14 +569,14 @@
 		"target": 0,
 		"type": "reach_end"
 	},
-	"perfect_target": 68,
+	"perfect_target": 69,
 	"schema_version": 1,
-	"score_target": 2230,
+	"score_target": 2270,
 	"seed": 157362661,
 	"solution": {
-		"max_combo": 69,
-		"score": 3950,
-		"sparks": 68,
+		"max_combo": 70,
+		"score": 4030,
+		"sparks": 69,
 		"taps": [
 			89,
 			372,

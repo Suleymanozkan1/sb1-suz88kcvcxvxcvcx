@@ -9,6 +9,7 @@ const GLASS_SHADER: Shader = preload("res://assets/shaders/glass.gdshader")
 const MEMBRANE_SHADER: Shader = preload("res://assets/shaders/membrane.gdshader")
 const CHEVRON_SHADER: Shader = preload("res://assets/shaders/chevron.gdshader")
 const CORE_SHADER: Shader = preload("res://assets/shaders/core.gdshader")
+const STRUCTURE_SHADER: Shader = preload("res://assets/shaders/structure.gdshader")
 const BLOCK_HEIGHT: float = 0.9
 const SHUTTER_THICKNESS: float = 0.12
 const POST_WIDTH: float = 0.12
@@ -29,6 +30,10 @@ const STRUCTURE_PRESETS: Dictionary = {
 	"lacquer": [1.0, 0.22, 0.0, 0.55, 1.0],
 	"crystal": [1.0, 0.16, 0.0, 0.7, 0.6],
 }
+## Procedural surface relief per structure preset (structure.gdshader detail_kind).
+const DETAIL_KINDS: Array[String] = [
+	"anodised", "steel", "stone", "ceramic", "coated", "ice", "sandstone", "obsidian", "lacquer", "crystal"
+]
 ## Hazards use a bolder chamfer (same family) so blocks read as machined parts.
 const HAZARD_CHAMFER: float = 0.16
 ## Launch pad slab and mass plate dimensions (world units).
@@ -62,7 +67,7 @@ var plate_mesh: ArrayMesh
 var plate_ring_mesh: TorusMesh
 
 var hazard_material: StandardMaterial3D
-var structure_material: StandardMaterial3D
+var structure_material: ShaderMaterial
 var track_material: StandardMaterial3D
 var lamp_off_material: StandardMaterial3D
 var lamp_on_material: StandardMaterial3D
@@ -219,18 +224,23 @@ func _chevrons(color: Color, direction: float, speed: float, intensity: float) -
 	return m
 
 
-func _structure(albedo: Color, kind: String) -> StandardMaterial3D:
-	var p: Array = STRUCTURE_PRESETS.get(kind, STRUCTURE_PRESETS["anodised"]) as Array
-	var m: StandardMaterial3D = StandardMaterial3D.new()
-	m.albedo_color = albedo * float(p[0])
-	m.roughness = float(p[1])
-	m.metallic = float(p[2])
-	m.metallic_specular = float(p[3])
-	if float(p[4]) > 0.0:
-		m.clearcoat_enabled = true
-		m.clearcoat = float(p[4])
-		m.clearcoat_roughness = 0.15
+func _structure(albedo: Color, kind: String) -> ShaderMaterial:
+	var preset: String = kind if STRUCTURE_PRESETS.has(kind) else "anodised"
+	var p: Array = STRUCTURE_PRESETS[preset] as Array
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = STRUCTURE_SHADER
+	m.set_shader_parameter("albedo", albedo * float(p[0]))
+	m.set_shader_parameter("roughness", float(p[1]))
+	m.set_shader_parameter("metallic", float(p[2]))
+	m.set_shader_parameter("specular", float(p[3]))
+	m.set_shader_parameter("clearcoat", float(p[4]))
+	m.set_shader_parameter("detail_kind", DETAIL_KINDS.find(preset))
 	return m
+
+
+## Surface relief on structure (off on the Low preset).
+func set_detail(enabled: bool) -> void:
+	structure_material.set_shader_parameter("detail_strength", 1.0 if enabled else 0.0)
 
 
 func _membrane(color: Color, radial: bool, density: float) -> ShaderMaterial:

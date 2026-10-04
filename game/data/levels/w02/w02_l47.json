@@ -4,7 +4,7 @@
 	"chapter_phase": "combination",
 	"combo_target": 52,
 	"difficulty": 0.204,
-	"duration": 23.07,
+	"duration": 23.4,
 	"entities": [
 		{
 			"d": 21.67,
@@ -415,9 +415,12 @@
 			"t": "spark"
 		},
 		{
-			"color": 1,
 			"d": 131.09,
-			"t": "phase_gate"
+			"from": 1,
+			"offset": 0.7022,
+			"period": 1.4516,
+			"t": "slider",
+			"to": 0
 		},
 		{
 			"d": 125.69,
@@ -440,142 +443,140 @@
 			"t": "spark"
 		},
 		{
-			"d": 136.96,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 132.22,
-			"lane": 0,
-			"t": "spark"
-		},
-		{
-			"d": 135.02,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 143.67,
-			"lanes": [
-				0
-			],
-			"t": "barrier"
-		},
-		{
-			"d": 138.08,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 139.28,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 140.48,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"d": 149.31,
+			"d": 137.77,
 			"from": 0,
-			"offset": 0.3469,
+			"offset": 0.0961,
 			"period": 1.9355,
 			"t": "slider",
 			"to": 1
 		},
 		{
-			"d": 144.88,
+			"d": 133.42,
+			"lane": 0,
+			"t": "spark"
+		},
+		{
+			"d": 144.64,
+			"lanes": [
+				0
+			],
+			"t": "barrier"
+		},
+		{
+			"d": 138.88,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 146.08,
+			"d": 140.08,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 147.28,
+			"d": 142.48,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 154.57,
+			"color": 1,
+			"d": 150.84,
+			"t": "phase_gate"
+		},
+		{
+			"d": 145.81,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 148.21,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 149.41,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 155.82,
 			"form": "phase",
 			"t": "form_gate"
 		},
 		{
-			"d": 150.48,
+			"d": 153.14,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"d": 152.88,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 160.06,
-			"t": "phase_gate"
-		},
-		{
-			"color": 1,
-			"d": 155.67,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 156.87,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 158.07,
+			"d": 154.34,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"color": 0,
-			"d": 166.25,
+			"d": 162.17,
 			"t": "phase_gate"
 		},
 		{
 			"color": 0,
-			"d": 162.47,
+			"d": 159.41,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"color": 0,
-			"d": 163.67,
+			"d": 160.61,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
 			"color": 0,
-			"d": 164.87,
-			"lane": 1,
-			"t": "spark"
-		},
-		{
-			"color": 1,
-			"d": 172.46,
+			"d": 168.53,
 			"t": "phase_gate"
 		},
 		{
-			"color": 1,
-			"d": 169.8,
+			"color": 0,
+			"d": 163.27,
 			"lane": 1,
 			"t": "spark"
 		},
 		{
-			"color": 1,
-			"d": 171.0,
+			"color": 0,
+			"d": 164.47,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"d": 165.67,
+			"lane": 1,
+			"t": "shield"
+		},
+		{
+			"color": 0,
+			"d": 175.06,
+			"t": "phase_gate"
+		},
+		{
+			"color": 0,
+			"d": 169.67,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 0,
+			"d": 170.87,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 0,
+			"d": 172.07,
+			"lane": 1,
+			"t": "spark"
+		},
+		{
+			"color": 0,
+			"d": 173.27,
 			"lane": 1,
 			"t": "spark"
 		}
@@ -590,12 +591,13 @@
 	"intro_mechanic": "",
 	"kind": "normal",
 	"lanes": 2,
-	"length": 184.46,
+	"length": 187.06,
 	"local_index": 47,
 	"mechanics": [
 		"form_gate",
 		"hop",
 		"phase",
+		"shield",
 		"slider",
 		"spark"
 	],
@@ -611,23 +613,22 @@
 		"target": 0,
 		"type": "reach_end"
 	},
-	"perfect_target": 77,
+	"perfect_target": 76,
 	"schema_version": 1,
-	"score_target": 3390,
+	"score_target": 3290,
 	"seed": 458157621,
 	"solution": {
-		"max_combo": 88,
-		"score": 5825,
-		"sparks": 77,
+		"max_combo": 87,
+		"score": 5665,
+		"sparks": 76,
 		"taps": [
 			77,
 			185,
 			229,
 			509,
 			912,
-			1005,
-			1226,
-			1273
+			1008,
+			1195
 		]
 	},
 	"spawn": {

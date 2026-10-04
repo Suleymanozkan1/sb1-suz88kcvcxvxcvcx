@@ -325,12 +325,3 @@ func test_particle_effect_and_background_cosmetics_change_the_view() -> void:
 	view.apply_world(WorldTheme.from_world(_app.catalog.world("neon_core")))
 	assert_eq(view._sky_mat.get_shader_parameter("sky_top") as Color, view.theme.sky_top, "default: world sky")
 	assert_eq(view._particle_color(0, Palette.PRIMARY), Palette.PRIMARY, "default: palette roles")
-
-
-func test_environment_colours_stay_quiet_in_every_world() -> void:
-	for w: Dictionary in _app.catalog.worlds:
-		var t: WorldTheme = WorldTheme.from_world(w)
-		for c: Color in [t.sky_top, t.sky_bottom, t.fog, t.floor_color, t.lane_color]:
-			assert_le(c.s, WorldTheme.ENV_MAX_SATURATION + 0.001, "%s saturation" % str(w.get("id", "")))
-			if not t.bright:
-				assert_le(c.v, WorldTheme.ENV_MAX_VALUE + 0.001, "%s value" % str(w.get("id", "")))

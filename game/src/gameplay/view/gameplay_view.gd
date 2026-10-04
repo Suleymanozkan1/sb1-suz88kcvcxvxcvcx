@@ -36,6 +36,15 @@ const SHAKE_FAIL: float = 0.6
 const SHAKE_SHIELD: float = 0.35
 const SHAKE_SHATTER: float = 0.12
 const SHAKE_LAND: float = 0.08
+const SHAFT_SHADER: Shader = preload("res://assets/shaders/light_shaft.gdshader")
+## Light shafts: a few tall beams spread across the shaft far ahead of the
+## core, at most 8 % opacity (ART_DIRECTION §7).
+const SHAFT_COUNT: int = 4
+const SHAFT_SIZE: Vector2 = Vector2(2.2, 16.0)
+const SHAFT_OPACITY: float = 0.06
+const PROBE_SIZE: Vector3 = Vector3(14.0, 10.0, 70.0)
+const PROBE_STEP: float = 21.0
+const PROBE_HEIGHT: float = 2.0
 ## Ground shadow under the core: shrinks and fades as a launch carries it up.
 const CORE_SHADOW_SIZE: float = 0.9
 const CORE_SHADOW_ALPHA: float = 0.32
@@ -109,6 +118,15 @@ var _finish_open: float = 0.0
 var _to_release: PackedInt32Array = PackedInt32Array()
 var _glow: bool = true
 var _ambient: bool = true
+var _surface_detail: bool = true
+## Reflection probe (High/Ultra): it follows the core in steps of a few rib
+## lengths, so it re-captures the (periodic) shaft rarely and cheaply.
+var _probe: ReflectionProbe
+var _probe_cell: int = -1
+var _shafts: Node3D
+## Side details between the ribs (one per rib gap, same MultiMesh rhythm).
+var _details: MultiMeshInstance3D
+var _shaft_mat: ShaderMaterial
 
 
 func _ready() -> void:
@@ -166,6 +184,22 @@ func _ensure_built() -> void:
 	add_child(core_shadow)
 	ripples = TapRipple.new()
 	add_child(ripples)
+	_probe = ReflectionProbe.new()
+	_probe.update_mode = ReflectionProbe.UPDATE_ONCE
+	_probe.size = PROBE_SIZE
+	_probe.interior = true
+	_probe.max_distance = PROBE_SIZE.z
+	_probe.visible = false
+	add_child(_probe)
+	_shafts = _make_shafts()
+	add_child(_shafts)
+	_details = MultiMeshInstance3D.new()
+	var dmm: MultiMesh = MultiMesh.new()
+	dmm.transform_format = MultiMesh.TRANSFORM_3D
+	_details.multimesh = dmm
+	# Like the ribs: thin wall pieces would draw noisy lines across the floor.
+	_details.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_details)
 	trail = TrailRibbon.new()
 	add_child(trail)
 	bursts = BurstPool.new()
@@ -210,6 +244,7 @@ func apply_world(world_theme: WorldTheme) -> void:
 	theme = world_theme
 	kit = ViewKit.new(theme)
 	kit.colorblind = _colorblind
+	kit.set_detail(_surface_detail)
 	_apply_environment()
 	key_light.light_color = theme.key_color
 	key_light.light_energy = theme.key_energy
@@ -218,10 +253,17 @@ func apply_world(world_theme: WorldTheme) -> void:
 	_floor_mat.set_shader_parameter("lane_color", theme.lane_color)
 	_floor_mat.set_shader_parameter("fog_color", theme.fog)
 	_floor_mat.set_shader_parameter("caustics", 0.12 if theme.caustics else 0.0)
+	_floor_mat.set_shader_parameter("gloss", theme.floor_gloss)
 	_floor_mat.set_shader_parameter("caustic_color", theme.key_color)
 	_ribs.multimesh.mesh = MeshFactory.rib(theme.rib_profile)
 	_ribs.multimesh.instance_count = RIB_COUNT
 	_ribs.material_override = kit.structure_material
+	_details.visible = not theme.detail.is_empty()
+	if _details.visible:
+		_details.multimesh.instance_count = 0
+		_details.multimesh.mesh = MeshFactory.detail(theme.detail)
+		_details.multimesh.instance_count = RIB_COUNT
+		_details.material_override = kit.structure_material
 	_silhouette.mesh = MeshFactory.silhouette(theme.silhouette)
 	# Only the turbine turns; no other world inherits its accumulated roll.
 	_silhouette.transform.basis = Basis.IDENTITY
@@ -432,7 +474,8 @@ func set_quality(
 	dynamic_light: bool,
 	shadows: bool,
 	glow: bool = true,
-	ambient_particles: bool = true
+	ambient_particles: bool = true,
+	reflections: bool = false
 ) -> void:
 	_ensure_built()
 	post_fx_enabled = post_fx
@@ -442,8 +485,15 @@ func set_quality(
 	bursts.set_amount_scale(particle_scale)
 	trail.set_length(trail_points)
 	core_view.set_light_enabled(dynamic_light)
+	# Surface relief follows dynamic lighting: both are off on Low and in
+	# battery saver, where a flat lit surface is the budget.
+	_surface_detail = dynamic_light
+	if kit != null:
+		kit.set_detail(_surface_detail)
 	key_light.shadow_enabled = shadows
 	environment.glow_enabled = _glow
+	_probe.visible = reflections
+	_probe_cell = -1
 	if theme != null:
 		_apply_atmosphere_quality()
 
@@ -453,6 +503,8 @@ func set_quality(
 func _apply_atmosphere_quality() -> void:
 	_atmosphere.amount = maxi(1, int(float(theme.atmosphere_count) * _particle_scale))
 	_atmosphere.emitting = _ambient and theme.atmosphere_count > 0 and _particle_scale > 0.2
+	_shafts.visible = _ambient and theme.shafts
+	_shaft_mat.set_shader_parameter("shaft_color", theme.key_color)
 
 
 func _process(delta: float) -> void:
@@ -490,6 +542,11 @@ func _update_frame(delta: float) -> void:
 	_floor.position = Vector3(0.0, 0.0, -d - FLOOR_LENGTH * 0.5 + 12.0)
 	_floor_mat.set_shader_parameter("scroll", d + FLOOR_LENGTH * 0.5 - 12.0)
 	_place_ribs(d)
+	if _probe.visible:
+		var cell: int = int(floorf(d / PROBE_STEP))
+		if cell != _probe_cell:
+			_probe_cell = cell
+			_probe.position = Vector3(0.0, PROBE_HEIGHT, -float(cell) * PROBE_STEP - PROBE_SIZE.z * 0.35)
 	# Slow parallax approach, capped so long Endless/Zen runs never bring the
 	# silhouette into the camera.
 	var approach: float = minf(d * SILHOUETTE_PARALLAX, SILHOUETTE_MAX_APPROACH)
@@ -501,6 +558,7 @@ func _update_frame(delta: float) -> void:
 		_silhouette.transform.basis = Basis(Vector3.BACK, _turbine_angle)
 		_silhouette.position += Vector3(0.0, 30.0, 0.0) - _silhouette.transform.basis * Vector3(0.0, 30.0, 0.0)
 	_atmosphere.position = Vector3(0.0, 1.6, -d - 14.0)
+	_shafts.position = Vector3(0.0, 0.0, -d)
 	if _finish.visible:
 		# The finish membrane opens as the core reaches it and is gone once the
 		# run is complete (like every gate), so it never fills the backdrop of
@@ -540,6 +598,28 @@ static func _entity_end(lvl: SimLevel, index: int) -> float:
 	if lvl.e_type[index] == SimConst.EntityType.GRAVITY:
 		return lvl.e_d[index] + lvl.e_p0[index]
 	return lvl.e_d[index]
+
+
+func _make_shafts() -> Node3D:
+	var root: Node3D = Node3D.new()
+	var quad: QuadMesh = QuadMesh.new()
+	quad.size = SHAFT_SIZE
+	_shaft_mat = ShaderMaterial.new()
+	_shaft_mat.shader = SHAFT_SHADER
+	_shaft_mat.set_shader_parameter("opacity", SHAFT_OPACITY)
+	for i: int in SHAFT_COUNT:
+		var mi: MeshInstance3D = MeshInstance3D.new()
+		mi.mesh = quad
+		mi.material_override = _shaft_mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# Fixed, spread composition: beams lean the same way, like one light.
+		var x: float = -4.5 + 3.0 * float(i)
+		mi.position = Vector3(x, SHAFT_SIZE.y * 0.42, -32.0 - 11.0 * float(i % 2) - 6.0 * float(i))
+		mi.rotation_degrees = Vector3(0.0, 0.0, -14.0)
+		mi.set_instance_shader_parameter("seed", float(i) * 0.37)
+		root.add_child(mi)
+	root.visible = false
+	return root
 
 
 func _make_core_shadow() -> MeshInstance3D:
@@ -589,6 +669,8 @@ func _place_ribs(d: float) -> void:
 		var sy: float = RIB_HEIGHT_PATTERN[posmod(rib_index, RIB_HEIGHT_PATTERN.size())] if vary else 1.0
 		var y: float = (sy - 1.0) * 1.5 if floating else 0.0
 		mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(1.0, sy, 1.0)), Vector3(0.0, y, z)))
+		if _details.visible and i < _details.multimesh.instance_count:
+			_details.multimesh.set_instance_transform(i, Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, z - RIB_SPACING * 0.5)))
 
 
 func _setup_atmosphere() -> void:
