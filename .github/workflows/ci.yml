@@ -166,9 +166,10 @@ jobs:
         # the Swift 6.2 runtime the engine library references.
         run: |
           set -euo pipefail
-          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          # Newest stable 26.x: betas and release candidates sort after the release they precede.
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -viE 'beta|_rc|release_candidate' | sort -V | tail -1 || true)
           if [ -z "$XC" ]; then
-            echo "No Xcode 26 on this runner image:"; ls -d /Applications/Xcode*.app; exit 1
+            echo "No stable Xcode 26 on this runner image:"; ls -d /Applications/Xcode*.app; exit 1
           fi
           sudo xcode-select -s "$XC"
           xcodebuild -version

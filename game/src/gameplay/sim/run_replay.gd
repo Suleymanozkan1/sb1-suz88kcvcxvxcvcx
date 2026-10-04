@@ -8,7 +8,9 @@ extends RefCounted
 
 ## 2: near misses judged by the closest approach over a whole hazard pass.
 ## 3: launch pads, gravity wells and mass plates.
-const SIM_VERSION: int = 3
+## 4: the early-pacing pass regenerated every course (campaign, daily, streams),
+##    so a run recorded on version 3 content is refused as an old version.
+const SIM_VERSION: int = 4
 ## A human cannot produce two distinct taps less than this many ticks apart.
 const MIN_TAP_GAP_TICKS: int = 2
 ## Human tap-rate ceiling shared by the client queue and the server verifier

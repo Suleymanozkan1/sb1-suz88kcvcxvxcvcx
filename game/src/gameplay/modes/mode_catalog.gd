@@ -178,6 +178,10 @@ func stream_spec(mode_id: StringName, stream_seed: int, world: Dictionary, model
 	spec.speed_ramp = float(cfg.get("speed_ramp", spec.speed_ramp))
 	spec.ramp_distance = float(cfg.get("ramp_distance", 0.0))
 	spec.spacing = spec.spacing * float(cfg.get("spacing_scale", 1.0))
+	# Pinned per mode, so retuning the campaign curve never silently changes how
+	# busy a ranked or calm stream is.
+	spec.change_prob = float(cfg.get("change_prob", spec.change_prob))
+	spec.density = float(cfg.get("density", spec.density))
 	if not world.is_empty():
 		spec.world_id = str(world.get("id", spec.world_id))
 		spec.world_index = int(world.get("index", spec.world_index))

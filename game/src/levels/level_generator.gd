@@ -28,13 +28,15 @@ const PATTERN_RHYTHM: String = "rhythm_gauntlet"
 const PATTERN_MEMORY: String = "pattern_memory"
 ## Hazard-type motif length of a pattern_memory level.
 const MOTIF_LENGTH: int = 4
+## Chapter intros that are pickups rather than hazards.
+const INTRO_PICKUPS: PackedStringArray = ["shield", "magnet"]
 const MIN_DASH_GAP_FACTOR: float = 1.3
 ## Shortest stretch (m) a launched core must stay above block height for a wall
 ## row to be placed under it: the wall's depth on both sides plus a margin.
 const MIN_AIR_STRETCH: float = 2.0 * (SimConst.HAZARD_HALF_DEPTH + SimConst.CORE_RADIUS) + 0.6
 ## Ticks a launch flight is followed at most while planning.
 const FLIGHT_GUARD_TICKS: int = 600
-const GENERATOR_VERSION: int = 1
+const GENERATOR_VERSION: int = 2
 
 ## Codes from [LevelValidator] that make the generator retry with the next
 ## deterministic attempt (fairness is proven, not assumed).
@@ -63,6 +65,9 @@ var _window_min_seen: float = INF
 var _dropped: int = 0
 var _motif: Array[String] = []
 var _motif_row: int = -1
+## The pickup a chapter introduces ("shield"/"magnet"), placed at the first
+## pickup spot of each introduction level so its "New:" line is never empty.
+var _intro_pickup: String = ""
 ## End of the last gravity well placed (wells never overlap).
 var _zone_end: float = -INF
 
@@ -119,6 +124,7 @@ func start(level_spec: LevelSpec, attempt: int = 0) -> void:
 	_motif.clear()
 	_motif_row = -1
 	_zone_end = -INF
+	_intro_pickup = spec.intro_mechanic if INTRO_PICKUPS.has(spec.intro_mechanic) else ""
 	_base = {
 		"id": spec.id,
 		"lanes": spec.lanes,
@@ -510,7 +516,7 @@ func _try_slot(gap: float, change: bool) -> bool:
 	var tap_tick: int = -1
 	if bool(target["needs_tap"]):
 		var window: Dictionary = _measure_window(trial_level, d_slot, target)
-		if float(window["length"]) < spec.min_window:
+		if float(window["length"]) < spec.min_window or _closes_too_early(window):
 			return false
 		tap_tick = int(window["center"])
 		_window_min_seen = minf(_window_min_seen, float(window["length"]))
@@ -525,6 +531,15 @@ func _try_slot(gap: float, change: bool) -> bool:
 	if tap_tick >= 0 and spec.prism_chance > 0.0 and _form == SimConst.Form.HOP:
 		_maybe_place_prism(prev_d, d_slot, old_lane)
 	return true
+
+
+## The run's first decisions need time to read after GO: a tap window that
+## closes earlier than [constant LevelValidator.FIRST_DECISION_S] is refused
+## (the retry moves the row further away, or the slot goes calm).
+func _closes_too_early(window: Dictionary) -> bool:
+	var length_ticks: int = int(round(float(window["length"]) / SimConst.DT))
+	var last_tick: int = int(window["start"]) + length_ticks - 1
+	return last_tick < int(ceil(LevelValidator.FIRST_DECISION_S * float(SimConst.TICK_RATE)))
 
 
 func _min_dash_gap() -> float:
@@ -810,6 +825,10 @@ func _add_path_pickups(samples: Array[Vector3], from_d: float, to_d: float, phas
 		if absf(s.y - SimConst.lane_x(lane, lanes)) > 0.05:
 			continue
 		next_d = s.x + SPARK_STEP
+		if not _intro_pickup.is_empty():
+			_entities.append({"t": _intro_pickup, "d": snappedf(s.x, 0.01), "lane": lane})
+			_intro_pickup = ""
+			continue
 		if not _rng.chance(spec.spark_density):
 			continue
 		var d: float = snappedf(s.x, 0.01)

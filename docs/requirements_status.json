@@ -86,7 +86,7 @@
  },
  "REQ-018": {
   "status": "IMPLEMENTED",
-  "evidence": "First use in shipped levels: barrier/spark L1, prism L5, slider L14, shield L28, pulse gate + magnet L40, phase L53, form gate L59, 3 lanes L105, current L118, dash+breakable L157, surge L209, portal L235, launch pad L430, gravity well L456, mass plate L469 (level JSON scan); test_difficulty_structure_tiers_and_specials, test_world1_moves_early.",
+  "evidence": "First use in shipped levels: barrier/spark L1, prism L5, slider L14, shield L27, pulse gate + magnet L40, phase L53, form gate L59, 3 lanes L105, current L118, dash+breakable L157, surge L209, portal L235, launch pad L430, gravity well L456, mass plate L469 (level JSON scan); test_difficulty_structure_tiers_and_specials, test_world1_moves_early.",
   "note": "World 1 brings moving sliders at L14 (was L27) after player feedback that the start stayed simple too long."
  },
  "REQ-019": {
@@ -191,7 +191,7 @@
  },
  "REQ-039": {
   "status": "PARTIAL",
-  "evidence": "Designed deepening: curve.json tiers tighten min tap window 420->130 ms and speed 7->12 m/s on a front-loaded ramp (exponent 0.75; World 1 averages 0.71 taps/s, Worlds 2-3 0.84-0.87, test_level_pacing.gd); 13-level chapters go intro->mastery->combination->pressure (DifficultyModel); test_speed_rises_on_average_but_not_randomly.",
+  "evidence": "Designed deepening: curve.json tiers tighten min tap window 420->130 ms and speed 7->12 m/s on a front-loaded ramp (exponent 0.75; World 1 averages 0.71 taps/s, Worlds 2-3 0.82-0.87, test_level_pacing.gd); 13-level chapters go intro->mastery->combination->pressure (DifficultyModel); test_speed_rises_on_average_but_not_randomly.",
   "note": "Easy-to-learn / hard-to-master not validated by human playtests."
  },
  "REQ-040": {
@@ -386,17 +386,17 @@
  },
  "REQ-078": {
   "status": "IMPLEMENTED",
-  "evidence": "data/difficulty/curve.json tiers: tutorial 1-5, early 6-26, core_learning 27-52, mechanic_expansion 53-156, combination 157-260, advanced_timing 261-364, expert 365-416, master 417-468, challenge 469-494, endgame 495-520; DifficultyModel.tier_for; test_difficulty_structure_tiers_and_specials.",
+  "evidence": "data/difficulty/curve.json tiers: tutorial 1-3, early 4-26, core_learning 27-52, mechanic_expansion 53-156, combination 157-260, advanced_timing 261-364, expert 365-416, master 417-468, challenge 469-494, endgame 495-520; DifficultyModel.tier_for; test_difficulty_structure_tiers_and_specials.",
   "note": "All ten stages exist as data tiers, each with its own duration band and minimum tap window. They are stored on every level ('tier')."
  },
  "REQ-079": {
   "status": "PARTIAL",
-  "evidence": "Introduction phase: slower density (chapter_phases.introduction density_scale 0.75), tutorial forgiveness L1-3, form gates with HUD hints (Hud form hint), pulse chapter fixed this round.",
-  "note": "Prior gap closed: every one of the 40 chapters has a HUD intro hint in en and tr (test_ui_regressions.gd test_intro_levels_name_their_new_mechanic), intro phase is lighter (density 0.75, speed x0.94, change_prob x0.8; measured 0.197 vs 0.225 hazards/unit in mastery). Still not 'taught safely': forgiveness only in W1 L1-3, and the first instance of a new mechanic is not isolated (w09_l14 first pad has a full-width wall 3.2 m after it; w10_l01 first plate sits beside a barrier); no test of first-encounter safety."
+  "evidence": "Introduction phase (2 levels per chapter): a shallow dip from chapter_phases.introduction (density x0.9, speed x0.97, lane changes x0.9, wave -0.5), tutorial forgiveness on L1-2, a HUD line naming the new idea on every introduction level, form gates with HUD hints, a chapter's intro pickup (shield, magnet) placed in each of its introduction levels; test_level_pacing.gd test_every_introduction_level_shows_its_idea.",
+  "note": "Every one of the 40 chapters has a HUD intro hint in en and tr (test_ui_regressions.gd test_intro_levels_name_their_new_mechanic), and every introduction level contains the entity it names (w01_l27 named the shield without one until review R-7). Still not 'taught safely': the dip is deliberately shallow after the pacing pass, forgiveness exists only in W1 L1-2, and the first instance of a new mechanic is not isolated (w09_l14's first pad has a full-width wall 3.2 m after it; w10_l01's first plate sits beside a barrier); no test of first-encounter safety."
  },
  "REQ-080": {
   "status": "IMPLEMENTED",
-  "evidence": "curve.json chapter_phases (introduction 3 / mastery 4 / combination 4 with blend_previous 0.3 / high_pressure 2); DifficultyModel.chapter_phase, _blend_previous, _previous_chapter (game/src/levels/difficulty_model.gd). Tests: test_level_content.gd test_combination_phase_brings_back_the_previous_chapter (all 39 combination phases get the previous chapter's hazards and forms), test_level_pipeline.gd test_difficulty_structure_tiers_and_specials, test_speed_rises_on_average_but_not_randomly. My check of the shipped JSON: in all 29 chapters whose previous chapter has elements the current one lacks, the combination levels actually place them (106 of 116 individual levels; every chapter group at least once).",
+  "evidence": "curve.json chapter_phases (introduction 2 / mastery 4 / combination 4 with blend_previous 0.3 / high_pressure 3, the rest of the chapter); DifficultyModel.chapter_phase, _blend_previous, _previous_chapter (game/src/levels/difficulty_model.gd). Tests: test_level_content.gd test_combination_phase_brings_back_the_previous_chapter (all 39 combination phases get the previous chapter's hazards and forms), test_level_pipeline.gd test_difficulty_structure_tiers_and_specials, test_speed_rises_on_average_but_not_randomly. My check of the shipped JSON: in all 29 chapters whose previous chapter has elements the current one lacks, the combination levels actually place them (108 of 116 individual levels after the pacing pass; every chapter group at least once).",
   "note": "Round-5 independent re-assessment: The combination phase now explicitly brings back the previous idea in the generated content, closing the stated gap; all four phases are data-driven and tested."
  },
  "REQ-081": {
@@ -406,7 +406,7 @@
  },
  "REQ-082": {
   "status": "IMPLEMENTED",
-  "evidence": "Level data per world (computed here after the pacing pass): avg speed 7.65 m/s -> 12.05 (rising every world); avg min tap window 0.445 s -> 0.144 s (never widening); required taps/s 0.71 in W1, 0.84-0.87 in W2-W3, 1.1-1.3 from W5. W1 is hop-only with 2 lanes and the widest windows; phase arrives in W2, 3 lanes in W3, dash in W4, surge in W5, all four forms from W6.",
+  "evidence": "Level data per world (computed here after the pacing pass): avg speed 7.65 m/s -> 12.05 (rising every world); avg min tap window 0.445 s -> 0.144 s (never widening); required taps/s after the tutorial 0.71 in W1, 0.82-0.87 in W2-W3, 1.07-1.32 from W5. W1 is hop-only with 2 lanes and the widest windows; phase arrives in W2, 3 lanes in W3, dash in W4, surge in W5, all four forms from W6.",
   "note": "W1 stays the easiest world on every measure, but it is no longer slack: the first player report said the start stayed too simple for too long, so it now asks for a lane change every 1.2-1.8 s (was 3-5 s). 'Very easy' versus 'engaging' is a balance to settle with playtests."
  },
  "REQ-083": {

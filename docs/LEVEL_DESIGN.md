@@ -35,13 +35,16 @@ validation, the autopilot, the replay verifier and the tests, so "solvable in th
 * **Continuous parameters** interpolate over the campaign with a front-loaded exponent (the ramp is
   steepest early, so the first worlds do not stay easy for long) and a small wave: speed 7.0 → 12.0 m/s
   (exponent 0.75), slot spacing 6.2 → 4.1 m (0.7), change probability 0.60 → 0.82 (0.6), hazard density
-  0.85 → 1.00, spark density 0.90 → 0.60, score-target ratio 0.55 → 0.72.
-* **Pacing.** A level opens with a 10 m lead-in and closes with an 8 m tail; everything between is
-  slots. Measured on the generated campaign (`generate_levels.gd` prints taps per level): World 1 asks
-  for 0.57–0.81 taps per second (one lane change every 1.2–1.8 s), Worlds 2–3 for 0.8–1.0, with
-  the tightest early tap window 333 ms against the 340/280 ms tier minimums of those levels' tiers. Progress along the
+  0.85 → 1.00, spark density 0.90 → 0.60, score-target ratio 0.55 → 0.72. Progress along the
   campaign is `(n − 1) / (campaign_span − 1)` with `campaign_span` fixed at 520 in `curve.json`
   (see "Adding content" below).
+* **Pacing.** A level opens with a 10 m lead-in and closes with an 8 m tail; everything between is
+  slots. Measured on the generated campaign (`generate_levels.gd` prints taps per level), required
+  taps per second after the tutorial: World 1 averages 0.71 (per level 0.31–0.99: introduction levels
+  0.3–0.7, high-pressure levels about 0.8), Worlds 2–3 average 0.82–0.87, Worlds 5–10 1.1–1.3. No tap
+  is due sooner than 1.0 s after GO (`LevelValidator.FIRST_DECISION_S`, also enforced while
+  generating), and every tap window stays at or above its tier's minimum. `test_level_pacing.gd`
+  holds these floors.
 * **Music.** Each level's beat grid starts at sim time 0 and the world loop is locked to it
   (`MusicClock`): held through the READY beat and pause, nudged back through the playback rate
   (≤ 3 %) when it drifts past 40 ms, sought straight to the run after a restart or revive.
@@ -57,7 +60,9 @@ validation, the autopilot, the replay verifier and the tests, so "solvable in th
 * The tutorial (1–3) uses fixed gentle parameters (6.6 m/s, 7 m slots, 65 % lane changes), a forgiving
   first hit in levels 1–2 and on-screen tap hints. World 1 then brings moving sliders at L14, the
   shield pickup at L27 (when the sliders make it useful) and pulse gates at L40; prisms (off-path
-  bonus shards) appear from L4.
+  bonus shards) can appear from L4 (20 % per lane change; the first lands in L5). A chapter that
+  introduces a pickup (shield, magnet) places one at the first pickup spot of each introduction
+  level, so the HUD's "New:" line always has something to point at.
 * **Teaching:** every chapter's introduction levels name the new idea in one short HUD line at the
   start (`hint.mechanic.<intro>`, EN/TR, tested for all 40 chapters).
 * **Mass & gravity chapters** (W9 L14–25 launch pads, W9 L40–51 gravity wells, W10 L1–13 plates,

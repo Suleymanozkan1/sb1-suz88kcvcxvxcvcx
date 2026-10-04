@@ -12,7 +12,7 @@ const MODE_BEST_FLAG: String = "mode_best"
 const LAST_LEVEL_FLAG: String = "last_level"
 const BOSS_LOCAL_INDEX: int = 52
 const TUTORIAL_DONE_FLAG: String = "tutorial_done"
-const TUTORIAL_LAST_LEVEL: String = "w01_l05"
+const TUTORIAL_LAST_LEVEL: String = "w01_l03"
 ## Runs reaching this combo are reported (funnel for the combo system).
 const COMBO_EVENT_MIN: int = 10
 const FAIL_CAUSES: Dictionary[int, String] = {

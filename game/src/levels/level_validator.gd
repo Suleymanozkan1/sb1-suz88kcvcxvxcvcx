@@ -15,6 +15,9 @@ const VALID_KINDS: PackedStringArray = ["normal", "challenge", "boss", "daily", 
 const VALID_OBJECTIVES: PackedStringArray = ["reach_end", "collect", "shatter", "survive"]
 const MIN_FIRST_HAZARD_D: float = 10.0
 const REACTION_TIME: float = 0.3
+## No tap may be due sooner than this after GO (a tap during READY only starts
+## the run, and READY after a restart is short).
+const FIRST_DECISION_S: float = 1.0
 const WINDOW_SCAN_TICKS: int = 90
 const MAX_SPEED: float = 40.0
 const PRISM_TAPS_CONSIDERED: int = 3
@@ -513,6 +516,11 @@ func _check_windows(data: Dictionary, r: Report) -> void:
 			later += 1
 		var window: float = float(earlier + later + 1 + window_tolerance_ticks) * SimConst.DT
 		worst = minf(worst, window)
+		var last_ok_s: float = float(taps[i] + later) * SimConst.DT
+		if i == 0 and last_ok_s < FIRST_DECISION_S:
+			r.error(
+				"unfair_window", "the first tap must land by %.2f s after GO (< %.1f s)" % [last_ok_s, FIRST_DECISION_S]
+			)
 		if window < min_required:
 			r.error(
 				"unfair_window",

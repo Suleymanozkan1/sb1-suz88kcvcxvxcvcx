@@ -109,6 +109,10 @@ All modes run the same deterministic simulation with different rules (`data/mode
 | Hard | any campaign level at +12 % speed, no shields | finish 2 worlds | all-time |
 | Boss Rush | every beaten boss back to back, one life | beat 2 bosses | — (a summed score has no single verifiable replay) |
 
+The streamed modes pin their own pace in `modes.json` (`change_prob`, `density`), so retuning the campaign
+curve never silently changes them: Zen asks for about 0.4 lane changes a second, Time Attack about 0.55
+and Endless about 0.65 at the start (both then speed up); `test_level_pacing.gd` keeps Zen the calmest.
+
 ## 7. Progression and economy (no pay-to-win)
 
 * **XP and player level**: XP from every run (more for stars and first clears); level-ups grant a small
@@ -176,7 +180,9 @@ Settings.
 
 Levels 1–3 (tutorial-flagged, about 8–9 s each with 3–5 taps) teach hop with a pulsing tap hint
 placed exactly on the stored solution's tap ticks. The first hit in levels 1–2 is forgiven. From
-level 4 the pace is a lane change every 1.2–1.8 s, and moving sliders arrive at level 14. Every new
+level 4 World 1 asks for about 0.7 lane changes a second on average (fewer on a chapter's introduction
+levels, about one a second under high pressure), no tap is ever due sooner than one second after GO,
+and moving sliders arrive at level 14. Every new
 form is introduced by a form gate with a one-line HUD hint (`TAP = SWITCH COLOUR`).
 
 ## 12. Ethics
