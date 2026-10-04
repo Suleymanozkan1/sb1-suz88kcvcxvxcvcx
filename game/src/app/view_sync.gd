@@ -102,6 +102,4 @@ func _lift_veil() -> void:
 	_veil.modulate.a = 1.0
 	_veil_tween = create_tween()
 	var seconds: float = WORLD_FADE * (0.4 if _router.reduce_motion else 1.0)
-	_veil_tween.tween_property(_veil, "modulate:a", 0.0, seconds).set_trans(Tween.TRANS_CUBIC).set_ease(
-		Tween.EASE_OUT
-	)
+	_veil_tween.tween_property(_veil, "modulate:a", 0.0, seconds).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)

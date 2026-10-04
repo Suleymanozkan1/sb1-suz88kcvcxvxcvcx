@@ -241,7 +241,9 @@ func _update_detail() -> void:
 		var affordable: bool = bool(it.get("affordable", false))
 		_detail_info.text = rarity
 		if not affordable:
-			_detail_info.text += "  ·  " + tr("shop.not_enough").format({"currency": tr("common." + currency).to_lower()})
+			_detail_info.text += (
+				"  ·  " + tr("shop.not_enough").format({"currency": tr("common." + currency).to_lower()})
+			)
 		_action.text = "%s  ·  %s" % [tr("shop.buy"), cost]
 		_action.disabled = not affordable
 	else:

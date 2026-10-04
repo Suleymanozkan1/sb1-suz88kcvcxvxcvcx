@@ -351,14 +351,17 @@ func _collect_reveals(outcome: Dictionary) -> void:
 	reveals.append_array(services.take_level_up_reveals())
 	for world_id: String in _worlds_unlocked.duplicate():
 		var world: Dictionary = services.catalog.world(world_id)
-		reveals.append(
-			{
-				"eyebrow": tr_key("reveal.world_unlocked"),
-				"title": Presenters.world_name(world),
-				"subtitle": str((world.get("art", {}) as Dictionary).get("story", "")),
-				"bundle": null,
-				"sound": "unlock",
-			}
+		(
+			reveals
+			. append(
+				{
+					"eyebrow": tr_key("reveal.world_unlocked"),
+					"title": Presenters.world_name(world),
+					"subtitle": str((world.get("art", {}) as Dictionary).get("story", "")),
+					"bundle": null,
+					"sound": "unlock",
+				}
+			)
 		)
 	var granted: Array[RewardBundle] = []
 	var capture: Callable = func(b: RewardBundle) -> void: granted.append(b)
@@ -383,15 +386,18 @@ func _collect_reveals(outcome: Dictionary) -> void:
 	for item_id: String in services.cosmetics.check_auto_unlocks():
 		var item: Dictionary = services.cosmetics_catalog.item(item_id)
 		var category: String = str(item.get("category", ""))
-		reveals.append(
-			{
-				"eyebrow": tr_key("reveal.cosmetic"),
-				"title": tr_key(str(item.get("name_key", item_id))),
-				"subtitle": "",
-				"bundle": null,
-				"cosmetic": {"category": category, "params": item.get("params", {})},
-				"sound": "unlock",
-			}
+		(
+			reveals
+			. append(
+				{
+					"eyebrow": tr_key("reveal.cosmetic"),
+					"title": tr_key(str(item.get("name_key", item_id))),
+					"subtitle": "",
+					"bundle": null,
+					"cosmetic": {"category": category, "params": item.get("params", {})},
+					"sound": "unlock",
+				}
+			)
 		)
 
 

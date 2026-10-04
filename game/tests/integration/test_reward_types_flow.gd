@@ -77,5 +77,5 @@ func test_achievement_skin_is_named_in_its_reveal() -> void:
 	for label: Node in overlay.find_children("*", "Label", true, false):
 		texts.append((label as Label).text)
 	assert_has(texts, name, "the skin's name")
-	assert_has(texts, Presenters.t("reward.label.skin"), "and \"New skin\"")
+	assert_has(texts, Presenters.t("reward.label.skin"), 'and "New skin"')
 	assert_true(Presenters.reward_items(_app, RewardBundle.new("x").add(RewardBundle.TYPE_COINS, 5)).is_empty())

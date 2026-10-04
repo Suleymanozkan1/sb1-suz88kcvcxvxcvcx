@@ -175,9 +175,7 @@ func _play_sequence(result: RunResult, labels: Array[Label], values: Array[int])
 func _set_actions_live(live: bool) -> void:
 	if not live:
 		_actions.modulate.a = 0.0
-	_actions.mouse_behavior_recursive = (
-		Control.MOUSE_BEHAVIOR_INHERITED if live else Control.MOUSE_BEHAVIOR_DISABLED
-	)
+	_actions.mouse_behavior_recursive = (Control.MOUSE_BEHAVIOR_INHERITED if live else Control.MOUSE_BEHAVIOR_DISABLED)
 
 
 func _reset_built_refs() -> void:

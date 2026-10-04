@@ -3,8 +3,21 @@ extends TestCase
 ## app's real paths and rejects shortcuts, and changes are signalled.
 
 const BRIEF_STATES: PackedStringArray = [
-	"BOOT", "MAIN_MENU", "WORLD_SELECT", "LEVEL_SELECT", "COUNTDOWN", "PLAYING", "PAUSED", "FAILED",
-	"COMPLETE", "REWARD", "SHOP", "COLLECTION", "SETTINGS", "DAILY", "ENDLESS"
+	"BOOT",
+	"MAIN_MENU",
+	"WORLD_SELECT",
+	"LEVEL_SELECT",
+	"COUNTDOWN",
+	"PLAYING",
+	"PAUSED",
+	"FAILED",
+	"COMPLETE",
+	"REWARD",
+	"SHOP",
+	"COLLECTION",
+	"SETTINGS",
+	"DAILY",
+	"ENDLESS"
 ]
 
 

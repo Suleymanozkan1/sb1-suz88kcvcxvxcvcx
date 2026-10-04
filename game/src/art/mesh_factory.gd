@@ -454,18 +454,31 @@ static func detail(kind: String) -> ArrayMesh:
 			"conduits":
 				for y: float in [0.55, 0.95]:
 					_append_chamfered_box(
-						st, Vector3(0.12, 0.12, DETAIL_LENGTH), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, y, 0))
+						st,
+						Vector3(0.12, 0.12, DETAIL_LENGTH),
+						CHAMFER_RATIO,
+						Transform3D(Basis.IDENTITY, Vector3(x, y, 0))
 					)
-				_append_chamfered_box(st, Vector3(0.2, 0.62, 0.14), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, 0.75, 0)))
+				_append_chamfered_box(
+					st, Vector3(0.2, 0.62, 0.14), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, 0.75, 0))
+				)
 			"pipes":
 				_append_chamfered_box(
-					st, Vector3(0.24, 0.24, DETAIL_LENGTH), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, 0.4, 0))
+					st,
+					Vector3(0.24, 0.24, DETAIL_LENGTH),
+					CHAMFER_RATIO,
+					Transform3D(Basis.IDENTITY, Vector3(x, 0.4, 0))
 				)
 				for z: float in [-DETAIL_LENGTH * 0.5, DETAIL_LENGTH * 0.5]:
-					_append_chamfered_box(st, Vector3(0.36, 0.36, 0.1), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, 0.4, z)))
+					_append_chamfered_box(
+						st, Vector3(0.36, 0.36, 0.1), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, 0.4, z))
+					)
 			"panels":
 				_append_chamfered_box(
-					st, Vector3(0.06, 1.4, DETAIL_LENGTH * 0.9), CHAMFER_RATIO, Transform3D(Basis.IDENTITY, Vector3(x, 0.9, 0))
+					st,
+					Vector3(0.06, 1.4, DETAIL_LENGTH * 0.9),
+					CHAMFER_RATIO,
+					Transform3D(Basis.IDENTITY, Vector3(x, 0.9, 0))
 				)
 				_append_chamfered_box(
 					st,
@@ -479,7 +492,9 @@ static func detail(kind: String) -> ArrayMesh:
 					var lean: float = side * (0.18 - 0.14 * float(k))
 					var basis: Basis = Basis(Vector3.BACK, lean)
 					var base: Vector3 = Vector3(x - side * 0.15 * float(k), 0.0, -0.9 + 0.8 * float(k))
-					_append_chamfered_box(st, Vector3(0.18, h, 0.18), 0.2, Transform3D(basis, base + basis * Vector3(0, h * 0.5, 0)))
+					_append_chamfered_box(
+						st, Vector3(0.18, h, 0.18), 0.2, Transform3D(basis, base + basis * Vector3(0, h * 0.5, 0))
+					)
 			"cables":
 				# A sagging cable between the ribs, approximated by short struts.
 				var prev: Vector3 = Vector3(x, 2.6, -DETAIL_LENGTH * 0.5)

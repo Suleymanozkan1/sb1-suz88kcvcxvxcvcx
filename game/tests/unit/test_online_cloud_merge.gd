@@ -77,7 +77,8 @@ func _remote() -> PlayerProfile:
 		"claimed_ids": ["daily:2026-10-04:a"],
 	}
 	p.daily = {
-		"results": {
+		"results":
+		{
 			"2026-10-03": _daily_result(650, true, 1, 1, 1350, 2),
 			"2026-10-04": _daily_result(300, true, 1, 1, 1800, 3),
 		},

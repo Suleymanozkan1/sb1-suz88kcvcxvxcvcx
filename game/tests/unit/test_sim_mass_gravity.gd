@@ -152,7 +152,9 @@ func test_a_tap_steers_the_core_in_the_air() -> void:
 
 func test_currents_and_portals_pass_under_a_flying_core() -> void:
 	var current: FluxSim = _run(
-		FluxSim.new(_level([{"t": "launch_pad", "d": 10.0, "lane": 0}, {"t": "current", "d": 12.5, "lanes": [0], "to": 1}]))
+		FluxSim.new(
+			_level([{"t": "launch_pad", "d": 10.0, "lane": 0}, {"t": "current", "d": 12.5, "lanes": [0], "to": 1}])
+		)
 	)
 	assert_eq(current.currents_ridden, 0, "a floor current misses a flying core")
 	assert_eq(current.lane, 0)

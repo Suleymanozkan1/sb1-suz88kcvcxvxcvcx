@@ -26,7 +26,7 @@ godot --headless --path game -s res://tools/validate_levels.gd -- --report=/tmp/
 godot --headless --path game -s res://tools/generate_levels.gd -- --check  # regenerate + diff
 
 # lint and scans (pip install gdtoolkit==4.5.0)
-(cd game && gdlint src tests tools server)
+(cd game && gdlint src tests tools server && gdformat --line-length=120 --check src tests tools server)
 python3 tools/ci/placeholder_scan.py && python3 tools/ci/license_check.py
 python3 tools/report/asset_gate.py --check   # every asset registered against the art direction
 

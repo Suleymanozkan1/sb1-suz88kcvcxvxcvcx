@@ -175,7 +175,9 @@ func test_fetch_success_applies_snapshot_and_caches() -> void:
 func test_fetch_needs_a_values_snapshot() -> void:
 	var rc: RemoteConfig = _config()
 	var transport: ScriptedTransport = ScriptedTransport.new()
-	transport.response = {"ok": true, "status": 200, "body": '{"values": {"economy.coin_multiplier": 0.75}}', "error": ""}
+	transport.response = {
+		"ok": true, "status": 200, "body": '{"values": {"economy.coin_multiplier": 0.75}}', "error": ""
+	}
 	assert_true(await rc.fetch(transport.respond, CONFIG_URL), "text body with the envelope")
 	assert_eq(rc.get_value("economy.coin_multiplier"), 0.75)
 	for body: Variant in [

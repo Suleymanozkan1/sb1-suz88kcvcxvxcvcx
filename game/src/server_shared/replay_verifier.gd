@@ -275,7 +275,8 @@ func verify_reward_claim(claim: Dictionary, history: Dictionary, level_data: Dic
 		var runs: int = _count_of(history.get("verified_completions", []), level_id)
 		if not level_id.is_empty() and runs > 0 and claimed >= runs:
 			out.reject(
-				CLAIM_REPEAT_EXCEEDS_RUNS, "%d reward claims for %s but %d verified runs" % [claimed + 1, level_id, runs]
+				CLAIM_REPEAT_EXCEEDS_RUNS,
+				"%d reward claims for %s but %d verified runs" % [claimed + 1, level_id, runs]
 			)
 	return out.to_claim_dict()
 
@@ -509,7 +510,11 @@ func _check_tier_deltas(raw: Variant, tier: int, out: Verdict) -> void:
 	if _tables.is_empty():
 		_tables = RewardEngine.load_tables()
 	_check_against(
-		raw as Dictionary, RewardEngine.daily_tier_reward(_tables, tier), daily_scale, "tier %d daily reward" % tier, out
+		raw as Dictionary,
+		RewardEngine.daily_tier_reward(_tables, tier),
+		daily_scale,
+		"tier %d daily reward" % tier,
+		out
 	)
 
 

@@ -32,6 +32,9 @@ jobs:
       - name: gdlint
         working-directory: game
         run: gdlint src tests tools server
+      - name: gdformat (formatting is checked, never left to review)
+        working-directory: game
+        run: gdformat --line-length=120 --check src tests tools server
       - name: Placeholder / mock scan
         run: python3 tools/ci/placeholder_scan.py
       - name: Asset license manifest

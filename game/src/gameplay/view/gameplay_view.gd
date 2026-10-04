@@ -594,9 +594,7 @@ func _update_frame(delta: float) -> void:
 
 
 func _is_pickup(type: int) -> bool:
-	return (
-		type == SimConst.EntityType.SHIELD or type == SimConst.EntityType.MAGNET or type == SimConst.EntityType.PLATE
-	)
+	return type == SimConst.EntityType.SHIELD or type == SimConst.EntityType.MAGNET or type == SimConst.EntityType.PLATE
 
 
 ## Where an entity ends along the track: gravity wells span a stretch, every
@@ -677,7 +675,9 @@ func _place_ribs(d: float) -> void:
 		var y: float = (sy - 1.0) * 1.5 if floating else 0.0
 		mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(1.0, sy, 1.0)), Vector3(0.0, y, z)))
 		if _details.visible and i < _details.multimesh.instance_count:
-			_details.multimesh.set_instance_transform(i, Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, z - RIB_SPACING * 0.5)))
+			_details.multimesh.set_instance_transform(
+				i, Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, z - RIB_SPACING * 0.5))
+			)
 
 
 ## Ambient motes for the world's atmosphere style ([AmbientMotes]), then the

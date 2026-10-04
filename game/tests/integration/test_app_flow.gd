@@ -6,6 +6,7 @@ extends TestCase
 const FIXED_UNIX: int = 1790000000
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 
+
 class WatchedAds:
 	extends AdProvider
 

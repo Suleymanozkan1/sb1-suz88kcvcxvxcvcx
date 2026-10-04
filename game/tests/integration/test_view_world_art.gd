@@ -73,6 +73,7 @@ func test_quality_presets_drive_reflections_shadows_and_relief() -> void:
 	assert_false(view.key_light.shadow_enabled, "no shadows")
 	assert_eq(view.kit.glass_material.shader, ViewKit.GLASS_LITE_SHADER, "Low: no per-fragment cell search")
 
+
 func test_every_world_has_side_detail_and_shafts_where_light_is_open() -> void:
 	var shafts: int = 0
 	for w: Dictionary in _app.catalog.worlds:
@@ -90,6 +91,7 @@ func test_every_world_has_side_detail_and_shafts_where_light_is_open() -> void:
 	view.set_quality(true, 0.7, 20, true, true, true, false, false)
 	assert_false(view._shafts.visible, "atmosphere off: no shafts")
 
+
 func test_structure_never_wears_a_gameplay_role_colour() -> void:
 	var roles: Array[Color] = [Palette.PRIMARY, Palette.SECONDARY, Palette.ACCENT, Palette.WARNING]
 	for w: Dictionary in _app.catalog.worlds:
@@ -99,6 +101,7 @@ func test_structure_never_wears_a_gameplay_role_colour() -> void:
 			assert_true(not close or c.s <= WorldTheme.ROLE_SAFE_SATURATION + 0.001, "%s structure" % str(w["id"]))
 	var orange: Color = WorldTheme.off_roles(Color("#c8702a"))
 	assert_le(orange.s, WorldTheme.ROLE_SAFE_SATURATION + 0.001, "a WARNING-like structure is neutralised")
+
 
 func test_environment_colours_stay_quiet_in_every_world() -> void:
 	for w: Dictionary in _app.catalog.worlds:

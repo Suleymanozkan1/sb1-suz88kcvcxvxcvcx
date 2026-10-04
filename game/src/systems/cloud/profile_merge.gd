@@ -87,9 +87,7 @@ static func merge(local: Dictionary, remote: Dictionary, local_saved_at: int, re
 	out[KEY_CREATED_AT] = ProfileMerge._earliest(local.get(KEY_CREATED_AT), remote.get(KEY_CREATED_AT))
 	out[KEY_LEVELS] = ProfileMerge._merge_records(local.get(KEY_LEVELS), remote.get(KEY_LEVELS))
 	out[KEY_STATS] = ProfileMerge._max_per_key(local.get(KEY_STATS), remote.get(KEY_STATS))
-	out[KEY_ACHIEVEMENTS] = ProfileMerge._earliest_per_key(
-		local.get(KEY_ACHIEVEMENTS), remote.get(KEY_ACHIEVEMENTS)
-	)
+	out[KEY_ACHIEVEMENTS] = ProfileMerge._earliest_per_key(local.get(KEY_ACHIEVEMENTS), remote.get(KEY_ACHIEVEMENTS))
 	out[KEY_MISSIONS] = ProfileMerge.merge_missions(
 		ProfileMerge._dict(local.get(KEY_MISSIONS)), ProfileMerge._dict(remote.get(KEY_MISSIONS))
 	)

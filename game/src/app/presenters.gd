@@ -233,7 +233,8 @@ static func daily(s: AppServices) -> Dictionary:
 	var req: Dictionary = s.modes.requirement(&"daily")
 	return {
 		# Remotely paused (daily.enabled false): missions stay, the challenge waits.
-		"unlocked": s.modes.is_unlocked(&"daily", s.mode_progress()) and s.remote_config.get_bool("daily.enabled", true),
+		"unlocked":
+		s.modes.is_unlocked(&"daily", s.mode_progress()) and s.remote_config.get_bool("daily.enabled", true),
 		"requirement":
 		(
 			t(str(req["key"])).format(req["args"] as Dictionary)

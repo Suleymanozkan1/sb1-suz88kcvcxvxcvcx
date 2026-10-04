@@ -90,7 +90,9 @@ func test_special_bands_fit_in_one_roll() -> void:
 			var sum: float = 0.0
 			for key: String in ["current", "portal", "launch", "gravity", "plate"]:
 				sum += float(c.get(key, 0.0))
-			assert_le(sum, 1.0, "%s %s special chances" % [str(w.get("id", "")), str(c.get("intro", c.get("name", "")))])
+			assert_le(
+				sum, 1.0, "%s %s special chances" % [str(w.get("id", "")), str(c.get("intro", c.get("name", "")))]
+			)
 
 
 func test_set_pieces_do_not_inherit_mass_and_gravity() -> void:
@@ -148,19 +150,37 @@ func test_validator_catches_a_pad_into_a_landing_block() -> void:
 	var pad_d: float = 30.0
 	var land_d: float = pad_d + 8.0 * 2.0 * SimConst.LAUNCH_VY / SimConst.G0
 	var level: Dictionary = {
-		"id": "t_pad", "number": 1, "world": "void_space", "kind": "normal", "tier": "master",
-		"difficulty": 0.5, "seed": 1, "lanes": 2, "speed": 8.0, "length": 60.0, "start_form": "hop",
-		"entities": [
+		"id": "t_pad",
+		"number": 1,
+		"world": "void_space",
+		"kind": "normal",
+		"tier": "master",
+		"difficulty": 0.5,
+		"seed": 1,
+		"lanes": 2,
+		"speed": 8.0,
+		"length": 60.0,
+		"start_form": "hop",
+		"entities":
+		[
 			{"t": "spark", "d": 20.0, "lane": 0},
 			{"t": "launch_pad", "d": pad_d, "lane": 0},
 			{"t": "barrier", "d": snappedf(land_d + 0.6, 0.01), "lanes": [0]},
 		],
-		"objective": {"type": "reach_end", "target": 0}, "mechanics": ["hop", "launch", "spark"],
-		"score_target": 10, "perfect_target": 1, "combo_target": 1, "environment": "void_space",
-		"music": "void_space", "visual_theme": "void_space", "unlock": {}, "spawn": {},
+		"objective": {"type": "reach_end", "target": 0},
+		"mechanics": ["hop", "launch", "spark"],
+		"score_target": 10,
+		"perfect_target": 1,
+		"combo_target": 1,
+		"environment": "void_space",
+		"music": "void_space",
+		"visual_theme": "void_space",
+		"unlock": {},
+		"spawn": {},
 		# The stored solution steers in the air (tick 243 is mid-flight), so it
 		# survives; a player who does not steer lands straight on the block.
-		"modifiers": {"hop_time": 0.13, "speed_ramp": 0.0}, "solution": {"taps": [243]},
+		"modifiers": {"hop_time": 0.13, "speed_ramp": 0.0},
+		"solution": {"taps": [243]},
 	}
 	var codes: PackedStringArray = _validator().validate(level).codes()
 	assert_has(codes, "dead_end", "a flight that lands with no reaction time is a dead end")

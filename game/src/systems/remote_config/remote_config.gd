@@ -170,7 +170,7 @@ func fetch(transport: Callable, url: String) -> bool:
 	if typeof(values) != TYPE_DICTIONARY:
 		# Only a {"values": {...}} snapshot replaces the overrides: an error or
 		# maintenance body must not silently reset every remote setting.
-		GameLog.warn("remote_config", "fetch body is not a {\"values\": {...}} snapshot; ignored")
+		GameLog.warn("remote_config", 'fetch body is not a {"values": {...}} snapshot; ignored')
 		return false
 	var snapshot: Dictionary = values as Dictionary
 	var usable: bool = snapshot.is_empty()

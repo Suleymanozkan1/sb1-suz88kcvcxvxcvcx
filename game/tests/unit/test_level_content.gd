@@ -11,7 +11,7 @@ func test_world_hazard_weights_name_real_hazards() -> void:
 		groups.append(w.get("challenge", {}))
 		groups.append(w.get("boss", {}))
 		for g: Variant in groups:
-			for key: Variant in ((g as Dictionary).get("hazards", {}) as Dictionary):
+			for key: Variant in (g as Dictionary).get("hazards", {}) as Dictionary:
 				assert_has(LevelGenerator.HAZARD_KINDS, str(key), "%s hazard '%s'" % [str(w.get("id", "")), str(key)])
 				checked += 1
 	assert_gt(float(checked), 50.0, "hazard weights found")
@@ -59,7 +59,6 @@ func test_validator_reports_unreachable_targets() -> void:
 	assert_true(v.validate(data).codes().has("unreachable_state"), "and a combo target above it")
 
 
-
 func test_combination_phase_brings_back_the_previous_chapter() -> void:
 	var model: DifficultyModel = DifficultyModel.new()
 	var catalog: WorldCatalog = WorldCatalog.load_default()
@@ -70,9 +69,8 @@ func test_combination_phase_brings_back_the_previous_chapter() -> void:
 			if wi == 1 and ci == 0:
 				continue
 			var previous: Dictionary = (
-				chapters[ci - 1] as Dictionary
-				if ci > 0
-				else (catalog.world_at(wi - 1)["chapters"] as Array).back() as Dictionary
+				chapters[ci - 1] as Dictionary if ci > 0 else (catalog.world_at(wi - 1)["chapters"] as Array).back()
+				as Dictionary
 			)
 			var local: int = int((chapters[ci] as Dictionary)["start"]) + 7
 			var spec: LevelSpec = model.build_spec(catalog.global_number(wi, local))
