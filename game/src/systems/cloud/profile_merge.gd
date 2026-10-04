@@ -230,7 +230,7 @@ static func _merge_period(local_raw: Variant, remote_raw: Variant) -> Variant:
 	out[PERIOD_BEST_COMBO] = maxi(
 		ProfileMerge._int(mine.get(PERIOD_BEST_COMBO)), ProfileMerge._int(theirs.get(PERIOD_BEST_COMBO))
 	)
-	var claimed: Dictionary = {}
+	var claimed: Dictionary[String, bool] = {}
 	for raw: Variant in ProfileMerge._array(theirs.get(PERIOD_MISSIONS)):
 		if typeof(raw) == TYPE_DICTIONARY and ProfileMerge._is_true((raw as Dictionary).get(MISSION_CLAIMED)):
 			claimed[str((raw as Dictionary).get(MISSION_ID, ""))] = true

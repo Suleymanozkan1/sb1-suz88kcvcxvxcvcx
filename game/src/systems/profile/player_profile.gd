@@ -14,7 +14,7 @@ const LEDGER_LIMIT: int = 50
 const MAX_BONUS_STARS: int = 999
 ## Flags other systems read with a fixed type (mode bests are a dictionary of
 ## whole numbers; the cloud.* flags are [CloudSaveService] bookkeeping).
-const TYPED_FLAGS: Dictionary = {
+const TYPED_FLAGS: Dictionary[String, Variant.Type] = {
 	"mode_best": TYPE_DICTIONARY,
 	"economy_starting_granted": TYPE_BOOL,
 	"tutorial_done": TYPE_BOOL,
@@ -320,7 +320,7 @@ static func _sanitize_flags(raw: Dictionary) -> Dictionary:
 		if not TYPED_FLAGS.has(key):
 			out[key] = v
 			continue
-		match int(TYPED_FLAGS[key]):
+		match TYPED_FLAGS[key]:
 			TYPE_BOOL:
 				if typeof(v) == TYPE_BOOL:
 					out[key] = v

@@ -85,11 +85,12 @@ var problems: PackedStringArray = PackedStringArray()
 var source_path: String = ""
 ## Background loader for music (see [method prefetch_music]).
 var loader: AsyncLoader = AsyncLoader.new()
-var _sfx: Dictionary = {}
-var _music: Dictionary = {}
-var _stingers: Dictionary = {}
+var _sfx: Dictionary[StringName, Dictionary] = {}
+var _music: Dictionary[String, Dictionary] = {}
+var _stingers: Dictionary[StringName, Dictionary] = {}
 var _mixer: Dictionary = {}
-var _streams: Dictionary = {}
+## Resource path -> loaded stream (null when it could not be loaded).
+var _streams: Dictionary[String, AudioStream] = {}
 
 
 ## Builds a bank from an already parsed document (see [method from_file]).
@@ -128,14 +129,14 @@ func missing_files() -> PackedStringArray:
 func all_files() -> PackedStringArray:
 	var out: PackedStringArray = PackedStringArray()
 	for kind: StringName in _sfx:
-		out.append(str((_sfx[kind] as Dictionary)["file"]))
+		out.append(str(_sfx[kind]["file"]))
 	for track: String in _music:
-		var m: Dictionary = _music[track] as Dictionary
+		var m: Dictionary = _music[track]
 		for stem: String in ["base", "hi", "boss"]:
 			if not str(m.get(stem, "")).is_empty():
 				out.append(str(m[stem]))
 	for s: StringName in _stingers:
-		out.append(str((_stingers[s] as Dictionary)["file"]))
+		out.append(str(_stingers[s]["file"]))
 	return out
 
 
@@ -208,7 +209,7 @@ func stream_at(path: String) -> AudioStream:
 	if path.is_empty():
 		return null
 	if _streams.has(path):
-		return _streams[path] as AudioStream
+		return _streams[path]
 	var stream: AudioStream = null
 	if loader.is_ready(path):
 		# Prefetched in the background: no load on the main thread.

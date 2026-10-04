@@ -42,7 +42,7 @@ const LEDGER_LABEL_KINDS: Array[String] = [
 const LEDGER_LABEL_SUFFIXES: Array[String] = ["duplicate", "ad_double"]
 ## Source kinds written by other modules that share a label (the cosmetics
 ## shop spends with the reason "cosmetic:<item id>").
-const LEDGER_LABEL_ALIASES: Dictionary = {"cosmetic": "purchase"}
+const LEDGER_LABEL_ALIASES: Dictionary[String, String] = {"cosmetic": "purchase"}
 const LEDGER_LABEL_OTHER: String = "other"
 ## Largest whole number a JSON float can hold exactly (2^53).
 const MAX_SAFE_FLOAT_INT: float = 9007199254740992.0
@@ -57,9 +57,9 @@ const KEY_INTEGRITY: String = "integrity"
 const KEY_TIME_TRAVEL: String = "time_travel_tolerance_seconds"
 
 ## Safe fallbacks, used only when economy.json is missing or damaged.
-const FALLBACK_MAX_SINGLE_GRANT: Dictionary = {"coins": 5000, "gems": 50}
-const FALLBACK_BALANCE_CAP: Dictionary = {"coins": 5000000, "gems": 100000}
-const FALLBACK_STARTING: Dictionary = {"coins": 100, "gems": 0}
+const FALLBACK_MAX_SINGLE_GRANT: Dictionary[String, int] = {"coins": 5000, "gems": 50}
+const FALLBACK_BALANCE_CAP: Dictionary[String, int] = {"coins": 5000000, "gems": 100000}
+const FALLBACK_STARTING: Dictionary[String, int] = {"coins": 100, "gems": 0}
 const FALLBACK_DUPLICATE_COSMETIC_COINS: int = 150
 const FALLBACK_TIME_TRAVEL_TOLERANCE: int = 86400
 
@@ -100,14 +100,14 @@ static func sanitize_config(raw: Dictionary) -> Dictionary:
 	var version: int = int_or(raw.get("schema_version", SCHEMA_VERSION), SCHEMA_VERSION)
 	if version != SCHEMA_VERSION:
 		GameLog.warn("economy", "economy config schema %d (expected %d)" % [version, SCHEMA_VERSION])
-	var max_grant: Dictionary = _currency_map(raw.get(KEY_MAX_SINGLE_GRANT), FALLBACK_MAX_SINGLE_GRANT, 1)
-	var cap: Dictionary = _currency_map(raw.get(KEY_BALANCE_CAP), FALLBACK_BALANCE_CAP, 1)
-	var starting: Dictionary = _currency_map(raw.get(KEY_STARTING), FALLBACK_STARTING, 0)
+	var max_grant: Dictionary[String, int] = _currency_map(raw.get(KEY_MAX_SINGLE_GRANT), FALLBACK_MAX_SINGLE_GRANT, 1)
+	var cap: Dictionary[String, int] = _currency_map(raw.get(KEY_BALANCE_CAP), FALLBACK_BALANCE_CAP, 1)
+	var starting: Dictionary[String, int] = _currency_map(raw.get(KEY_STARTING), FALLBACK_STARTING, 0)
 	for key: String in max_grant:
-		if int(max_grant[key]) > int(cap[key]):
+		if max_grant[key] > cap[key]:
 			GameLog.warn("economy", "max_single_grant.%s exceeds balance_cap; clamped" % key)
 			max_grant[key] = cap[key]
-		if int(starting[key]) > int(max_grant[key]):
+		if starting[key] > max_grant[key]:
 			GameLog.warn("economy", "starting.%s exceeds max_single_grant; clamped" % key)
 			starting[key] = max_grant[key]
 	var duplicate_coins: int = int_or(raw.get(KEY_DUPLICATE_COINS), -1)
@@ -115,7 +115,7 @@ static func sanitize_config(raw: Dictionary) -> Dictionary:
 		if raw.has(KEY_DUPLICATE_COINS):
 			GameLog.warn("economy", "invalid duplicate_cosmetic_coins; using fallback")
 		duplicate_coins = FALLBACK_DUPLICATE_COSMETIC_COINS
-	duplicate_coins = mini(duplicate_coins, int(max_grant[String(COINS)]))
+	duplicate_coins = mini(duplicate_coins, max_grant[String(COINS)])
 	var integrity_raw: Variant = raw.get(KEY_INTEGRITY, {})
 	var integrity: Dictionary = integrity_raw as Dictionary if typeof(integrity_raw) == TYPE_DICTIONARY else {}
 	var tolerance: int = int_or(integrity.get(KEY_TIME_TRAVEL), -1)
@@ -234,7 +234,7 @@ func spend(currency: StringName, amount: int, reason: String) -> bool:
 ## malformed or unknown-currency price. When both currencies carry a positive
 ## price the coin price wins (coins are the currency earned by playing); a
 ## zero or invalid entry for one currency never makes the other price free.
-func price_of(item_price: Dictionary) -> Dictionary:
+func price_of(item_price: Dictionary) -> Dictionary[String, int]:
 	var currency: StringName = &""
 	var amount: int = 0
 	if item_price.has(String(COINS)) or item_price.has(String(GEMS)):
@@ -342,15 +342,15 @@ func _apply(currency: StringName, new_balance: int, delta: int, source: String) 
 		_bus.currency_changed.emit(currency, new_balance, delta)
 
 
-static func _currency_map(raw: Variant, fallback: Dictionary, minimum: int) -> Dictionary:
+static func _currency_map(raw: Variant, fallback: Dictionary[String, int], minimum: int) -> Dictionary[String, int]:
 	var src: Dictionary = raw as Dictionary if typeof(raw) == TYPE_DICTIONARY else {}
-	var out: Dictionary = {}
+	var out: Dictionary[String, int] = {}
 	for currency: StringName in CURRENCIES:
 		var key: String = String(currency)
 		var value: int = int_or(src.get(key), minimum - 1)
 		if value < minimum:
 			if src.has(key):
 				GameLog.warn("economy", "invalid economy value for %s; using fallback" % key)
-			value = int(fallback[key])
+			value = fallback[key]
 		out[key] = value
 	return out

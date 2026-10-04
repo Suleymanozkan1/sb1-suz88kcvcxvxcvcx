@@ -83,7 +83,7 @@ var _raw_definitions: Array = []
 ## Sanitised definitions in data order; each has typed fields.
 var _defs: Array[Dictionary] = []
 ## id -> index into [member _defs].
-var _index: Dictionary = {}
+var _index: Dictionary[String, int] = {}
 
 
 ## [param reward_grant] has the signature
@@ -148,7 +148,7 @@ func progress(id: String) -> Dictionary:
 	if not _index.has(id):
 		GameLog.warn(LOG_CHANNEL, "progress for unknown achievement %s" % id)
 		return {"value": 0, "target": 0, "unlocked": false, "unlocked_at": 0}
-	var def: Dictionary = _defs[int(_index[id])]
+	var def: Dictionary = _defs[_index[id]]
 	var target: int = def["target"]
 	var stat_name: String = def["stat"]
 	var unlocked: bool = _profile.achievements.has(id)
@@ -224,7 +224,7 @@ func hidden_locked_count() -> int:
 ## names the game maintains, usually [constant KNOWN_STATS].
 func validate_definitions(known_stats: PackedStringArray) -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
-	var seen: Dictionary = {}
+	var seen: Dictionary[String, bool] = {}
 	for i: int in _raw_definitions.size():
 		var raw: Variant = _raw_definitions[i]
 		if typeof(raw) != TYPE_DICTIONARY:

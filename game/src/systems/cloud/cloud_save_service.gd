@@ -50,7 +50,7 @@ const STATUS_OFFLINE: StringName = &"offline"
 const STATUS_CONFLICT_RESOLVED: StringName = &"conflict_resolved"
 const STATUS_ERROR: StringName = &"error"
 ## Translation key of each status (the UI shows it as the section caption).
-const STATUS_TEXT_KEYS: Dictionary = {
+const STATUS_TEXT_KEYS: Dictionary[StringName, String] = {
 	STATUS_OFF: "cloud.status.off",
 	STATUS_IDLE: "cloud.status.idle",
 	STATUS_SYNCING: "cloud.status.syncing",

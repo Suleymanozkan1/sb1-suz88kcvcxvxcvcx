@@ -50,7 +50,7 @@ const SPEC_KEYS: Array[String] = [
 ## Spec keys whose value is an item id (all others are whole amounts).
 const SPEC_ID_KEYS: Array[String] = [SPEC_COSMETIC, SPEC_SKIN, SPEC_TRAIL, SPEC_BADGE]
 ## Catalog category every typed cosmetic reward must belong to.
-const TYPED_COSMETIC_CATEGORIES: Dictionary = {
+const TYPED_COSMETIC_CATEGORIES: Dictionary[StringName, String] = {
 	RewardBundle.TYPE_SKIN: CosmeticCatalog.CORE_SKIN,
 	RewardBundle.TYPE_TRAIL: CosmeticCatalog.TRAIL,
 }
@@ -403,8 +403,8 @@ func _grant_cosmetic_item(granted: RewardBundle, type: StringName, id: String, s
 	if id.is_empty():
 		GameLog.warn("reward", "dropping %s item without id (%s)" % [type, source])
 		return
-	if TYPED_COSMETIC_CATEGORIES.has(type) and _category_of(id) != str(TYPED_COSMETIC_CATEGORIES[type]):
-		var wanted: String = str(TYPED_COSMETIC_CATEGORIES[type])
+	if TYPED_COSMETIC_CATEGORIES.has(type) and _category_of(id) != TYPED_COSMETIC_CATEGORIES[type]:
+		var wanted: String = TYPED_COSMETIC_CATEGORIES[type]
 		GameLog.warn("reward", "%s '%s' is not a %s item; dropped (%s)" % [type, id, wanted, source])
 		return
 	if _profile.cosmetics_owned.has(id):
@@ -660,7 +660,8 @@ static func _validate_level_table(level: Dictionary, tier_ids: PackedStringArray
 
 
 static func _validate_daily_streak(section: Dictionary, errors: PackedStringArray) -> void:
-	var seen: Dictionary = {}
+	# tier -> coins it pays
+	var seen: Dictionary[int, int] = {}
 	for raw: Variant in _array(section.get("tiers")):
 		var entry: Dictionary = _dict(raw)
 		var tier: int = EconomyService.int_or(entry.get("tier"), 0)
@@ -676,7 +677,7 @@ static func _validate_daily_streak(section: Dictionary, errors: PackedStringArra
 	for tier: int in range(1, DAILY_STREAK_TIERS + 1):
 		if not seen.has(tier):
 			errors.append("daily_streak tier %d missing" % tier)
-		elif tier > 1 and seen.has(tier - 1) and int(seen[tier]) < int(seen[tier - 1]):
+		elif tier > 1 and seen.has(tier - 1) and seen[tier] < seen[tier - 1]:
 			errors.append("daily_streak coins must not shrink at tier %d" % tier)
 
 

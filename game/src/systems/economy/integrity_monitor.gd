@@ -47,12 +47,12 @@ func check() -> Array[String]:
 	var codes: Array[String] = []
 	if _profile == null:
 		return codes
-	var last_logged: Dictionary = _last_logged_balances()
+	var last_logged: Dictionary[String, int] = _last_logged_balances()
 	var caps: Dictionary = _config[EconomyService.KEY_BALANCE_CAP] as Dictionary
 	for currency: StringName in EconomyService.CURRENCIES:
 		var key: String = String(currency)
 		var current: int = _balance(currency)
-		if last_logged.has(key) and int(last_logged[key]) != current:
+		if last_logged.has(key) and last_logged[key] != current:
 			_report(codes, LEDGER_MISMATCH, {"currency": key, "expected": last_logged[key], "actual": current})
 		if current < 0:
 			_report(codes, NEGATIVE_BALANCE, {"currency": key, "actual": current})
@@ -76,8 +76,8 @@ func _balance(currency: StringName) -> int:
 
 
 ## Balance recorded by the newest well-formed ledger entry of each currency.
-func _last_logged_balances() -> Dictionary:
-	var out: Dictionary = {}
+func _last_logged_balances() -> Dictionary[String, int]:
+	var out: Dictionary[String, int] = {}
 	for i: int in range(_profile.ledger.size() - 1, -1, -1):
 		var entry: Dictionary = _profile.ledger[i]
 		var key: String = str(entry.get(EconomyService.LEDGER_CURRENCY, ""))

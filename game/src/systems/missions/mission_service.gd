@@ -54,9 +54,9 @@ var _clock: GameClock
 var _reward_grant: Callable
 var _config: Dictionary = {}
 ## kind -> int missions per period.
-var _counts: Dictionary = {}
+var _counts: Dictionary[String, int] = {}
 ## kind -> Array[Dictionary] sanitised templates.
-var _templates: Dictionary = {}
+var _templates: Dictionary[String, Array] = {}
 var _reward_step: float = DEFAULT_REWARD_STEP
 var _scaled_keys: PackedStringArray = DEFAULT_SCALED_KEYS
 ## UTC day number the cached period keys belong to (-1 before the first use).
@@ -67,9 +67,9 @@ var _date_key: String = ""
 var _week_key: String = ""
 ## kind -> the stored slice that last passed validation, compared by
 ## identity: a replaced or reloaded slice is validated again.
-var _checked_slices: Dictionary = {}
+var _checked_slices: Dictionary[String, Dictionary] = {}
 ## mission id -> progress last sent with mission_progressed (no repeats).
-var _announced: Dictionary = {}
+var _announced: Dictionary[String, int] = {}
 
 
 ## [param reward_grant] has the signature
@@ -244,7 +244,7 @@ func validate_config(known_stats: PackedStringArray) -> PackedStringArray:
 		var list: Array = list_value as Array
 		if _is_integral(count) and list.size() < int(count):
 			errors.append("%s_templates has fewer entries than %s_count" % [kind, kind])
-		var seen: Dictionary = {}
+		var seen: Dictionary[String, bool] = {}
 		for i: int in list.size():
 			for problem: String in _template_problems(list[i], kind, known_stats):
 				errors.append("%s template %d: %s" % [kind, i, problem])
@@ -261,7 +261,7 @@ func _apply_config() -> void:
 		var count: Variant = _config.get(kind + "_count", DEFAULT_COUNT)
 		_counts[kind] = clampi(int(count), 1, MAX_COUNT) if _is_integral(count) else DEFAULT_COUNT
 		var list: Array[Dictionary] = []
-		var ids: Dictionary = {}
+		var ids: Dictionary[String, bool] = {}
 		var raw_list: Variant = _config.get(kind + "_templates", [])
 		if typeof(raw_list) != TYPE_ARRAY:
 			raw_list = []
@@ -363,14 +363,14 @@ func _template_problems(raw: Variant, kind: String, known_stats: PackedStringArr
 func _assign(kind: String, key: String, day: int) -> Dictionary:
 	var days_left: int = _days_left(kind, day)
 	var eligible: Array[Dictionary] = _eligible(kind, days_left)
-	var count: int = mini(int(_counts[kind]), eligible.size())
+	var count: int = mini(_counts[kind], eligible.size())
 	var rng: DetRng = DetRng.new(DetRng.hash_string(SEED_PREFIX + kind + ":" + key))
 	var order: Array[int] = []
 	for i: int in eligible.size():
 		order.append(i)
 	rng.shuffle(order)
 	var picked: Array[int] = []
-	var used_stats: Dictionary = {}
+	var used_stats: Dictionary[String, bool] = {}
 	for i: int in order:
 		if picked.size() < count and not used_stats.has(eligible[i]["stat"]):
 			used_stats[eligible[i]["stat"]] = true
