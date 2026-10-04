@@ -13,6 +13,9 @@ uniform float anim_speed = 1.0;
 uniform int style = 0;
 uniform float overdrive = 0.0;
 uniform float rim_strength = 1.6;
+// 1 while the form colour carries meaning (PHASE/DASH/SURGE): styles that
+// would hide color_a give way to it (ART_DIRECTION §2, form colour first).
+uniform float form_lock = 0.0;
 
 varying vec3 obj_pos;
 
@@ -39,7 +42,8 @@ void fragment() {
 		col = mix(color_a.rgb * 1.3, color_b.rgb, m) + step(0.92, 1.0 - c) * 0.6;
 	} else if (style == 3) { // Void: dark heart, hungry rim
 		m = fd_fbm(p * 1.5 + vec3(t * 0.3, -t * 0.2, t * 0.1));
-		col = mix(vec3(0.0), color_b.rgb * 0.4, m) + rim_color.rgb * pow(1.0 - ndv, 1.2) * 2.2;
+		vec3 rim_v = mix(rim_color.rgb, color_a.rgb, form_lock);
+		col = mix(vec3(0.0), mix(color_b.rgb * 0.4, color_a.rgb * 0.5, form_lock), m) + rim_v * pow(1.0 - ndv, 1.2) * 2.2;
 	} else if (style == 4) { // Crystal: prismatic bands
 		float bands = sin(dot(p, vec3(3.0, 5.0, 2.0)) + t * 1.5) * 0.5 + 0.5;
 		col = mix(color_a.rgb, color_b.rgb, bands) + vec3(bands, 1.0 - bands, 0.5) * 0.25;
@@ -84,7 +88,7 @@ void fragment() {
 		vec3 facet = floor(normalize(obj_pos) * 3.0);
 		float hue = fd_hash13(facet) + t * 0.15;
 		vec3 spectrum = 0.5 + 0.5 * cos(6.2831 * (hue + vec3(0.0, 0.33, 0.67)));
-		col = mix(color_a.rgb, spectrum, 0.65) * (0.75 + 0.35 * fd_hash13(facet + 5.0));
+		col = mix(color_a.rgb, spectrum, 0.65 * (1.0 - 0.7 * form_lock)) * (0.75 + 0.35 * fd_hash13(facet + 5.0));
 	} else if (style == 15) { // Neon pulse: rings pulse outward from the centre
 		float r = length(obj_pos.xz) * 6.0;
 		float ring_m = smoothstep(0.75, 0.95, sin(r * 3.0 - t * 6.0) * 0.5 + 0.5);

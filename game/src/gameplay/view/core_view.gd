@@ -225,6 +225,7 @@ func set_form(form: int, phase: int, heavy: bool) -> void:
 	# Form tint only where it carries meaning (phase / dash / surge weight).
 	var tint: Color = skin_color_a if form == SimConst.Form.HOP else Palette.form_color(form, phase, heavy)
 	_mat.set_shader_parameter("color_a", tint)
+	_mat.set_shader_parameter("form_lock", 0.0 if form == SimConst.Form.HOP else 1.0)
 	_accent_mat.set_shader_parameter("color_a", tint)
 	_accent_mat.set_shader_parameter("color_b", tint.darkened(0.25))
 	_accent_mat.set_shader_parameter("intensity", 1.3)

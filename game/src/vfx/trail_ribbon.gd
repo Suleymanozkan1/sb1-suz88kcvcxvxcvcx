@@ -43,9 +43,12 @@ func set_length(points: int) -> void:
 	clear_points()
 
 
-func set_colors(head: Color, tail: Color) -> void:
+## [param form_lock] 1 while the colours are the form colour (styles that
+## override the colours then give way to it).
+func set_colors(head: Color, tail: Color, form_lock: float = 0.0) -> void:
 	_mat.set_shader_parameter("head_color", head)
 	_mat.set_shader_parameter("tail_color", tail)
+	_mat.set_shader_parameter("form_lock", form_lock)
 
 
 func set_style(style: int) -> void:

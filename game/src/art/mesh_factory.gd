@@ -13,6 +13,9 @@ const DETAIL_X: float = 3.95
 const DETAIL_LENGTH: float = 6.0
 const DETAIL_KINDS: PackedStringArray = ["conduits", "pipes", "panels", "crystals", "cables"]
 const CABLE_SEGMENTS: int = 6
+## Prism orbit ring tessellation: segments round the ring, sides of its tube.
+const PRISM_RING_SEGMENTS: int = 24
+const PRISM_RING_SIDES: int = 5
 
 static var _cache: Dictionary = {}
 
@@ -111,6 +114,34 @@ static func shard(radius: float, height: float) -> SphereMesh:
 	d.rings = 2
 	_cache[key] = d
 	return d
+
+
+## Thin ring tilted [param tilt] radians off the floor plane: the prism's
+## orbit (ART_DIRECTION §4). Spun about Y by the spark shader, the tilt makes
+## it sweep round the shard instead of lying flat.
+static func tilted_ring(radius: float, tube: float, tilt: float) -> ArrayMesh:
+	var key: String = "ring:%f:%f:%f" % [radius, tube, tilt]
+	if _cache.has(key):
+		return _cache[key] as ArrayMesh
+	var torus: TorusMesh = TorusMesh.new()
+	torus.inner_radius = radius - tube
+	torus.outer_radius = radius + tube
+	torus.rings = PRISM_RING_SEGMENTS
+	torus.ring_segments = PRISM_RING_SIDES
+	var arrays: Array = torus.get_mesh_arrays()
+	var basis: Basis = Basis(Vector3.RIGHT, tilt)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] as PackedVector3Array
+	for i: int in verts.size():
+		verts[i] = basis * verts[i]
+		normals[i] = basis * normals[i]
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TANGENT] = null
+	var mesh: ArrayMesh = ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	_cache[key] = mesh
+	return mesh
 
 
 ## Shaft rib for a world profile, built from chamfered parts.

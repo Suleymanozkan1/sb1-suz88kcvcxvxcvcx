@@ -162,7 +162,7 @@ part of this build (see `game/server/README.md`).
 ## 10. Feel: juice with a budget
 
 Feedback is layered by importance (see `ART_DIRECTION.md` §8–9): hit-stop and slow motion only on
-meaningful events, camera shake capped, chromatic aberration only on fail and Overdrive, collect bursts
+meaningful events, camera shake capped, chromatic aberration only on fail, collect bursts
 pooled. Audio: procedural SFX bank (36 sounds), combo pitch steps, music intensity stem that follows the
 live combo (and drops on a break), boss loops for bosses and mid-world challenges, stingers for
 complete/perfect; the floor's lane lips breathe with the music beat; the next world's music loads in the

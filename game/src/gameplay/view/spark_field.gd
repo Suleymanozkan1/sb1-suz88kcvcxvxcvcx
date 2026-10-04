@@ -1,7 +1,8 @@
 class_name SparkField
 extends Node3D
 ## All sparks (and prisms) of a level drawn with one MultiMesh each — a single
-## draw call regardless of count. Collected items pop (scale 1 → 1.25 → 0 in
+## draw call regardless of count; prisms carry an orbiting ring (a third
+## MultiMesh sharing the prism slots). Collected items pop (scale 1 → 1.25 → 0 in
 ## 120 ms, ART_DIRECTION §8) and then stay zero-scaled; magnet pulls are
 ## animated per frame.
 
@@ -13,6 +14,13 @@ const POP_PEAK_SCALE: float = 1.25
 ## Fraction of POP_TIME spent growing to the peak before collapsing.
 const POP_PEAK_AT: float = 0.35
 const HIDDEN: Transform3D = Transform3D(Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO), Vector3.ZERO)
+## Prism ring: radius round the 0.18 shard, tube, tilt off the floor, spin and
+## brightness (below the shard: the shard is the reward, the ring its frame).
+const RING_RADIUS: float = 0.3
+const RING_TUBE: float = 0.014
+const RING_TILT: float = 1.15
+const RING_SPIN: float = 1.7
+const RING_INTENSITY_SCALE: float = 0.75
 
 ## Colour-blind aid: phase-B sparks lie on their side (a horizontal diamond
 ## next to phase A's upright one).
@@ -20,6 +28,7 @@ var colorblind: bool = false
 
 var _spark_mm: MultiMeshInstance3D
 var _prism_mm: MultiMeshInstance3D
+var _ring_mm: MultiMeshInstance3D
 ## Entity index -> instance index in the relevant multimesh.
 var _spark_slot: Dictionary = {}
 var _prism_slot: Dictionary = {}
@@ -70,20 +79,27 @@ func _ensure_built() -> void:
 		return
 	_built = true
 	# One collectible silhouette family: the prism is the larger shard.
-	_spark_mm = _make_mm(0.11, 0.3, Palette.ENERGY_SPARK)
-	_prism_mm = _make_mm(0.18, 0.46, Palette.ENERGY_SPARK * 1.15)
+	_spark_mm = _make_mm(MeshFactory.shard(0.11, 0.3), Palette.ENERGY_SPARK)
+	_prism_mm = _make_mm(MeshFactory.shard(0.18, 0.46), Palette.ENERGY_SPARK * 1.15)
+	_ring_mm = _make_mm(
+		MeshFactory.tilted_ring(RING_RADIUS, RING_TUBE, RING_TILT),
+		Palette.ENERGY_SPARK * RING_INTENSITY_SCALE,
+		RING_SPIN
+	)
 
 
-func _make_mm(radius: float, height: float, intensity: float) -> MultiMeshInstance3D:
+func _make_mm(mesh: Mesh, intensity: float, spin: float = -1.0) -> MultiMeshInstance3D:
 	var mmi: MultiMeshInstance3D = MultiMeshInstance3D.new()
 	var mm: MultiMesh = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
-	mm.mesh = MeshFactory.shard(radius, height)
+	mm.mesh = mesh
 	mmi.multimesh = mm
 	var mat: ShaderMaterial = ShaderMaterial.new()
 	mat.shader = SPARK_SHADER
 	mat.set_shader_parameter("intensity", intensity)
+	if spin >= 0.0:
+		mat.set_shader_parameter("spin_speed", spin)
 	mmi.material_override = mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mmi)
@@ -108,6 +124,8 @@ func build(lvl: SimLevel, _theme: WorldTheme = null, from_index: int = 0) -> voi
 			prisms.append(i)
 	_fill(_spark_mm.multimesh, sparks, lvl, _spark_slot)
 	_fill(_prism_mm.multimesh, prisms, lvl, _prism_slot)
+	# The ring shares the prism slots (same instance order, same bob phase).
+	_fill(_ring_mm.multimesh, prisms, lvl, {})
 
 
 ## Extends the field for endless streaming. Only entities from
@@ -155,6 +173,13 @@ func _set_instance(index: int, xform: Transform3D) -> void:
 		_spark_mm.multimesh.set_instance_transform(int(_spark_slot[index]), xform)
 	elif _prism_slot.has(index):
 		_prism_mm.multimesh.set_instance_transform(int(_prism_slot[index]), xform)
+		_ring_mm.multimesh.set_instance_transform(int(_prism_slot[index]), xform)
+
+
+## Prism rings in the field (one per prism; a collected prism's ring is
+## hidden and popped with it through the shared slot).
+func ring_count() -> int:
+	return _ring_mm.multimesh.instance_count
 
 
 ## Entities whose collect pop is still playing.
@@ -215,6 +240,7 @@ func apply_magnet(core: Vector3, lvl: SimLevel, from_index: int, active: bool, p
 func clear() -> void:
 	_spark_mm.multimesh.instance_count = 0
 	_prism_mm.multimesh.instance_count = 0
+	_ring_mm.multimesh.instance_count = 0
 	_spark_slot.clear()
 	_prism_slot.clear()
 	_hidden.clear()

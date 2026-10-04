@@ -533,7 +533,7 @@ func _update_frame(delta: float) -> void:
 		trail.set_colors(_trail_head, Palette.with_alpha(_trail_tail, 0.0))
 	else:
 		var form_color: Color = Palette.form_color(sim.form, sim.phase, sim.heavy)
-		trail.set_colors(form_color, Palette.with_alpha(form_color.darkened(0.5), 0.0))
+		trail.set_colors(form_color, Palette.with_alpha(form_color.darkened(0.5), 0.0), 1.0)
 	trail.width = 0.12 + clampf(float(sim.combo) / 40.0, 0.0, 1.0) * 0.06 + (0.05 if sim.overdrive_timer > 0.0 else 0.0)
 	if core_view.visible:
 		trail.push_point(core_pos + Vector3(0.0, -0.02, 0.16))
@@ -729,12 +729,38 @@ func _setup_atmosphere() -> void:
 			color = theme.story_accent.lightened(0.4)
 			p.gravity = Vector3(0, -0.25, 0)
 			alpha = 0.08
+		"glitter":
+			# Crystal dust: tiny, nearly still, each mote catching the light in turn.
+			color = Color.WHITE.lerp(theme.key_color, 0.3)
+			quad.size = Vector2(0.035, 0.035)
+			p.gravity = Vector3(0, -0.04, 0)
+			p.color_ramp = _twinkle_ramp()
+			alpha = 0.08
+		"spores":
+			# Garden spores: larger, soft, rising slowly on a sideways drift.
+			color = theme.key_color.lightened(0.35)
+			quad.size = Vector2(0.09, 0.09)
+			p.direction = Vector3(0.35, 1.0, 0.0)
+			p.initial_velocity_min = 0.04
+			p.initial_velocity_max = 0.12
+			p.gravity = Vector3(0.05, 0.08, 0)
+			alpha = 0.07
 	# ART_DIRECTION §7: decoration stays at or under 8 % opacity.
 	p.color = Palette.with_alpha(color, minf(alpha, ATMOSPHERE_MAX_ALPHA))
 	_apply_atmosphere_quality()
 
 
 # --- Juice (ART_DIRECTION §9) ----------------------------------------------------
+
+
+## Alpha over a mote's life: dark, a flash, dark, a second fainter flash.
+static func _twinkle_ramp() -> Gradient:
+	var g: Gradient = Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.2, 0.3, 0.55, 0.65, 0.8, 1.0])
+	var off: Color = Color(1, 1, 1, 0)
+	var dim: Color = Color(1, 1, 1, 0.15)
+	g.colors = PackedColorArray([off, dim, Color.WHITE, dim, Color(1, 1, 1, 0.7), dim, off])
+	return g
 
 
 func _update_juice(delta: float) -> void:
@@ -877,8 +903,8 @@ func _handle_event(type: int, ent: int, value: int) -> void:
 			core_view.punch(0.25)
 			feedback.emit(&"pickup", 0.5, 0 if type == SimConst.EventType.SHIELD_UP else 1)
 		SimConst.EventType.OVERDRIVE_START:
+			# Shockwave only: the chromatic split belongs to the fail (ART_DIRECTION §9).
 			shockwave(0.45)
-			_chroma = maxf(_chroma, 0.35)
 			feedback.emit(&"overdrive", 0.9, 0)
 		SimConst.EventType.OVERDRIVE_END:
 			feedback.emit(&"overdrive_end", 0.3, 0)
