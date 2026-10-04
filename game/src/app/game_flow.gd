@@ -11,6 +11,8 @@ const READY_FIRST: float = 0.8
 const READY_RESTART: float = 0.35
 const ATTRACT_READY: float = 0.2
 const WORLD_FADE: float = 0.6
+## Cue for reveals that name none (achievements, missions, chests).
+const REVEAL_SOUND: String = "reward"
 
 ## The service graph; the autoload unless one is injected before _ready (tests).
 var s: AppServices
@@ -569,6 +571,8 @@ func _next_reveal() -> void:
 		_reveal_return = fsm.current
 	_go(GameStateMachine.State.REWARD)
 	router.push_overlay(&"reward", r)
+	# Each reveal has its own cue: level-up, unlock (world, cosmetic) or reward.
+	s.audio.play_sfx(StringName(str(r.get("sound", REVEAL_SOUND))))
 
 
 ## Applies a failed run that was held back for a possible revive.

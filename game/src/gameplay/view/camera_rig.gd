@@ -37,6 +37,18 @@ func _ready() -> void:
 	add_child(camera)
 
 
+## Orientation of the camera at rest (no lean, shake, reveal or lane follow):
+## the frame the sky is laid out in.
+static func rest_basis() -> Basis:
+	return Basis.looking_at(Vector3(0.0, LOOK_HEIGHT, -LOOK_AHEAD) - BASE_OFFSET, Vector3.UP)
+
+
+## Tangents of the half field of view (x across, y up) for [param aspect].
+func tan_half_fov(aspect: float) -> Vector2:
+	var tv: float = tan(deg_to_rad(camera.fov) * 0.5)
+	return Vector2(tv * maxf(aspect, 0.01), tv)
+
+
 func add_trauma(amount: float) -> void:
 	trauma = clampf(trauma + amount, 0.0, 1.0)
 

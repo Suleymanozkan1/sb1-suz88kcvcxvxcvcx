@@ -278,6 +278,28 @@ func test_music_is_locked_to_the_run() -> void:
 	await wait_frames(2)
 
 
+func test_every_reveal_has_its_cue() -> void:
+	var flow: GameFlow = MAIN_SCENE.instantiate() as GameFlow
+	flow.s = _app
+	tree.root.add_child(flow)
+	await wait_frames(3)
+	for sound: String in ["level_up", "unlock", "reward"]:
+		assert_false(_app.audio._bank.sfx(StringName(sound)).is_empty(), "%s is in the bank" % sound)
+	flow._reveals.append({"eyebrow": "x", "title": "Level 3", "subtitle": "", "bundle": null, "sound": "level_up"})
+	flow._reveals.append({"eyebrow": "x", "title": "World", "subtitle": "", "bundle": null, "sound": "unlock"})
+	flow._reveals.append({"eyebrow": "x", "title": "Badge", "subtitle": "", "bundle": null})
+	flow._next_reveal()
+	assert_eq(_app.audio.active_voice_count(&"level_up"), 1, "a level-up sounds like one")
+	flow._next_reveal()
+	assert_eq(_app.audio.active_voice_count(&"unlock"), 1, "an unlock sounds like one")
+	flow._next_reveal()
+	assert_eq(_app.audio.active_voice_count(&"reward"), 1, "everything else is a reward")
+	_app._on_level_up(2)
+	assert_eq(str(_app.take_level_up_reveals()[0].get("sound", "")), "level_up", "level-up reveals name their cue")
+	flow.queue_free()
+	await wait_frames(2)
+
+
 func test_bonus_chest_is_optional_and_once_a_day() -> void:
 	var flow: GameFlow = MAIN_SCENE.instantiate() as GameFlow
 	flow.s = _app

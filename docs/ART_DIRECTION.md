@@ -233,7 +233,7 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 | Element | Where | Communicates | Kept / removed |
 |---|---|---|---|
 | Core body: ORB sphere, PRISM shard, COMET capsule, SURGE sphere | `core_view.gd` | Where the player is and what a tap does now (the form, by silhouette) | Kept |
-| Core colour and shader style | `core.gdshader` | HOP: the equipped skin; PHASE / DASH / SURGE: the form or phase colour (gameplay meaning) | Kept, open (style 3 body ignores the form colour) |
+| Core colour and shader style | `core.gdshader` | HOP: the equipped skin; PHASE / DASH / SURGE: the form or phase colour (gameplay meaning) | Kept (colour-overriding styles yield to the form colour, `form_lock`) |
 | SURGE ring | `core_view.gd` `ring` | The SURGE form (sphere-in-ring silhouette) | Kept |
 | Ink shell | `ink_shell.gdshader` | Separates the core from the light floor of high-key worlds | Kept |
 | Halo | `glow_sprite.gdshader` | Core position; grows with the combo | Kept |
@@ -244,7 +244,7 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 | Plate stack discs (up to 3) | `core_view.gd` `stack_discs` | Plates carried; a full stack breaks glass | Kept |
 | Ground shadow under the core | `gameplay_view.gd` `_make_core_shadow` | Height of a launched core | Kept |
 | Squash, stretch, spin, implode | `core_view.gd` | Tap accepted, the form's motion, the fail moment (§8) | Kept |
-| Trail ribbon | `trail_ribbon.gd`, `trail.gdshader` | Speed and direction; in PHASE / DASH / SURGE its colour is the form colour | Kept, open (rainbow style) |
+| Trail ribbon | `trail_ribbon.gd`, `trail.gdshader` | Speed and direction; in PHASE / DASH / SURGE its colour is the form colour | Kept (the rainbow style yields to it, `form_lock`) |
 | Tap ripple | `tap_ripple.gd`, `ripple.gdshader` | Tap accepted (form colour) or refused dash (grey) | Kept |
 
 ### 13.2 Collectibles and pickups
@@ -252,7 +252,7 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 | Element | Where | Communicates | Kept / removed |
 |---|---|---|---|
 | Sparks (shards) | `spark_field.gd` | The path and score; a phase-coloured spark needs that phase | Kept |
-| Prisms (larger ACCENT shard) | `spark_field.gd` | A premium reward | Kept, open (§4 ring not drawn) |
+| Prisms (larger ACCENT shard with an orbit ring) | `spark_field.gd`, `MeshFactory.tilted_ring` | A premium reward | Kept |
 | Colour-blind tilt of phase-B sparks | `spark_field.gd` `TILTED` | Phase B by shape (setting) | Kept |
 | Collect pop (1 → 1.25 → 0 in 120 ms) | `spark_field.gd` | Collected | Kept |
 | Magnet pull of sparks | `spark_field.gd` `apply_magnet` | Which sparks the magnet will collect (only those) | Kept |
@@ -299,7 +299,7 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 | Monolith height pattern | `gameplay_view.gd` `RIB_HEIGHT_PATTERN` | Desert Reactor's slabs (fixed rule, not random) | Kept |
 | Story silhouette | `mesh_factory.gd` `silhouette` | The world's story far away (e.g. the World 1 boss turbine) | Kept |
 | Turbine rotation | `gameplay_view.gd` | The boss machine is running | Kept |
-| Atmosphere motes (≤ 24, ≤ 8 %) | `gameplay_view.gd` `_setup_atmosphere` | The world's air: dust in the key light, embers, bubbles, snow, sand | Kept, open (glitter, spores) |
+| Atmosphere motes (≤ 24, ≤ 8 %) | `gameplay_view.gd` `_setup_atmosphere` | The world's air: dust in the key light, embers, bubbles, snow, sand, twinkling glitter, rising spores | Kept |
 | Sky gradient | `sky.gdshader` | The world's light and mood | Kept |
 | Flux sink | `sky.gdshader` | The direction of the run | Kept |
 | Sparse stars | `sky.gdshader` | Space (Void Space, or a background cosmetic) | Kept |
@@ -322,7 +322,7 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 | Camera lean (hop, current) and FOV kick (dash, heavy surge) | `camera_rig.gd` | Lateral motion; speed | Kept |
 | Level-start camera sweep | `camera_rig.gd` `start_reveal` | The level begins | Kept |
 | Hit-stop and slow motion | `gameplay_view.gd` | Impact weight; near miss at combo ≥ 10; the ending | Kept |
-| Chromatic split | `post_fx.gdshader` | Fail impact | Kept, open (also at overdrive start) |
+| Chromatic split | `post_fx.gdshader` | Fail impact (the only one; overdrive starts with a shockwave) | Kept |
 | Distortion ring | `post_fx.gdshader` | A state change: form change, overdrive, perfect | Kept |
 | Edge tint | `post_fx.gdshader` | Fail (red), perfect (gold), entering a gravity well (surge colour) | Kept |
 | World transition ink veil | `game_flow.gd` `_world_transition` | A different world begins | Kept |
@@ -371,7 +371,7 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 | Mode cards: glyph, name, rule or requirement, best | `modes_screen.gd` | What each mode asks and your best | Kept |
 | Daily: challenge card, reset countdown, best, personal rank, streak tier dots, bonus chest, missions | `daily_screen.gd` | Today's level, the gentle streak, optional extras and missions | Kept |
 | Progress: overview, world rows, stats, achievements, leaderboard rows (your row in PRIMARY) | `progress_screen.gd` | Long-term progress; only real entries | Kept |
-| Shop / Collection: currency chips, preview stage, name, rarity, "what it changes", action, tabs, swatch grid, equipped check, packs, cosmetic-only note | `cosmetics_screen.gd`, `cosmetic_swatch.gd` | What an item is, what it changes and what it costs, before buying | Kept, open (core-skin swatch) |
+| Shop / Collection: currency chips, preview stage, name, rarity, "what it changes", action, tabs, swatch grid, equipped check, packs, cosmetic-only note | `cosmetics_screen.gd`, `cosmetic_swatch.gd` | What an item is, what it changes and what it costs, before buying; a core skin plays its real style (`core_swatch.gdshader`) | Kept |
 | Settings rows: glyph, label, toggle / slider / segments; restore, version, licences | `settings_screen.gd` | One setting per row | Kept |
 | Buttons in five roles (one primary per screen) | `ui_button.gd`, `ui_theme.gd` | Action priority | Kept |
 | Cards (flat Graphite, Slate hairline; raised; selected with a PRIMARY border) | `ui_theme.gd` | Grouping; the selected item | Kept |
@@ -398,17 +398,23 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 
 ### 13.11 Open points found by this audit
 
-These elements have a job, but the audit found a gap. Each is also a `pass_with_note` in `docs/ASSET_GATE.md`.
+These elements have a job, but the audit found a gap. The first seven were closed after the audit
+(commits `3a49794` and the commit that adds `core_swatch.gdshader`), each with a test in
+`tests/integration/test_view_detail_audit.gd`, `tests/unit/test_cosmetics_catalog.gd` or
+`tests/integration/test_app_flow.gd`:
 
-* Core style 3 (void) never reads `color_a`, so in PHASE / DASH / SURGE the core body does not show the form
-  colour (the halo, light and trail still do).
-* Trail style 4 (rainbow) replaces the trail colour in every form, hiding the form colour that the other styles keep.
-* §4 describes prisms with an orbiting ring; the build draws a larger ACCENT shard without a ring.
-* World data asks for `glitter` (Crystal Valley) and `spores` (Cyber Garden) atmospheres; `_setup_atmosphere`
-  has no branch for them, so both draw the default dust.
-* The chromatic split also fires at overdrive start (`gameplay_view.gd`), while §9 names fail as the only one.
+* ~~Core style 3 (void) never reads `color_a`~~: in PHASE / DASH / SURGE its rim and heart now take the form
+  colour (`form_lock`), as does the prism style's spectrum.
+* ~~Trail style 4 (rainbow) hides the form colour~~: it yields to the form colour outside HOP (`form_lock`).
+* ~~§4 prisms without their ring~~: a tilted orbit ring spins round each prism (one MultiMesh, 240 triangles).
+* ~~`glitter` and `spores` fall back to dust~~: Crystal Valley's glitter twinkles (alpha ramp over each
+  mote's life), Cyber Garden's spores are larger and rise on a sideways drift; both ≤ 8 % opacity.
+* ~~Chromatic split at overdrive start~~: removed; the fail is the only chromatic split (§9).
+* ~~The shop's core-skin swatch draws every style the same~~: the swatch plays the skin's real style
+  (`core_swatch.gdshader` over the shared `core_styles.gdshaderinc`, the run's own code).
+* ~~`reward.wav`, `level_up.wav` and `unlock.wav` never play~~: each reveal names its cue (`level_up` for
+  level-ups, `unlock` for worlds and cosmetics, `reward` otherwise) and GameFlow plays it as the reveal opens.
+
+Still open:
+
 * The sky is screen-locked (`SCREEN_UV`): camera lean and shake move the world but not the sink.
-* The shop's core-skin swatch draws every style as the same disc and rings, so the ten shader styles are not
-  visible before purchase; the header comment of `cosmetics_screen.gd` still describes the removed 3D preview.
-* Audio, by the same rule: `reward.wav`, `level_up.wav` and `unlock.wav` are synthesised and listed in the sound
-  bank, but nothing in `game/src` plays them; they should be wired to their reveals or removed.

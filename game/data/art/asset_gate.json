@@ -57,19 +57,19 @@
       "id": "shader.core",
       "kind": "shader",
       "path": "game/assets/shaders/core.gdshader",
-      "role": "The energy core's body: 10 animated styles chosen by the equipped core skin.",
+      "role": "The energy core's body: 19 animated styles (core_styles.gdshaderinc) chosen by the equipped core skin.",
       "style": "Energy: the only strong bloom (§1, §2 priority 1); Fresnel rim on every style.",
       "scale": "Patterns in object space (obj_pos x 3.2) on a 0.3 u core, so they scale with the core, not the screen.",
       "perspective": "Object-space 3D noise; no screen-space tricks.",
       "material": "unshaded; HDR intensity 2.4 (Palette.ENERGY_CORE), 1.05 with rim 0.35 in high-key worlds (§3 ink shell).",
       "lighting": "Self-lit energy above the glow threshold; the core also carries its own OmniLight3D (CoreView, range 3.4).",
       "topology": "n/a: applied to the core form meshes (see mesh.core_forms).",
-      "texture": "Procedural only: fd_fbm (4 octaves) or fd_cells (3x3) from noise.gdshaderinc; no textures.",
+      "texture": "Procedural only (core_styles.gdshaderinc over noise.gdshaderinc): fbm, cells, hashes and analytic patterns; no textures.",
       "animation": "TIME x anim_speed (0.6-2.0 per skin), pulse uniform on taps, overdrive flicker sin(20 t) with t = TIME x anim_speed.",
       "readability": "Rim plus HDR value keep the core the brightest object on screen.",
       "mobile_cost": "Branch on a uniform `style`; styles 0/1/3/7/9 run 4-octave fbm (32 hash calls), 2/6 a 9-cell loop; small screen area.",
       "verdict": "pass_with_note",
-      "note": "Per-fragment fbm cost not profiled on a phone GPU; style 3 never reads color_a (see cosmetic.core.3)."
+      "note": "Per-fragment fbm cost not profiled on a phone GPU."
     },
     {
       "id": "shader.floor",
@@ -255,7 +255,7 @@
       "id": "shader.trail",
       "kind": "shader",
       "path": "game/assets/shaders/trail.gdshader",
-      "role": "Energy trail ribbon behind the core; 8 cosmetic styles.",
+      "role": "Energy trail ribbon behind the core; 12 cosmetic styles.",
       "style": "Energy, additive; a short speed cue, never a beam at the lens.",
       "scale": "At most 1.6 u long; width 0.12 u + up to 0.06 with combo + 0.05 in overdrive (§9 trail thickens).",
       "perspective": "Camera-facing strip; fades out 3.6 -> 2.2 u from the camera.",
@@ -264,10 +264,82 @@
       "topology": "n/a: ImmediateMesh strip (see mesh.trail_ribbon).",
       "texture": "Procedural per style (noise.gdshaderinc); no texture.",
       "animation": "Style patterns move with TIME; points follow the core.",
-      "readability": "HOP wears the cosmetic colours; other forms use the form colour (gameplay_view.gd).",
+      "readability": "HOP wears the cosmetic colours; other forms use the form colour (gameplay_view.gd), and colour-overriding styles give way to it (form_lock).",
       "mobile_cost": "One draw; the strip is rebuilt on the CPU every frame.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "shader.core_styles",
+      "kind": "shader",
+      "path": "game/assets/shaders/core_styles.gdshaderinc",
+      "role": "The 19 core skin styles as one function, shared by core.gdshader (the run) and core_swatch.gdshader (the shop).",
+      "style": "One source for both, so the shop shows exactly what the run draws.",
+      "scale": "n/a: callers pass object-space points on the 0.3 u core.",
+      "perspective": "n/a: library.",
+      "material": "n/a: library.",
+      "lighting": "n/a: library (callers add rim and intensity).",
+      "topology": "n/a: library.",
+      "texture": "Procedural (noise.gdshaderinc); no textures.",
+      "animation": "Callers pass t = TIME x anim_speed.",
+      "readability": "form_lock lets colour-overriding styles yield to the form colour.",
+      "mobile_cost": "Branch on a uniform style; the heaviest styles run 4-octave fbm.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "shader.core_swatch",
+      "kind": "shader",
+      "path": "game/assets/shaders/core_swatch.gdshader",
+      "role": "Shop / collection swatch of a core skin: the real animated style on a sphere-shaded disc.",
+      "style": "Same style code as the run (core_styles.gdshaderinc); a soft shoulder maps HDR energy into the UI range (no bloom in UI).",
+      "scale": "Disc at 60 % of the swatch side, matching the drawn rim ring.",
+      "perspective": "Analytic sphere normal from the disc UV; view along +z.",
+      "material": "canvas_item; alpha = AA edge x dim (0.45 for items not owned).",
+      "lighting": "Self-lit energy plus a 0.9 rim.",
+      "topology": "n/a: ColorRect.",
+      "texture": "Procedural; no textures.",
+      "animation": "TIME x the item anim_speed.",
+      "readability": "A skin is seen as it plays before it is bought.",
+      "mobile_cost": "One small rect per visible swatch (at most ~12 on screen) running the style function.",
       "verdict": "pass_with_note",
-      "note": "Style 4 (rainbow) ignores head/tail colours, so it also hides the form colour in PHASE/DASH/SURGE (see cosmetic.trail.4)."
+      "note": "Rendered on llvmpipe only; per-swatch cost on a phone GPU not measured."
+    },
+    {
+      "id": "shader.structure",
+      "kind": "shader",
+      "path": "game/assets/shaders/structure.gdshader",
+      "role": "World structure (ribs, arches, posts, pads, side details): matter with a procedural relief per material preset.",
+      "style": "Matter, lit PBR, never emissive (§5); relief per preset: brushed anodised/steel, stone grain, ceramic crackle, ice and crystal facets, sandstone strata, obsidian ripples, smooth lacquer.",
+      "scale": "Relief in world units (bump_depth 0.01): a few millimetres on a 3.8 u rib.",
+      "perspective": "World-space height field.",
+      "material": "Burley diffuse, Schlick-GGX specular; clearcoat for lacquer/ceramic presets.",
+      "lighting": "Lit by the key light, ambient and (High+) the reflection probe.",
+      "topology": "n/a: applied to MeshFactory ribs, posts and details.",
+      "texture": "Procedural height turned into a normal with screen-space derivatives; no textures, no tangents.",
+      "animation": "None.",
+      "readability": "Low value, low saturation (WorldTheme.off_roles keeps it off the gameplay role hues).",
+      "mobile_cost": "Derivative bump per fragment; switched off on Low (detail_strength 0).",
+      "verdict": "pass_with_note",
+      "note": "Relief judged on llvmpipe captures only; not profiled on a phone GPU."
+    },
+    {
+      "id": "shader.light_shaft",
+      "kind": "shader",
+      "path": "game/assets/shaders/light_shaft.gdshader",
+      "role": "Faint beams of the key light far down the shaft in worlds with open light (Crystal Valley, Deep Ocean, Cyber Garden, Desert Reactor).",
+      "style": "Atmosphere: under 8 % opacity (§7), never across the lanes.",
+      "scale": "Tall quads beyond the playfield.",
+      "perspective": "World-space quads aligned to the key light.",
+      "material": "unshaded, blend_add, depth_draw_never, shadows_disabled.",
+      "lighting": "Additive, opacity 0.06, slow drift.",
+      "topology": "n/a: QuadMesh.",
+      "texture": "Analytic falloff; no texture.",
+      "animation": "Drift sin(0.35 t) per beam seed.",
+      "readability": "Depth and mood; stays outside the lanes.",
+      "mobile_cost": "A few additive quads; Medium and above only.",
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "mesh.chamfered_box",
@@ -1050,6 +1122,46 @@
       "note": ""
     },
     {
+      "id": "mesh.prism_ring",
+      "kind": "mesh_builder",
+      "builder": "MeshFactory.tilted_ring(0.3, 0.014, 1.15)",
+      "source": "game/src/art/mesh_factory.gd",
+      "anchor": "static func tilted_ring(",
+      "role": "Prism orbit ring (§4: the prism is the premium shard with an orbiting ring).",
+      "style": "Thin energy ring, same spark shader as the shard, 75 % of its brightness.",
+      "scale": "Radius 0.3 u round the 0.18 u shard; tube 0.014 u.",
+      "perspective": "Tilted 1.15 rad off the floor, spun about Y by the spark shader.",
+      "material": "spark.gdshader (unshaded, instance colour ACCENT).",
+      "lighting": "Self-lit, below the shard.",
+      "topology": "TorusMesh 24 x 5 rotated into an ArrayMesh: 240 triangles.",
+      "texture": "None.",
+      "animation": "Spins at 1.7 rad/s and bobs with its prism (shared instance order).",
+      "readability": "Marks the prism as the premium collectible without a new colour.",
+      "mobile_cost": "One MultiMesh draw for every ring in the level.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "mesh.side_detail",
+      "kind": "mesh_builder",
+      "builder": "MeshFactory.detail(kind) for conduits, pipes, panels, crystals, cables",
+      "source": "game/src/art/mesh_factory.gd",
+      "anchor": "static func detail(kind: String)",
+      "role": "Midground side details on the rib rhythm, one kind per world (art.detail).",
+      "style": "Chamfered or faceted parts in the structure material (§5, §7 midground).",
+      "scale": "At x = ±3.95 u, 6 u long, one per rib.",
+      "perspective": "True 3D, scrolls with the ribs.",
+      "material": "Structure preset (structure.gdshader), never emissive.",
+      "lighting": "Lit; does not cast shadows.",
+      "topology": "conduits 264, pipes 264, panels 176, crystals 264, cables 528 triangles.",
+      "texture": "None: relief from structure.gdshader.",
+      "animation": "Static.",
+      "readability": "Environment richness at low value; stays outside the lanes.",
+      "mobile_cost": "One MultiMesh draw (16 instances); cables 528 x 16 = 8448 triangles at most.",
+      "verdict": "pass_with_note",
+      "note": "Triangle cost measured headless; not profiled on a device."
+    },
+    {
       "id": "texture.soft_dot",
       "kind": "texture_generator",
       "builder": "ViewKit.soft_dot_texture() / _blob_texture()",
@@ -1722,10 +1834,10 @@
       "topology": "0.85 s.",
       "texture": "Sparkle.",
       "animation": "None.",
-      "readability": "Reward.",
+      "readability": "Plays as an achievement, mission or chest reveal opens (GameFlow._next_reveal, the reveal default).",
       "mobile_cost": "22 050 Hz mono 16-bit WAV, imported with QOA compression (compress/mode 2); pooled voices with polyphony limits.",
-      "verdict": "pass_with_note",
-      "note": "No play site in game/src at this commit (reward items play 'coin'); wire it or remove it (REQ-325)."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "audio.sfx.star",
@@ -1776,10 +1888,10 @@
       "topology": "1.25 s.",
       "texture": "None.",
       "animation": "None.",
-      "readability": "Level up.",
+      "readability": "Plays as a level-up reveal opens (reveal sound \"level_up\", AppServices._on_level_up).",
       "mobile_cost": "22 050 Hz mono 16-bit WAV, imported with QOA compression (compress/mode 2); pooled voices with polyphony limits.",
-      "verdict": "pass_with_note",
-      "note": "No play site in game/src at this commit (level-up reveals are silent apart from 'coin'); wire it or remove it."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "audio.sfx.unlock",
@@ -1794,10 +1906,10 @@
       "topology": "0.75 s.",
       "texture": "Clunk noise.",
       "animation": "None.",
-      "readability": "Lock opens.",
+      "readability": "Plays as a world or cosmetic unlock reveal opens (reveal sound \"unlock\", RunController._collect_reveals).",
       "mobile_cost": "22 050 Hz mono 16-bit WAV, imported with QOA compression (compress/mode 2); pooled voices with polyphony limits.",
-      "verdict": "pass_with_note",
-      "note": "No play site in game/src at this commit; wire it or remove it."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "audio.sfx.launch",
@@ -2127,13 +2239,12 @@
       "id": "cosmetic.core.0",
       "kind": "cosmetic_style",
       "builder": "core.gdshader style 0 (plasma)",
-      "source": "game/assets/shaders/core.gdshader",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
       "anchor": "} else { // Plasma (default)",
       "category": "core_skin",
       "style_id": 0,
       "items": [
-        "core_plasma",
-        "core_toxic"
+        "core_plasma"
       ],
       "role": "Core skin style 0 (plasma).",
       "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
@@ -2146,20 +2257,19 @@
       "animation": "fbm flow mixing color_a/color_b (65 %). anim_speed per item.",
       "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
       "mobile_cost": "See shader.core.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 skins (core_plasma, core_toxic): they differ only in colours and anim_speed."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.core.1",
       "kind": "cosmetic_style",
       "builder": "core.gdshader style 1 (fire)",
-      "source": "game/assets/shaders/core.gdshader",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
       "anchor": "style == 1)",
       "category": "core_skin",
       "style_id": 1,
       "items": [
-        "core_fire",
-        "core_solar"
+        "core_fire"
       ],
       "role": "Core skin style 1 (fire).",
       "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
@@ -2172,19 +2282,18 @@
       "animation": "Rising fbm flicker from color_b to color_a. anim_speed per item.",
       "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
       "mobile_cost": "See shader.core.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 skins (core_fire, core_solar): they differ only in colours and anim_speed."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.core.2",
       "kind": "cosmetic_style",
       "builder": "core.gdshader style 2 (ice)",
-      "source": "game/assets/shaders/core.gdshader",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
       "anchor": "style == 2)",
       "category": "core_skin",
       "style_id": 2,
       "items": [
-        "core_frostbite",
         "core_ice"
       ],
       "role": "Core skin style 2 (ice).",
@@ -2198,19 +2307,18 @@
       "animation": "Cell facets with bright crack highlights. anim_speed per item.",
       "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
       "mobile_cost": "See shader.core.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 skins (core_frostbite, core_ice): they differ only in colours and anim_speed."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.core.3",
       "kind": "cosmetic_style",
       "builder": "core.gdshader style 3 (void)",
-      "source": "game/assets/shaders/core.gdshader",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
       "anchor": "style == 3)",
       "category": "core_skin",
       "style_id": 3,
       "items": [
-        "core_shadow",
         "core_void"
       ],
       "role": "Core skin style 3 (void).",
@@ -2222,22 +2330,21 @@
       "topology": "n/a: shader style.",
       "texture": "fd_fbm, 4 octaves.",
       "animation": "Dark body (color_b x 0.4 over black) with a strong rim. anim_speed per item.",
-      "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
+      "readability": "Cosmetic only; in PHASE/DASH/SURGE the rim and heart take the form colour (form_lock), so gameplay meaning stays.",
       "mobile_cost": "See shader.core.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 skins (core_shadow, core_void): they differ only in colours and anim_speed. Never reads color_a, so in PHASE/DASH/SURGE the body does not take the form colour (halo, light and trail still do)."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.core.4",
       "kind": "cosmetic_style",
       "builder": "core.gdshader style 4 (crystal)",
-      "source": "game/assets/shaders/core.gdshader",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
       "anchor": "style == 4)",
       "category": "core_skin",
       "style_id": 4,
       "items": [
-        "core_crystal",
-        "core_starlight"
+        "core_crystal"
       ],
       "role": "Core skin style 4 (crystal).",
       "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
@@ -2250,20 +2357,19 @@
       "animation": "Prismatic bands with a fixed rgb offset. anim_speed per item.",
       "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
       "mobile_cost": "See shader.core.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 skins (core_crystal, core_starlight): they differ only in colours and anim_speed."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.core.5",
       "kind": "cosmetic_style",
       "builder": "core.gdshader style 5 (electric)",
-      "source": "game/assets/shaders/core.gdshader",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
       "anchor": "style == 5)",
       "category": "core_skin",
       "style_id": 5,
       "items": [
-        "core_electric",
-        "core_neon_pulse"
+        "core_electric"
       ],
       "role": "Core skin style 5 (electric).",
       "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
@@ -2276,19 +2382,18 @@
       "animation": "Thin arcs in rim colour x 2 over a dim body. anim_speed per item.",
       "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
       "mobile_cost": "See shader.core.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 skins (core_electric, core_neon_pulse): they differ only in colours and anim_speed."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.core.6",
       "kind": "cosmetic_style",
       "builder": "core.gdshader style 6 (molten)",
-      "source": "game/assets/shaders/core.gdshader",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
       "anchor": "style == 6)",
       "category": "core_skin",
       "style_id": 6,
       "items": [
-        "core_inferno",
         "core_molten"
       ],
       "role": "Core skin style 6 (molten).",
@@ -2302,20 +2407,19 @@
       "animation": "Glowing cell seams (color_a x 2) over a dark crust. anim_speed per item.",
       "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
       "mobile_cost": "See shader.core.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 skins (core_inferno, core_molten): they differ only in colours and anim_speed."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.core.7",
       "kind": "cosmetic_style",
       "builder": "core.gdshader style 7 (aurora)",
-      "source": "game/assets/shaders/core.gdshader",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
       "anchor": "style == 7)",
       "category": "core_skin",
       "style_id": 7,
       "items": [
-        "core_aurora",
-        "core_prism"
+        "core_aurora"
       ],
       "role": "Core skin style 7 (aurora).",
       "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
@@ -2328,14 +2432,14 @@
       "animation": "Flowing curtains between color_a and color_b. anim_speed per item.",
       "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
       "mobile_cost": "See shader.core.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 skins (core_aurora, core_prism): they differ only in colours and anim_speed."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.core.8",
       "kind": "cosmetic_style",
       "builder": "core.gdshader style 8 (candy)",
-      "source": "game/assets/shaders/core.gdshader",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
       "anchor": "style == 8)",
       "category": "core_skin",
       "style_id": 8,
@@ -2360,12 +2464,11 @@
       "id": "cosmetic.core.9",
       "kind": "cosmetic_style",
       "builder": "core.gdshader style 9 (nebula)",
-      "source": "game/assets/shaders/core.gdshader",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
       "anchor": "style == 9)",
       "category": "core_skin",
       "style_id": 9,
       "items": [
-        "core_deep_space",
         "core_nebula"
       ],
       "role": "Core skin style 9 (nebula).",
@@ -2379,8 +2482,233 @@
       "animation": "Clouds with sparse star points (x 2). anim_speed per item.",
       "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
       "mobile_cost": "See shader.core.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 skins (core_deep_space, core_nebula): they differ only in colours and anim_speed."
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.core.10",
+      "kind": "cosmetic_style",
+      "builder": "core_styles.gdshaderinc style 10 (toxic)",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
+      "anchor": "style == 10)",
+      "category": "core_skin",
+      "style_id": 10,
+      "items": [
+        "core_toxic"
+      ],
+      "role": "Core skin style 10 (toxic): Bubbles rise through the core and pop.",
+      "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
+      "scale": "Object-space pattern on the 0.3 u core.",
+      "perspective": "Object space.",
+      "material": "core.gdshader; colours and anim_speed from the item params.",
+      "lighting": "HDR energy; the halo and point light take color_a in HOP and the form colour otherwise.",
+      "topology": "n/a: shader style.",
+      "texture": "fd_cells (3x3); no textures.",
+      "animation": "fd_cells bubbles rising with t; rim ring per bubble. anim_speed per item.",
+      "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
+      "mobile_cost": "See shader.core.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.core.11",
+      "kind": "cosmetic_style",
+      "builder": "core_styles.gdshaderinc style 11 (solar)",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
+      "anchor": "style == 11)",
+      "category": "core_skin",
+      "style_id": 11,
+      "items": [
+        "core_solar"
+      ],
+      "role": "Core skin style 11 (solar): Granulated surface; flares lick the limb.",
+      "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
+      "scale": "Object-space pattern on the 0.3 u core.",
+      "perspective": "Object space.",
+      "material": "core.gdshader; colours and anim_speed from the item params.",
+      "lighting": "HDR energy; the halo and point light take color_a in HOP and the form colour otherwise.",
+      "topology": "n/a: shader style.",
+      "texture": "fd_cells + fd_fbm; no textures.",
+      "animation": "Granulation drifts; flares from fbm along the limb angle. anim_speed per item.",
+      "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
+      "mobile_cost": "See shader.core.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.core.12",
+      "kind": "cosmetic_style",
+      "builder": "core_styles.gdshaderinc style 12 (frostbite)",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
+      "anchor": "style == 12)",
+      "category": "core_skin",
+      "style_id": 12,
+      "items": [
+        "core_frostbite"
+      ],
+      "role": "Core skin style 12 (frostbite): Frost creeps inward from the rim and back.",
+      "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
+      "scale": "Object-space pattern on the 0.3 u core.",
+      "perspective": "Object space.",
+      "material": "core.gdshader; colours and anim_speed from the item params.",
+      "lighting": "HDR energy; the halo and point light take color_a in HOP and the form colour otherwise.",
+      "topology": "n/a: shader style.",
+      "texture": "fd_fbm + hash glints; no textures.",
+      "animation": "Frost reach breathes with sin(0.8 t); sparse ice glints. anim_speed per item.",
+      "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
+      "mobile_cost": "See shader.core.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.core.13",
+      "kind": "cosmetic_style",
+      "builder": "core_styles.gdshaderinc style 13 (shadow)",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
+      "anchor": "style == 13)",
+      "category": "core_skin",
+      "style_id": 13,
+      "items": [
+        "core_shadow"
+      ],
+      "role": "Core skin style 13 (shadow): Dark smoke swirls and swallows the light.",
+      "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
+      "scale": "Object-space pattern on the 0.3 u core.",
+      "perspective": "Object space.",
+      "material": "core.gdshader; colours and anim_speed from the item params.",
+      "lighting": "HDR energy; the halo and point light take color_a in HOP and the form colour otherwise.",
+      "topology": "n/a: shader style.",
+      "texture": "fd_fbm; no textures.",
+      "animation": "Smoke swirl on a slow Lissajous offset; color_a rim. anim_speed per item.",
+      "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
+      "mobile_cost": "See shader.core.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.core.14",
+      "kind": "cosmetic_style",
+      "builder": "core_styles.gdshaderinc style 14 (prism)",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
+      "anchor": "style == 14)",
+      "category": "core_skin",
+      "style_id": 14,
+      "items": [
+        "core_prism"
+      ],
+      "role": "Core skin style 14 (prism): Hard facets, each splitting light into its own hue.",
+      "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
+      "scale": "Object-space pattern on the 0.3 u core.",
+      "perspective": "Object space.",
+      "material": "core.gdshader; colours and anim_speed from the item params.",
+      "lighting": "HDR energy; the halo and point light take color_a in HOP and the form colour otherwise.",
+      "topology": "n/a: shader style.",
+      "texture": "hash per facet, cosine spectrum; no textures.",
+      "animation": "Facet hues rotate with 0.15 t; the spectrum yields to the form colour (form_lock). anim_speed per item.",
+      "readability": "Cosmetic only; in PHASE/DASH/SURGE the spectrum share drops to 30 % so the form colour reads.",
+      "mobile_cost": "See shader.core.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.core.15",
+      "kind": "cosmetic_style",
+      "builder": "core_styles.gdshaderinc style 15 (neon_pulse)",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
+      "anchor": "style == 15)",
+      "category": "core_skin",
+      "style_id": 15,
+      "items": [
+        "core_neon_pulse"
+      ],
+      "role": "Core skin style 15 (neon_pulse): Rings pulse outward from the centre.",
+      "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
+      "scale": "Object-space pattern on the 0.3 u core.",
+      "perspective": "Object space.",
+      "material": "core.gdshader; colours and anim_speed from the item params.",
+      "lighting": "HDR energy; the halo and point light take color_a in HOP and the form colour otherwise.",
+      "topology": "n/a: shader style.",
+      "texture": "analytic sine rings; no textures.",
+      "animation": "Concentric rings travel outward at 6 rad/s. anim_speed per item.",
+      "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
+      "mobile_cost": "See shader.core.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.core.16",
+      "kind": "cosmetic_style",
+      "builder": "core_styles.gdshaderinc style 16 (inferno)",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
+      "anchor": "style == 16)",
+      "category": "core_skin",
+      "style_id": 16,
+      "items": [
+        "core_inferno"
+      ],
+      "role": "Core skin style 16 (inferno): Heat bands rise and shimmer.",
+      "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
+      "scale": "Object-space pattern on the 0.3 u core.",
+      "perspective": "Object space.",
+      "material": "core.gdshader; colours and anim_speed from the item params.",
+      "lighting": "HDR energy; the halo and point light take color_a in HOP and the form colour otherwise.",
+      "topology": "n/a: shader style.",
+      "texture": "fd_noise3 (1 octave); no textures.",
+      "animation": "Bands rise at 3 u/s with a noise shimmer. anim_speed per item.",
+      "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
+      "mobile_cost": "See shader.core.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.core.17",
+      "kind": "cosmetic_style",
+      "builder": "core_styles.gdshaderinc style 17 (deep_space)",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
+      "anchor": "style == 17)",
+      "category": "core_skin",
+      "style_id": 17,
+      "items": [
+        "core_deep_space"
+      ],
+      "role": "Core skin style 17 (deep_space): A slow spiral galaxy with sparse stars.",
+      "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
+      "scale": "Object-space pattern on the 0.3 u core.",
+      "perspective": "Object space.",
+      "material": "core.gdshader; colours and anim_speed from the item params.",
+      "lighting": "HDR energy; the halo and point light take color_a in HOP and the form colour otherwise.",
+      "topology": "n/a: shader style.",
+      "texture": "analytic spiral + hash stars; no textures.",
+      "animation": "Two log-spiral arms turn at 0.8 rad/s. anim_speed per item.",
+      "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
+      "mobile_cost": "See shader.core.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.core.18",
+      "kind": "cosmetic_style",
+      "builder": "core_styles.gdshaderinc style 18 (starlight)",
+      "source": "game/assets/shaders/core_styles.gdshaderinc",
+      "anchor": "style == 18)",
+      "category": "core_skin",
+      "style_id": 18,
+      "items": [
+        "core_starlight"
+      ],
+      "role": "Core skin style 18 (starlight): Points of light twinkle one by one.",
+      "style": "Energy look on the core (§1): unshaded, Fresnel rim, HDR intensity.",
+      "scale": "Object-space pattern on the 0.3 u core.",
+      "perspective": "Object space.",
+      "material": "core.gdshader; colours and anim_speed from the item params.",
+      "lighting": "HDR energy; the halo and point light take color_a in HOP and the form colour otherwise.",
+      "topology": "n/a: shader style.",
+      "texture": "hash per cell; no textures.",
+      "animation": "Each star cell twinkles on its own phase. anim_speed per item.",
+      "readability": "Cosmetic only; in PHASE/DASH/SURGE color_a is replaced by the form colour so gameplay meaning stays.",
+      "mobile_cost": "See shader.core.",
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.trail.0",
@@ -2391,8 +2719,7 @@
       "category": "trail",
       "style_id": 0,
       "items": [
-        "trail_classic",
-        "trail_comet"
+        "trail_classic"
       ],
       "role": "Trail style 0 (solid).",
       "style": "Energy ribbon look (§9): additive, short, fades near the lens.",
@@ -2405,8 +2732,8 @@
       "animation": "Plain head-to-tail gradient.",
       "readability": "Cosmetic only.",
       "mobile_cost": "See shader.trail.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 trails (trail_classic, trail_comet): they differ only in colours."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.trail.1",
@@ -2417,7 +2744,6 @@
       "category": "trail",
       "style_id": 1,
       "items": [
-        "trail_neon_pulse",
         "trail_pulse"
       ],
       "role": "Trail style 1 (pulses).",
@@ -2431,8 +2757,8 @@
       "animation": "Bands running along the ribbon (8 per length, 4/s).",
       "readability": "Cosmetic only.",
       "mobile_cost": "See shader.trail.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 trails (trail_neon_pulse, trail_pulse): they differ only in colours."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.trail.2",
@@ -2443,8 +2769,7 @@
       "category": "trail",
       "style_id": 2,
       "items": [
-        "trail_sparkle",
-        "trail_starlight"
+        "trail_sparkle"
       ],
       "role": "Trail style 2 (sparkle).",
       "style": "Energy ribbon look (§9): additive, short, fades near the lens.",
@@ -2457,8 +2782,8 @@
       "animation": "Hashed sparkle cells (40 x 6, 12 Hz), up to x 2.0.",
       "readability": "Cosmetic only.",
       "mobile_cost": "See shader.trail.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 trails (trail_sparkle, trail_starlight): they differ only in colours."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.trail.3",
@@ -2469,8 +2794,7 @@
       "category": "trail",
       "style_id": 3,
       "items": [
-        "trail_flame",
-        "trail_inferno"
+        "trail_flame"
       ],
       "role": "Trail style 3 (flame).",
       "style": "Energy ribbon look (§9): additive, short, fades near the lens.",
@@ -2483,8 +2807,8 @@
       "animation": "fbm flicker along the ribbon.",
       "readability": "Cosmetic only.",
       "mobile_cost": "See shader.trail.",
-      "verdict": "pass_with_note",
-      "note": "Shared by 2 trails (trail_flame, trail_inferno): they differ only in colours."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.trail.4",
@@ -2505,11 +2829,11 @@
       "lighting": "Additive, intensity 0.7.",
       "topology": "n/a: shader style.",
       "texture": "Procedural.",
-      "animation": "Cosine hue cycle; ignores the item's head/tail colours.",
-      "readability": "Cosmetic only.",
+      "animation": "Cosine hue cycle in HOP; in PHASE/DASH/SURGE it gives way to the form colour (form_lock).",
+      "readability": "Cosmetic only; the form colour wins outside HOP.",
       "mobile_cost": "See shader.trail.",
-      "verdict": "pass_with_note",
-      "note": "Overrides the trail colour in every form, so the PHASE/DASH/SURGE trail no longer shows the form colour (gameplay_view.gd sets form colours for those forms)."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "cosmetic.trail.5",
@@ -2581,6 +2905,106 @@
       "topology": "n/a: shader style.",
       "texture": "Procedural.",
       "animation": "Ribbon at 35 % strength.",
+      "readability": "Cosmetic only.",
+      "mobile_cost": "See shader.trail.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.trail.8",
+      "kind": "cosmetic_style",
+      "builder": "trail.gdshader style 8 (comet)",
+      "source": "game/assets/shaders/trail.gdshader",
+      "anchor": "style == 8)",
+      "category": "trail",
+      "style_id": 8,
+      "items": [
+        "trail_comet"
+      ],
+      "role": "Trail style 8 (comet): A hot head that tapers to a thin tail.",
+      "style": "Energy ribbon look (§9): additive, short, fades near the lens.",
+      "scale": "At most 1.6 u; pattern in ribbon UV space.",
+      "perspective": "Camera-facing strip.",
+      "material": "trail.gdshader; head/tail colours from the item in HOP, the form colour in other forms.",
+      "lighting": "Additive, intensity 0.7.",
+      "topology": "n/a: shader style.",
+      "texture": "Procedural (noise.gdshaderinc hash / fbm).",
+      "animation": "Static taper; brightness peaks in the first 12 %.",
+      "readability": "Cosmetic only.",
+      "mobile_cost": "See shader.trail.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.trail.9",
+      "kind": "cosmetic_style",
+      "builder": "trail.gdshader style 9 (neon_pulse)",
+      "source": "game/assets/shaders/trail.gdshader",
+      "anchor": "style == 9)",
+      "category": "trail",
+      "style_id": 9,
+      "items": [
+        "trail_neon_pulse"
+      ],
+      "role": "Trail style 9 (neon_pulse): Separate neon bars stream back.",
+      "style": "Energy ribbon look (§9): additive, short, fades near the lens.",
+      "scale": "At most 1.6 u; pattern in ribbon UV space.",
+      "perspective": "Camera-facing strip.",
+      "material": "trail.gdshader; head/tail colours from the item in HOP, the form colour in other forms.",
+      "lighting": "Additive, intensity 0.7.",
+      "topology": "n/a: shader style.",
+      "texture": "Procedural (noise.gdshaderinc hash / fbm).",
+      "animation": "Bars travel back at 6 per second.",
+      "readability": "Cosmetic only.",
+      "mobile_cost": "See shader.trail.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.trail.10",
+      "kind": "cosmetic_style",
+      "builder": "trail.gdshader style 10 (starlight)",
+      "source": "game/assets/shaders/trail.gdshader",
+      "anchor": "style == 10)",
+      "category": "trail",
+      "style_id": 10,
+      "items": [
+        "trail_starlight"
+      ],
+      "role": "Trail style 10 (starlight): Scattered points that twinkle along the ribbon.",
+      "style": "Energy ribbon look (§9): additive, short, fades near the lens.",
+      "scale": "At most 1.6 u; pattern in ribbon UV space.",
+      "perspective": "Camera-facing strip.",
+      "material": "trail.gdshader; head/tail colours from the item in HOP, the form colour in other forms.",
+      "lighting": "Additive, intensity 0.7.",
+      "topology": "n/a: shader style.",
+      "texture": "Procedural (noise.gdshaderinc hash / fbm).",
+      "animation": "Each point twinkles on its own phase.",
+      "readability": "Cosmetic only.",
+      "mobile_cost": "See shader.trail.",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "id": "cosmetic.trail.11",
+      "kind": "cosmetic_style",
+      "builder": "trail.gdshader style 11 (inferno)",
+      "source": "game/assets/shaders/trail.gdshader",
+      "anchor": "style == 11)",
+      "category": "trail",
+      "style_id": 11,
+      "items": [
+        "trail_inferno"
+      ],
+      "role": "Trail style 11 (inferno): Embers drift off the edges of a flickering flame.",
+      "style": "Energy ribbon look (§9): additive, short, fades near the lens.",
+      "scale": "At most 1.6 u; pattern in ribbon UV space.",
+      "perspective": "Camera-facing strip.",
+      "material": "trail.gdshader; head/tail colours from the item in HOP, the form colour in other forms.",
+      "lighting": "Additive, intensity 0.7.",
+      "topology": "n/a: shader style.",
+      "texture": "Procedural (noise.gdshaderinc hash / fbm).",
+      "animation": "Flame flicker plus embers that drift back.",
       "readability": "Cosmetic only.",
       "mobile_cost": "See shader.trail.",
       "verdict": "pass",

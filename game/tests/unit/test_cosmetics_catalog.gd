@@ -67,6 +67,22 @@ func test_every_core_skin_and_trail_has_its_own_style() -> void:
 			owner[style] = it["id"]
 
 
+func test_shop_swatch_plays_each_core_skin_live() -> void:
+	for it: Dictionary in _catalog.in_category(CosmeticCatalog.CORE_SKIN):
+		var params: Dictionary = it.get("params", {}) as Dictionary
+		var swatch: CosmeticSwatch = CosmeticSwatch.new()
+		swatch.setup(CosmeticCatalog.CORE_SKIN, params, false)
+		assert_true(swatch.is_live(), "%s is shown with its own style before purchase" % it["id"])
+		var mat: ShaderMaterial = swatch._live.material as ShaderMaterial
+		assert_eq(int(mat.get_shader_parameter("style")), int(params["style"]), "%s style" % it["id"])
+		assert_near(float(mat.get_shader_parameter("dim")), CosmeticSwatch.LOCKED_DIM, 0.0001, "not owned yet")
+		swatch.free()
+	var trail: CosmeticSwatch = CosmeticSwatch.new()
+	trail.setup(CosmeticCatalog.TRAIL, {"style": 3}, true)
+	assert_false(trail.is_live(), "other categories keep the flat drawing")
+	trail.free()
+
+
 func test_extra_core_skins_vary_colours_and_animation() -> void:
 	var seen: Dictionary = {}
 	for it: Dictionary in _catalog.in_category(CosmeticCatalog.CORE_SKIN):

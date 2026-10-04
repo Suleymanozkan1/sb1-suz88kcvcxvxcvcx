@@ -3,23 +3,76 @@ extends Control
 ## Flat, consistent preview of a cosmetic. Every category is drawn with the same
 ## grammar as the icon system (24-unit grid, 2-unit round strokes, the item's
 ## own colours on a graphite field) so the grid reads as one family. Avatars and
-## badges are geometric symbols — never faces or mascots.
+## badges are geometric symbols — never faces or mascots. A core skin is shown
+## live: its real animated style (the run's own shader code) on a shaded disc.
 
 const STROKE_UNITS: float = 2.0
 const GRID: float = 24.0
+const CORE_SWATCH_SHADER: Shader = preload("res://assets/shaders/core_swatch.gdshader")
+## Disc radius as a share of the swatch's shorter side (matches the drawn ring).
+const CORE_DISC_SHARE: float = 0.3
+## Opacity of items still to buy (owned ones draw at full strength).
+const LOCKED_DIM: float = 0.45
 
 var category: String = ""
 var params: Dictionary = {}
 var owned: bool = true
 var _u: float = 1.0
 var _dim: float = 1.0
+## Live core-skin preview (null for every other category).
+var _live: ColorRect
 
 
 func setup(cat: String, item_params: Dictionary, is_owned: bool) -> void:
 	category = cat
 	params = item_params
 	owned = is_owned
+	_update_live()
 	queue_redraw()
+
+
+## True while the swatch draws a core skin's real style.
+func is_live() -> bool:
+	return _live != null and _live.visible
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and _live != null:
+		_place_live()
+
+
+func _update_live() -> void:
+	var wants: bool = category == "core_skin" and typeof(params.get("style", null)) in [TYPE_INT, TYPE_FLOAT]
+	if not wants:
+		if _live != null:
+			_live.visible = false
+		return
+	if _live == null:
+		_live = ColorRect.new()
+		_live.name = "Live"
+		_live.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat: ShaderMaterial = ShaderMaterial.new()
+		mat.shader = CORE_SWATCH_SHADER
+		_live.material = mat
+		add_child(_live)
+	_live.visible = true
+	var mat2: ShaderMaterial = _live.material as ShaderMaterial
+	mat2.set_shader_parameter("style", int(params.get("style", 0)))
+	mat2.set_shader_parameter("anim_speed", float(params.get("anim_speed", 1.0)))
+	mat2.set_shader_parameter("dim", 1.0 if owned else LOCKED_DIM)
+	_dim = 1.0
+	mat2.set_shader_parameter("color_a", _c("color_a", Palette.PRIMARY))
+	mat2.set_shader_parameter("color_b", _c("color_b", Palette.SECONDARY))
+	mat2.set_shader_parameter("rim_color", _c("rim", Palette.BONE))
+	_place_live()
+
+
+## A square centred on the swatch whose inscribed disc is the drawn core.
+func _place_live() -> void:
+	var side: float = minf(size.x, size.y)
+	_live.size = Vector2(side, side)
+	_live.position = (size - _live.size) * 0.5
+	(_live.material as ShaderMaterial).set_shader_parameter("radius", CORE_DISC_SHARE * 2.0)
 
 
 func _c(key: String, fallback: Color) -> Color:
@@ -40,7 +93,7 @@ func _draw() -> void:
 	var c: Vector2 = size * 0.5
 	var side: float = minf(size.x, size.y)
 	_u = side / (GRID * 1.6)
-	_dim = 1.0 if owned else 0.45
+	_dim = 1.0 if owned else LOCKED_DIM
 	var r: float = side * 0.3
 	match category:
 		"core_skin":
@@ -66,8 +119,9 @@ func _draw() -> void:
 
 
 func _draw_core(c: Vector2, r: float) -> void:
-	draw_circle(c, r, _c("color_a", Palette.PRIMARY), true, -1.0, true)
-	draw_arc(c, r * 0.62, 0.0, TAU, 40, _c("color_b", Palette.SECONDARY), _w(), true)
+	if not is_live():
+		draw_circle(c, r, _c("color_a", Palette.PRIMARY), true, -1.0, true)
+		draw_arc(c, r * 0.62, 0.0, TAU, 40, _c("color_b", Palette.SECONDARY), _w(), true)
 	var rim: Color = _c("rim", Palette.BONE)
 	draw_arc(c, r + _w() * 1.5, 0.0, TAU, 48, Color(rim, rim.a * 0.45), _w(), true)
 

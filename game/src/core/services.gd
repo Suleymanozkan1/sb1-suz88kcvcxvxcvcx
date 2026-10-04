@@ -325,6 +325,7 @@ func _on_level_up(level: int) -> void:
 				"title": TranslationServer.translate("reveal.level_n").format({"n": level}),
 				"subtitle": "",
 				"bundle": bundle,
+				"sound": "level_up",
 			}
 		)
 	)

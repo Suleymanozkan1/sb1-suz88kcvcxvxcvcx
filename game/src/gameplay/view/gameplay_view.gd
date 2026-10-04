@@ -291,6 +291,7 @@ func _apply_environment() -> void:
 	_sky_mat.set_shader_parameter("sink_color", theme.sink)
 	_sky_mat.set_shader_parameter("sink_strength", 0.75 if theme.bright else 1.0)
 	_sky_mat.set_shader_parameter("star_density", 1.0 if theme.atmosphere == "stars" else 0.0)
+	_sky_mat.set_shader_parameter("rest_view", CameraRig.rest_basis().inverse())
 	sky.sky_material = _sky_mat
 	sky.radiance_size = Sky.RADIANCE_SIZE_32
 	environment.sky = sky
@@ -538,6 +539,9 @@ func _update_frame(delta: float) -> void:
 	if core_view.visible:
 		trail.push_point(core_pos + Vector3(0.0, -0.02, 0.16))
 	camera_rig.follow(core_pos, delta, lift)
+	if _sky_mat != null:
+		var vp: Vector2 = Vector2(get_viewport().get_visible_rect().size)
+		_sky_mat.set_shader_parameter("tan_half", camera_rig.tan_half_fov(vp.x / maxf(vp.y, 1.0)))
 	trail.rebuild(camera_rig.camera)
 	_floor.position = Vector3(0.0, 0.0, -d - FLOOR_LENGTH * 0.5 + 12.0)
 	_floor_mat.set_shader_parameter("scroll", d + FLOOR_LENGTH * 0.5 - 12.0)

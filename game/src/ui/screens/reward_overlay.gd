@@ -67,7 +67,8 @@ func build() -> void:
 
 ## payload: {"eyebrow", "title", "subtitle", "bundle": RewardBundle,
 ##           "cosmetic": {"category", "params"} (optional),
-##           "item_names": {item id: localised name} (optional, skins / trails)}
+##           "item_names": {item id: localised name} (optional, skins / trails),
+##           "sound": sound-bank kind GameFlow plays as it opens (optional, "reward")}
 func enter(payload: Dictionary) -> void:
 	_eyebrow.text = str(payload.get("eyebrow", ""))
 	_title.text = str(payload.get("title", ""))

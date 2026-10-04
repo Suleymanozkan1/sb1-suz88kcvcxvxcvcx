@@ -98,3 +98,15 @@ func test_only_the_fail_splits_colour() -> void:
 	assert_eq(view._chroma, 0.0, "overdrive starts with a shockwave, not a chromatic split")
 	view._handle_event(SimConst.EventType.FAIL, -1, 0)
 	assert_gt(view._chroma, 0.0, "the fail keeps its split")
+
+
+func test_the_sky_turns_with_the_camera() -> void:
+	var view: GameplayView = _view_for("w01_l20")
+	view._update_frame(0.016)
+	var mat: ShaderMaterial = view._sky_mat
+	var tan_half: Vector2 = mat.get_shader_parameter("tan_half") as Vector2
+	assert_gt(tan_half.y, 0.0, "the sky is laid out from the eye direction, not the screen")
+	assert_near(tan_half.y, tan(deg_to_rad(view.camera_rig.camera.fov) * 0.5), 0.0001)
+	var rest: Basis = mat.get_shader_parameter("rest_view") as Basis
+	var forward: Vector3 = CameraRig.rest_basis() * Vector3.FORWARD
+	assert_true((rest * forward).is_equal_approx(Vector3.FORWARD), "the rest view looks straight at the sink")

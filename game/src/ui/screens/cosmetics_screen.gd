@@ -1,7 +1,8 @@
 class_name CosmeticsScreen
 extends UiScreen
 ## Shop and Collection share one layout (one design system):
-## - live 3D preview of the selected core skin (the in-game CoreView itself),
+## - a large preview of the selected item; a core skin plays its real animated
+##   style there and in the grid (CosmeticSwatch, the run's own shader code),
 ## - category tabs, item grid, a single context action (Buy / Equip / locked).
 ## Shop mode additionally lists cosmetic-only premium packs. Prices and unlock
 ## requirements are stated plainly; nothing is time-limited.

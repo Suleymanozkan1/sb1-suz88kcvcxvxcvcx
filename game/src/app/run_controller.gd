@@ -315,7 +315,8 @@ func _collect_reveals(outcome: Dictionary) -> void:
 				"eyebrow": tr_key("reveal.world_unlocked"),
 				"title": Presenters.world_name(world),
 				"subtitle": str((world.get("art", {}) as Dictionary).get("story", "")),
-				"bundle": null
+				"bundle": null,
+				"sound": "unlock",
 			}
 		)
 	var granted: Array[RewardBundle] = []
@@ -347,7 +348,8 @@ func _collect_reveals(outcome: Dictionary) -> void:
 				"title": tr_key(str(item.get("name_key", item_id))),
 				"subtitle": "",
 				"bundle": null,
-				"cosmetic": {"category": category, "params": item.get("params", {})}
+				"cosmetic": {"category": category, "params": item.get("params", {})},
+				"sound": "unlock",
 			}
 		)
 
