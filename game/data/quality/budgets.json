@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "renderer": "mobile",
+  "measured_with": "tools/perf_probe.gd --worlds=all: Godot 4.7.2 Mobile renderer on Mesa lavapipe under Xvfb, 360x640; budget = worst of 10 worlds x (l20, l52) + 25 %, rounded up. See docs/ARCHITECTURE.md section 9.",
+  "presets": {
+    "low": {
+      "draw_calls": 210,
+      "primitives": 77000,
+      "objects": 235,
+      "nodes": 900,
+      "static_memory_mb": 95,
+      "video_memory_mb": 45
+    },
+    "medium": {
+      "draw_calls": 265,
+      "primitives": 89000,
+      "objects": 290,
+      "nodes": 900,
+      "static_memory_mb": 95,
+      "video_memory_mb": 55
+    },
+    "high": {
+      "draw_calls": 265,
+      "primitives": 89000,
+      "objects": 290,
+      "nodes": 900,
+      "static_memory_mb": 100,
+      "video_memory_mb": 390
+    },
+    "ultra": {
+      "draw_calls": 265,
+      "primitives": 89000,
+      "objects": 290,
+      "nodes": 900,
+      "static_memory_mb": 100,
+      "video_memory_mb": 395
+    }
+  }
+}
