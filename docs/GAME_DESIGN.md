@@ -106,9 +106,12 @@ All modes run the same deterministic simulation with different rules (`data/mode
 | Daily | one generated level per UTC day, same for everyone | 3 levels | daily |
 | Perfect Run | any campaign level; a missed spark or a hit ends the run | 5 perfects | all-time |
 | Zen | never fails, slower, no score pressure, no boards | always | — |
-| Hard | any campaign level at +12 % speed, no shields | finish 2 worlds | all-time |
+| Hard | any campaign level with the whole game clock 12 % faster (movement, sliders, pulse gates, hops, music), no shields | finish 2 worlds | all-time |
 | Boss Rush | every beaten boss back to back, one life | beat 2 bosses | — (a summed score has no single verifiable replay) |
 
+A mode's `speed_scale` (Hard 1.12, Zen 0.85) is a game-clock scale applied by `GameplaySession`: the run
+plays faster or slower in real time on the unchanged Classic simulation, so every level stays as solvable as
+in Classic, replays are tick-identical and only the time to react changes (`test_mode_clock.gd`).
 The streamed modes pin their own pace in `modes.json` (`change_prob`, `density`), so retuning the campaign
 curve never silently changes them: Zen asks for about 0.4 lane changes a second, Time Attack about 0.55
 and Endless about 0.65 at the start (both then speed up); `test_level_pacing.gd` keeps Zen the calmest.

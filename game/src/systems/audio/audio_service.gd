@@ -287,7 +287,7 @@ func stop_music(fade_s: float = -1.0) -> void:
 ## out through the playback rate, a jump (restart, revive) is sought. The lock
 ## lets go by itself once the calls stop. Returns the drift in seconds
 ## (positive: the music is ahead; 0 when no track is playing).
-func sync_run(sim_time: float, running: bool) -> float:
+func sync_run(sim_time: float, running: bool, clock_rate: float = 1.0) -> float:
 	if not _ready_ok or is_nan(sim_time):
 		return 0.0
 	var deck: MusicDeck = _decks[_active_deck]
@@ -298,7 +298,9 @@ func sync_run(sim_time: float, running: bool) -> float:
 	deck.hold(not running)
 	if not running:
 		return 0.0
-	var heard_at: float = sim_time + AudioServer.get_output_latency()
+	# A faster or slower game clock (Hard, Zen) plays the loop at that rate.
+	var rate: float = clampf(clock_rate, 0.5, 2.0) if is_finite(clock_rate) else 1.0
+	var heard_at: float = sim_time + AudioServer.get_output_latency() * rate
 	var pos: float = deck.base.get_playback_position()
 	var drift_s: float = MusicClock.drift(pos, heard_at, deck.loop_length)
 	if _seek_cooldown > 0.0:
@@ -306,11 +308,11 @@ func sync_run(sim_time: float, running: bool) -> float:
 	var target: float = MusicClock.seek_target(pos, heard_at, deck.loop_length)
 	if target >= 0.0:
 		deck.seek(target)
-		deck.set_rate(1.0)
+		deck.set_rate(rate)
 		_seek_cooldown = MusicClock.SEEK_COOLDOWN_S
 		_reset_beat_tracking()
 	else:
-		deck.set_rate(MusicClock.playback_rate(drift_s, deck.base.pitch_scale))
+		deck.set_rate(rate * MusicClock.playback_rate(drift_s, deck.base.pitch_scale / rate))
 	return drift_s
 
 

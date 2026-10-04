@@ -13,6 +13,8 @@ signal frame_events(events: PackedInt32Array, count: int)
 enum Phase { IDLE, READY, RUNNING, ENDED }
 
 const MAX_STEPS_PER_FRAME: int = 5
+const MIN_CLOCK_SCALE: float = 0.5
+const MAX_CLOCK_SCALE: float = 2.0
 const MAX_PENDING_TAPS: int = 2
 const REVIVE_INVULN: float = 1.5
 
@@ -26,6 +28,12 @@ var mode_id: StringName = &"classic"
 var revived: bool = false
 ## Presentation scaling, set by the juice layer.
 var time_scale: float = 1.0
+## The mode's game clock (Hard 1.12, Zen 0.85, from the mode's "speed_scale"):
+## the whole run (movement, sliders, pulse gates, hops, music) plays that much
+## faster or slower in real time. The simulation itself is the Classic one, so
+## every level stays exactly as solvable as in Classic and replays are
+## tick-identical; only the time a player has to react shrinks or grows.
+var clock_scale: float = 1.0
 var hit_stop: float = 0.0
 ## 0..1 fraction between the previous and current tick for smooth rendering.
 var alpha: float = 0.0
@@ -58,7 +66,7 @@ func load_level(data: Dictionary, modifiers: Dictionary = {}) -> bool:
 		GameLog.warn("session", "level %s: %s" % [sim_level.level_id, ", ".join(sim_level.errors)])
 	sim = FluxSim.new()
 	sim.zen = bool(modifiers.get("zen", false))
-	sim.speed_scale = float(modifiers.get("speed_scale", 1.0))
+	clock_scale = GameplaySession.clock_scale_for(modifiers)
 	sim.shields_allowed = bool(modifiers.get("shields_allowed", true))
 	sim.strict = bool(modifiers.get("strict", false))
 	if modifiers.has("time_limit"):
@@ -107,6 +115,12 @@ func _reset_run_state() -> void:
 	hit_stop = 0.0
 	alpha = 0.0
 	total_taps_received = 0
+
+
+## The game-clock scale a mode's modifiers ask for (bounded, 1.0 when absent).
+static func clock_scale_for(modifiers: Dictionary) -> float:
+	var value: float = float(modifiers.get("speed_scale", 1.0))
+	return clampf(value, MIN_CLOCK_SCALE, MAX_CLOCK_SCALE) if is_finite(value) else 1.0
 
 
 func request_tap() -> void:
@@ -169,7 +183,7 @@ func _process(delta: float) -> void:
 	if hit_stop > 0.0:
 		hit_stop -= delta
 		return
-	_accum += (SimConst.DT if lockstep else delta) * time_scale
+	_accum += (SimConst.DT if lockstep else delta * clock_scale) * time_scale
 	var steps: int = 0
 	while _accum >= SimConst.DT and steps < MAX_STEPS_PER_FRAME:
 		var tap: bool = _next_tap()

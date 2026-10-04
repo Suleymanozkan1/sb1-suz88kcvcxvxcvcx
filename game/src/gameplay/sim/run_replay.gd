@@ -10,7 +10,9 @@ extends RefCounted
 ## 3: launch pads, gravity wells and mass plates.
 ## 4: the early-pacing pass regenerated every course (campaign, daily, streams),
 ##    so a run recorded on version 3 content is refused as an old version.
-const SIM_VERSION: int = 4
+## 5: a mode's speed (Hard, Zen) is a game-clock scale; the simulation no
+##    longer changes, so Hard levels stay solvable.
+const SIM_VERSION: int = 5
 ## A human cannot produce two distinct taps less than this many ticks apart.
 const MIN_TAP_GAP_TICKS: int = 2
 ## Human tap-rate ceiling shared by the client queue and the server verifier

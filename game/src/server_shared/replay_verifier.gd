@@ -195,7 +195,8 @@ func simulate(level_data: Dictionary, replay: RunReplay, rules: Dictionary) -> F
 	var sim: FluxSim = FluxSim.new()
 	sim.record_events = false
 	sim.zen = bool(rules.get("zen", false))
-	sim.speed_scale = float(rules.get("speed_scale", 1.0))
+	# A mode's speed is a client game-clock scale (GameplaySession.clock_scale):
+	# the simulation is the Classic one, so it is never applied here.
 	sim.shields_allowed = bool(rules.get("shields", true))
 	sim.strict = bool(rules.get("strict", false))
 	sim.setup(lvl)

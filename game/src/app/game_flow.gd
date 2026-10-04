@@ -442,7 +442,7 @@ func _process(delta: float) -> void:
 	if session.phase == GameplaySession.Phase.READY or session.phase == GameplaySession.Phase.RUNNING:
 		# The level's beat grid starts at sim time 0: the loop is held through the
 		# READY beat and pause and follows the run while it plays (REQ-224).
-		s.audio.sync_run(session.interpolated_time(), session.is_running())
+		s.audio.sync_run(session.interpolated_time(), session.is_running(), session.clock_scale)
 
 
 func _unhandled_input(event: InputEvent) -> void:
