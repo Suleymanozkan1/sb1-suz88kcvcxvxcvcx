@@ -35,6 +35,8 @@ jobs:
         run: python3 tools/ci/placeholder_scan.py
       - name: Asset license manifest
         run: python3 tools/ci/license_check.py
+      - name: Asset gate register (every asset judged against the art direction)
+        run: python3 tools/report/asset_gate.py --check
       - name: JSON data is well formed
         run: |
           python3 - <<'PY'
