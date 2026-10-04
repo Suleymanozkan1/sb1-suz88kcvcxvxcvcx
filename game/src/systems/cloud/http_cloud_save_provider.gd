@@ -16,6 +16,11 @@ extends CloudSaveProvider
 ## [constant SaveService.MAX_SAVE_CHARS], a revision that is not a
 ## [method CloudSaveProvider.valid_revision] token) is never applied and
 ## counts as a transient "bad_response".
+## A push is refused before anything is sent ("too_large", final) when the
+## blob is empty, above [constant SaveService.MAX_SAVE_CHARS], or when the GET
+## answer that would carry it back exceeds [constant MAX_DOWNLOAD_BYTES] (the
+## transport's response limit): the cloud must never hold a copy no device
+## can download again.
 ## An empty base URL or a missing transport or install id disables the
 ## provider. Network calls go through the injected transport Callable
 ## (method: String, url: String, body: Dictionary) -> {"ok", "status", "body",
@@ -38,6 +43,8 @@ const ERROR_EMPTY_BLOB: String = "empty_blob"
 const ERROR_TOO_LARGE: String = "too_large"
 const ERROR_CONFLICT: String = "conflict"
 const ERROR_HTTP: String = "http_%d"
+## Largest GET (or 409) answer the transport accepts, in bytes.
+const MAX_DOWNLOAD_BYTES: int = HttpTransport.MAX_BODY_BYTES
 
 var base_url: String = ""
 var transport: Callable
@@ -94,15 +101,12 @@ func fetch() -> Dictionary:
 
 
 ## PUTs [param blob] as the successor of [param base_revision]; see the class
-## description for the result mapping. An empty or oversized blob is refused
-## before anything is sent.
+## description for the result mapping. An empty blob, or one too large to be
+## downloaded again, is refused before anything is sent.
 func push(blob: String, base_revision: String) -> Dictionary:
-	if not is_enabled():
-		return CloudSaveProvider.push_result(false, "", false, false, ERROR_DISABLED)
-	if blob.is_empty() or blob.length() > SaveService.MAX_SAVE_CHARS:
-		return CloudSaveProvider.push_result(
-			false, "", false, false, ERROR_EMPTY_BLOB if blob.is_empty() else ERROR_TOO_LARGE
-		)
+	var refusal: String = ERROR_DISABLED if not is_enabled() else HttpCloudSaveProvider._refusal(blob)
+	if not refusal.is_empty():
+		return CloudSaveProvider.push_result(false, "", false, false, refusal)
 	var response: Variant = await transport.call(METHOD_PUT, slot_url(), build_push_body(blob, base_revision))
 	var r: Dictionary = HttpLeaderboardBackend.normalize_response(response)
 	var status: int = int(r["status"])
@@ -125,6 +129,23 @@ static func is_transient(status: int) -> bool:
 	if status == HTTP_TOO_MANY_REQUESTS:
 		return true
 	return status < HTTP_CLIENT_ERROR or status > HTTP_CLIENT_ERROR_LAST
+
+
+## UTF-8 size of the GET answer that returns [param blob] (with the longest
+## revision a server may issue).
+static func download_bytes(blob: String) -> int:
+	var answer: Dictionary = {"blob": blob, "revision": "r".repeat(CloudSaveProvider.MAX_REVISION_LENGTH)}
+	return JSON.stringify(answer).to_utf8_buffer().size()
+
+
+## Why [param blob] must not be sent ("" when it may): empty, or too large to
+## be stored or downloaded again.
+static func _refusal(blob: String) -> String:
+	if blob.is_empty():
+		return ERROR_EMPTY_BLOB
+	if blob.length() > SaveService.MAX_SAVE_CHARS or download_bytes(blob) > MAX_DOWNLOAD_BYTES:
+		return ERROR_TOO_LARGE
+	return ""
 
 
 ## [param raw] when it is a non-empty String within the save size cap, else "".

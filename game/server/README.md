@@ -205,9 +205,18 @@ body does not have exactly this shape is never applied and is retried later:
 `blob` must be a string, `revision` a token of 1–128 characters from
 `[A-Za-z0-9._:-]` (`CloudSaveProvider.valid_revision`). Responses larger than
 the client transport's 1 MiB body limit (`HttpTransport.MAX_BODY_BYTES`) never
-arrive, so a backend should refuse blobs above that size (and must refuse
-anything above `SaveService.MAX_SAVE_CHARS`, which the client also enforces on
-upload).
+arrive, so the client never uploads a blob whose `GET` answer (the blob
+JSON-escaped inside `{"blob", "revision"}`, `HttpCloudSaveProvider.download_bytes`)
+would exceed it: such a push is refused before anything is sent and the sync
+ends with status `error` / `too_large`, the changes staying dirty. A backend
+should refuse larger blobs too (`413`) and must refuse anything above
+`SaveService.MAX_SAVE_CHARS`.
+
+The uploaded payload is `ProfileMerge.travelling`: it never carries the
+device-local `settings`, `cosmetics_equipped` or `pending_submissions` (queued
+leaderboard / analytics submissions belong to the device that queued them;
+another device would send them twice) nor the client's `cloud.*` bookkeeping
+flags. Those fields hold their defaults in the stored envelope.
 
 ### Revisions and conflicts
 
@@ -217,18 +226,72 @@ revision (`""` when the slot is empty), and the server then issues a new,
 never reused revision (a counter or random token). Otherwise it answers `409`
 with its current copy and changes nothing. The client merges that copy with
 `ProfileMerge` (union / maximum of progress, earliest unlock times, missions
-claimed on either side stay claimed, the wallet taken whole from the newer
-save — never summed) and PUTs once more with the returned revision; a second
-conflict waits for the next sync. The client never overwrites a cloud copy it
-could not read: a copy with a bad checksum or from a newer save version
-(`SaveService.decode` refuses both) leaves both sides untouched.
+claimed on either side stay claimed, the three-way wallet merge below) and
+PUTs once more with the returned revision; a second conflict waits for the
+next sync. The client never overwrites a cloud copy it could not read: a copy
+with a bad checksum or from a newer save version (`SaveService.decode` refuses
+both) leaves both sides untouched.
 
 The slot key is the random per-install id (not PII; keep it out of access
 logs). Linking installs to one player (platform sign-in) is outside this
 repository; a backend that links installs serves the linked account's save for
 each linked install id, which is how a second device sees the first device's
-progress. On a fresh install with no play history the cloud wallet wins, so a
-starting balance never replaces a real one.
+progress. Store the blob verbatim: the client relies on its `sync.pushes` flag
+(below) coming back unchanged.
+
+### Wallet merge (coins, gems, bonus stars)
+
+The wallet is never taken whole from one side (device clocks cannot be
+trusted, and either choice loses the other device's spends or earnings). Each
+client keeps a **base** in its own save (`cloud.base`, `cloud.base_ledger`):
+the wallet and ledger entries of the last state it and the cloud shared,
+recorded when the server accepts its PUT and whenever it merges a cloud copy.
+The exact rule (`WalletMerge`), per currency and for bonus stars:
+
+- **With a base:** `merged = max(0, remote + (local - base) - repeated)`. Every
+  spend and every earning since the base, on either device, applies exactly
+  once. `repeated` is what this device's new ledger entries (those not in the
+  base) did for an event that happens once per account and that the cloud copy
+  already holds: the same item bought (`cosmetic:<id>`), the same achievement,
+  mission, player-level or world reward (`achievement:<id>`, `mission:<id>`,
+  `level_up:<n>`, `world_complete:<n>`, with their `:duplicate` / `:ad_double`
+  parts), or the daily streak reward or bonus chest of the same UTC day. The
+  copy holds such an event when its ledger has an entry with the same source
+  and currency (same day for the daily ones) or, for achievements, items,
+  missions and player levels, when its state shows it. A purchase made on both
+  devices is charged once and the item is owned once; the second charge is
+  refunded. Purchases of different items made offline on both devices are both
+  paid; when together they cost more than the wallet held, the wallet stops at
+  0. Bonus stars are not in the ledger: stars of the same achievement unlocked
+  on both devices before either synced count twice (three achievements pay
+  stars, a handful in total).
+- **Without a base** (the device never synced): only what it holds beyond the
+  economy's starting balance counts as earned there:
+  `merged = remote + max(0, local - starting - repeated)`, stars
+  `remote + local`. A fresh or pristine install never replaces or reduces the
+  account's wallet: the fresh install whose first boot found `404` and
+  uploaded its starting balance, then is linked to an account and served the
+  account's (older) copy, keeps the account's wallet.
+- **A push whose answer was lost:** before each PUT the client stores the copy
+  it sends as `cloud.pending` with a sequence number and counts it in the
+  travelling flag `sync.pushes` (`{device id: last sequence}`, merged by
+  maximum on every client). A cloud copy whose `sync.pushes` shows that
+  sequence contains the push (also when another device merged it since), so
+  the pending copy is the base and nothing is counted twice.
+- **Saves synced before bases existed** (a `cloud.revision` without a base)
+  rebuild the base from their ledger: the entries dated after `cloud.synced_at`
+  are their changes.
+
+The merged ledger is the cloud copy's entries plus this device's new,
+non-repeated ones, ordered by time with the balances recomputed; when the
+newest balance still differs from the merged wallet (a refund, a clamp, the
+starting balance) one `cloud_sync` entry records the difference, so the newest
+entry always matches the wallet. A merge is not earning: lifetime stats merge
+by maximum (`coins_earned` included) and no coin is reported as earned twice.
+
+Days: a cloud copy's daily `last_day` beyond the device's today plus the daily
+late grace, or a `bonus_chest_day` beyond today, comes from a clock running
+ahead and is never adopted (it would block every daily on every device).
 
 ### What the server must check
 
@@ -247,7 +310,11 @@ starting balance never replaces a real one.
   the live remote-config values, see "Reward claims" above) and verified store
   purchases. A save holding more than that is refused (`422`) or stored with
   its currencies clamped and the install flagged for review — never used as
-  evidence for a reward or a rank.
+  evidence for a reward or a rank. A merged copy's balances are the sum of
+  each linked install's verified changes since the copy it built on (see
+  "Wallet merge"); `cloud_sync` ledger entries record merge adjustments (a
+  clamp at 0, the starting balance, history beyond the ledger limit), not
+  earnings.
 - **Progress is the player's own.** Levels, stars, achievements and bonus
   stars in a cloud copy only restore the player's own progress; leaderboard
   ranks still come exclusively from verified replays (`ReplayVerifier.verify`).

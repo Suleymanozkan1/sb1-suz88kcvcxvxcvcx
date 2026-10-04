@@ -121,6 +121,13 @@ func date_key() -> String:
 	return clock.date_key()
 
 
+## Days a run may complete after its date (daily.json late_grace_days, for
+## runs that cross midnight). A completion day beyond today plus this grace
+## can only come from a clock running ahead (the cloud merge never adopts one).
+func grace_days() -> int:
+	return maxi(0, int(_daily_cfg.get("late_grace_days", DEFAULT_GRACE_DAYS)))
+
+
 ## Deterministic level seed of a date (same on every device and the server).
 func seed_for(p_date_key: String) -> int:
 	var salt: String = str(_daily_cfg.get("seed_salt", SEED_SALT))
@@ -436,7 +443,7 @@ func record_result(result: RunResult) -> Dictionary:
 		return _finish_out(out)
 	var day: int = DailyChallengeService.day_for_date_key(key)
 	var today: int = clock.day_number()
-	var grace: int = maxi(0, int(_daily_cfg.get("late_grace_days", DEFAULT_GRACE_DAYS)))
+	var grace: int = grace_days()
 	if day > today or day < today - grace:
 		GameLog.warn("daily", "daily %s is outside the playable window (today %s)" % [key, clock.date_key()])
 		return _finish_out(out)

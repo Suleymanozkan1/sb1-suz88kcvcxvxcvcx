@@ -12,8 +12,16 @@ const LEDGER_LIMIT: int = 50
 ## Upper bound of [member bonus_stars]. Rewards pay a handful of stars in
 ## total; the cap only bounds a damaged or edited save.
 const MAX_BONUS_STARS: int = 999
+## Most entries kept in one id list (worlds, cosmetics, purchases) and in the
+## queue of pending submissions: ten times the largest catalog, so it only
+## bounds a damaged or hostile save (e.g. a cloud copy).
+const MAX_LIST_ITEMS: int = 1024
+## Most entries kept in one dictionary-of-numbers flag (see [constant TYPED_FLAGS]).
+const MAX_FLAG_ENTRIES: int = 256
 ## Flags other systems read with a fixed type (mode bests are a dictionary of
-## whole numbers; the cloud.* flags are [CloudSaveService] bookkeeping).
+## whole numbers; the cloud.* flags are [CloudSaveService] bookkeeping, of
+## which base / pending are wallets and ledger-id counts of [ProfileMerge];
+## sync.pushes travels with the save, see [ProfileMerge]).
 const TYPED_FLAGS: Dictionary[String, Variant.Type] = {
 	"mode_best": TYPE_DICTIONARY,
 	"economy_starting_granted": TYPE_BOOL,
@@ -24,6 +32,13 @@ const TYPED_FLAGS: Dictionary[String, Variant.Type] = {
 	"cloud.dirty": TYPE_BOOL,
 	"cloud.revision": TYPE_STRING,
 	"cloud.synced_at": TYPE_INT,
+	"cloud.synced_hash": TYPE_STRING,
+	"cloud.device": TYPE_STRING,
+	"cloud.base": TYPE_DICTIONARY,
+	"cloud.base_ledger": TYPE_DICTIONARY,
+	"cloud.pending": TYPE_DICTIONARY,
+	"cloud.pending_ledger": TYPE_DICTIONARY,
+	"sync.pushes": TYPE_DICTIONARY,
 }
 
 const DEFAULT_SETTINGS: Dictionary = {
@@ -179,15 +194,9 @@ static func from_dict(data: Dictionary) -> PlayerProfile:
 		elif s.has(key) and typeof(DEFAULT_SETTINGS[key]) == TYPE_FLOAT and typeof(s[key]) == TYPE_INT:
 			p.settings[key] = float(s[key])
 	p.purchases = _string_array(data.get("purchases", []))
-	for raw: Variant in _array(data.get("pending_submissions", [])):
-		if typeof(raw) == TYPE_DICTIONARY:
-			p.pending_submissions.append(raw as Dictionary)
+	p.pending_submissions.assign(_newest_dicts(data.get("pending_submissions", []), MAX_LIST_ITEMS))
 	p.flags = PlayerProfile._sanitize_flags(_dict(data.get("flags", {})))
-	for raw2: Variant in _array(data.get("ledger", [])):
-		if typeof(raw2) == TYPE_DICTIONARY:
-			p.ledger.append(raw2 as Dictionary)
-	while p.ledger.size() > LEDGER_LIMIT:
-		p.ledger.remove_at(0)
+	p.ledger.assign(_newest_dicts(data.get("ledger", []), LEDGER_LIMIT))
 	return p
 
 
@@ -260,14 +269,36 @@ static func _dict(v: Variant) -> Dictionary:
 	return (v as Dictionary).duplicate(true) if typeof(v) == TYPE_DICTIONARY else {}
 
 
+## Distinct non-empty strings of [param v] in first-occurrence order, at most
+## [constant MAX_LIST_ITEMS]. Linear: a set tracks what was seen.
 static func _string_array(v: Variant) -> Array[String]:
 	var out: Array[String] = []
-	if typeof(v) == TYPE_ARRAY:
-		for item: Variant in v as Array:
-			var s: String = str(item)
-			if not s.is_empty() and not out.has(s):
-				out.append(s)
+	if typeof(v) != TYPE_ARRAY:
+		return out
+	var seen: Dictionary[String, bool] = {}
+	for item: Variant in v as Array:
+		var s: String = str(item)
+		if s.is_empty() or seen.has(s):
+			continue
+		seen[s] = true
+		out.append(s)
+		if out.size() >= MAX_LIST_ITEMS:
+			break
 	return out
+
+
+## The last [param limit] dictionaries of [param v] (other items skipped), in
+## order. Walks only the tail it keeps, so a huge list costs no more.
+static func _newest_dicts(v: Variant, limit: int) -> Array[Dictionary]:
+	var picked: Array[Dictionary] = []
+	var list: Array = _array(v)
+	var i: int = list.size() - 1
+	while i >= 0 and picked.size() < limit:
+		if typeof(list[i]) == TYPE_DICTIONARY:
+			picked.append(list[i] as Dictionary)
+		i -= 1
+	picked.reverse()
+	return picked
 
 
 static func _string_dict(v: Variant) -> Dictionary:
@@ -332,10 +363,18 @@ static func _sanitize_flags(raw: Dictionary) -> Dictionary:
 					out[key] = int(v)
 			TYPE_DICTIONARY:
 				if typeof(v) == TYPE_DICTIONARY:
-					var numbers: Dictionary = {}
-					for sub: Variant in v as Dictionary:
-						var n: Variant = (v as Dictionary)[sub]
-						if typeof(n) == TYPE_INT or (typeof(n) == TYPE_FLOAT and is_finite(float(n))):
-							numbers[str(sub)] = maxi(0, int(n))
-					out[key] = numbers
+					out[key] = PlayerProfile._number_dict(v as Dictionary)
 	return out
+
+
+## Non-negative whole numbers of [param raw] by string key (other values
+## dropped), at most [constant MAX_FLAG_ENTRIES] of them.
+static func _number_dict(raw: Dictionary) -> Dictionary:
+	var numbers: Dictionary = {}
+	for sub: Variant in raw:
+		var n: Variant = raw[sub]
+		if typeof(n) == TYPE_INT or (typeof(n) == TYPE_FLOAT and is_finite(float(n))):
+			numbers[str(sub)] = maxi(0, int(n))
+			if numbers.size() >= MAX_FLAG_ENTRIES:
+				break
+	return numbers
