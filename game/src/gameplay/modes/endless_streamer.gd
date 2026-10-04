@@ -90,16 +90,6 @@ func course_until(distance: float) -> Dictionary:
 	return data
 
 
-func pump_headless(sim: FluxSim) -> void:
-	_gen.build_slots(SLOTS_PER_STEP)
-	if not _gen.errors.is_empty():
-		failed = true
-	var added: Array[Dictionary] = _take_releasable()
-	if not added.is_empty() and sim != null:
-		sim.level.append_entities(added)
-		sim.sync_entity_capacity()
-
-
 ## Drops already-released entities from the front of the generator's list and
 ## shifts this streamer's bookkeeping by the same amount.
 func _compact() -> void:
