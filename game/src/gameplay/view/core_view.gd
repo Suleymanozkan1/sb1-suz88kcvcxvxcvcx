@@ -13,6 +13,8 @@ const INK_SHADER: Shader = preload("res://assets/shaders/ink_shell.gdshader")
 ## In high-key worlds the core trades raw brightness for hue so it never melts
 ## into a light floor; the ink shell keeps a value edge around it.
 const HIGH_KEY_INTENSITY: float = 1.05
+## Outside HOP the body's second colour is the form colour darkened by this.
+const FORM_SECOND_SHADE: float = 0.4
 const SPRING_K: float = 300.0
 const SPRING_D: float = 18.0
 const SPRING_STEP: float = 1.0 / 120.0
@@ -289,6 +291,12 @@ func set_form(form: int, phase: int, heavy: bool) -> void:
 	# Form tint only where it carries meaning (phase / dash / surge weight).
 	var tint: Color = skin_color_a if form == SimConst.Form.HOP else Palette.form_color(form, phase, heavy)
 	_mat.set_shader_parameter("color_a", tint)
+	# The skin's second colour would average the form colour towards grey (a
+	# teal dash mixed with a magenta skin reads as mud): outside HOP the body
+	# is a shade of the form colour instead.
+	_mat.set_shader_parameter(
+		"color_b", skin_color_b if form == SimConst.Form.HOP else tint.darkened(FORM_SECOND_SHADE)
+	)
 	_mat.set_shader_parameter("form_lock", 0.0 if form == SimConst.Form.HOP else 1.0)
 	_accent_mat.set_shader_parameter("color_a", tint)
 	_accent_mat.set_shader_parameter("color_b", tint.darkened(0.25))

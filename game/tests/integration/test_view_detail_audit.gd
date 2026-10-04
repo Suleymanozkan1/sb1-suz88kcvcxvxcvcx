@@ -82,8 +82,16 @@ func test_form_colour_wins_over_colour_overriding_skins() -> void:
 	var core_mat: ShaderMaterial = view.core_view._mat
 	view.core_view.set_form(SimConst.Form.HOP, 0, false)
 	assert_eq(float(core_mat.get_shader_parameter("form_lock")), 0.0, "HOP shows the skin as bought")
+	var skin_b: Color = core_mat.get_shader_parameter("color_b") as Color
 	view.core_view.set_form(SimConst.Form.DASH, 0, false)
 	assert_eq(float(core_mat.get_shader_parameter("form_lock")), 1.0, "DASH: the form colour wins")
+	var dash_b: Color = core_mat.get_shader_parameter("color_b") as Color
+	assert_true(
+		dash_b.is_equal_approx(Palette.FORM_DASH.darkened(CoreView.FORM_SECOND_SHADE)), "no skin colour mixed in"
+	)
+	view.core_view.set_form(SimConst.Form.HOP, 0, false)
+	assert_true((core_mat.get_shader_parameter("color_b") as Color).is_equal_approx(skin_b), "HOP gets the skin back")
+	view.core_view.set_form(SimConst.Form.DASH, 0, false)
 	_session.sim.form = SimConst.Form.DASH
 	view._update_frame(0.016)
 	assert_eq(float(view.trail._mat.get_shader_parameter("form_lock")), 1.0, "and the trail follows")
