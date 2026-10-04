@@ -15,7 +15,7 @@ const TUTORIAL_DONE_FLAG: String = "tutorial_done"
 const TUTORIAL_LAST_LEVEL: String = "w01_l05"
 ## Runs reaching this combo are reported (funnel for the combo system).
 const COMBO_EVENT_MIN: int = 10
-const FAIL_CAUSES: Dictionary = {
+const FAIL_CAUSES: Dictionary[int, String] = {
 	SimConst.FailReason.COLLISION: "collision",
 	SimConst.FailReason.WRONG_PHASE: "wrong_phase",
 	SimConst.FailReason.OBJECTIVE: "objective",
@@ -29,6 +29,10 @@ var session: GameplaySession
 ## "boss_queue", "rush_index", "rush_score", "design_duration", "tier"}.
 var context: Dictionary = {}
 var streamer: EndlessStreamer
+## A failed run held back while the optional revive is on offer: nothing of it
+## is applied until [method commit_pending]. A revive drops it instead, and the
+## continued run is applied once, cumulatively, when it ends.
+var pending: RunResult = null
 var _worlds_unlocked: Array[String] = []
 
 
@@ -87,6 +91,14 @@ func _prepare_stream(mode_id: StringName) -> Dictionary:
 	return streamer.begin()
 
 
+## The stored solution's taps of [param level] (the attract run's autopilot).
+static func solution_taps(level: Dictionary) -> PackedInt32Array:
+	var taps: PackedInt32Array = PackedInt32Array()
+	for t: Variant in (level.get("solution", {}) as Dictionary).get("taps", []) as Array:
+		taps.append(int(t))
+	return taps
+
+
 ## Bosses of every world whose boss the player has already beaten, in order.
 func boss_rush_queue() -> PackedStringArray:
 	var out: PackedStringArray = PackedStringArray()
@@ -102,6 +114,16 @@ func pump() -> bool:
 	if streamer == null or session.sim == null or not session.sim.is_running():
 		return false
 	return not streamer.pump(session.sim).is_empty()
+
+
+## Funnel event for the run that has just started (data/analytics/events.json).
+func track_start() -> void:
+	var params: Dictionary = {
+		"level_id": str(context.get("level_id", "")),
+		"world_id": str(context.get("world_id", "")),
+		"mode": String(context.get("mode", &"classic") as StringName),
+	}
+	services.analytics.track(&"level_started", params)
 
 
 ## Boss rush: loads the next boss after a cleared one. False when the rush is over.
@@ -132,6 +154,25 @@ func can_offer_revive(result: RunResult) -> bool:
 		and GameplaySession.can_revive_reason(result.fail_reason)
 		and services.ads.is_rewarded_available(&"revive")
 	)
+
+
+## The outcome to show for a run that has just ended: while a revive can be
+## offered nothing is applied yet (the run is held as [member pending] and
+## applied on leaving); otherwise the run is applied now ([method finish]).
+func conclude(result: RunResult) -> Dictionary:
+	if can_offer_revive(result):
+		pending = result
+		return preview(result)
+	return finish(result)
+
+
+## Applies the held-back [member pending] run, if any. Returns its reveals.
+func commit_pending() -> Array:
+	if pending == null:
+		return []
+	var result: RunResult = pending
+	pending = null
+	return finish(result).get("reveals", []) as Array
 
 
 ## The fail screen's numbers without applying anything (used while a revive is

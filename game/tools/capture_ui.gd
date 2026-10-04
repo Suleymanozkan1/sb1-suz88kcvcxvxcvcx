@@ -42,33 +42,33 @@ func _run() -> void:
 	# Seeded progress queues level-up reveals on the menu; they are captured on
 	# their own (13_reward), so the menu is shot without them.
 	while _flow.router.has_overlay(&"reward"):
-		_flow._next_reveal()
+		_flow.reveals.show_next()
 	await _settle(20)
 	await _shot("01_main_menu")
-	_flow._show_worlds()
+	_flow.menus.show_worlds()
 	await _shot("02_world_select")
-	_flow._show_levels("neon_core")
+	_flow.menus.show_levels("neon_core")
 	await _shot("03_level_select")
-	_flow._show_modes()
+	_flow.menus.show_modes()
 	await _shot("04_modes")
-	_flow._show_daily()
+	_flow.menus.show_daily()
 	await _shot("05_daily")
-	_flow._on_tab(&"progress")
+	_flow.menus.show_tab(&"progress")
 	await _shot("06_progress")
 	var progress: ProgressScreen = _flow.router.screen(&"progress") as ProgressScreen
 	progress._tabs.select("achievements", true)
 	await _shot("06b_progress_achievements")
-	_flow._on_tab(&"shop")
+	_flow.menus.show_tab(&"shop")
 	await _shot("07_shop")
-	_flow._on_tab(&"collection")
+	_flow.menus.show_tab(&"collection")
 	await _shot("08_collection")
-	_flow._on_tab(&"settings")
+	_flow.menus.show_tab(&"settings")
 	await _shot("09_settings")
 	# Gameplay: HUD mid-run, then pause.
 	var level_id: String = "w01_l12" if _seed_progress else "w01_l01"
 	_flow._play_campaign(level_id, &"classic")
 	_flow.session.lockstep = true
-	_flow.session.autopilot = _solution(_flow.session.level_data)
+	_flow.session.autopilot = RunController.solution_taps(_flow.session.level_data)
 	await _until(func() -> bool: return _flow.session.sim != null and _flow.session.sim.time() > 4.0, 900)
 	await _shot("10_gameplay_hud")
 	_flow._pause()
@@ -82,7 +82,7 @@ func _run() -> void:
 		await _settle(50)
 		await _shot("13_reward")
 		while _flow.router.has_overlay(&"reward"):
-			_flow._next_reveal()
+			_flow.reveals.show_next()
 			await _settle(4)
 	# Fail screen: replay with no input.
 	_flow._restart()
@@ -116,13 +116,6 @@ func _seed() -> void:
 	_app.economy.grant(EconomyService.GEMS, 12, "capture_fixture")
 	_app.progression.add_xp(2600)
 	_app.achievements.evaluate()
-
-
-func _solution(data: Dictionary) -> PackedInt32Array:
-	var taps: PackedInt32Array = PackedInt32Array()
-	for t: Variant in (data.get("solution", {}) as Dictionary).get("taps", []) as Array:
-		taps.append(int(t))
-	return taps
 
 
 func _settle(frames: int = SETTLE_FRAMES) -> void:

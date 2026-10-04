@@ -103,7 +103,7 @@ static func worn(s: AppServices, category: String) -> Dictionary:
 static func reward_items(s: AppServices, bundle: RewardBundle) -> Dictionary:
 	if bundle == null:
 		return {}
-	var names: Dictionary = {}
+	var names: Dictionary[String, String] = {}
 	var preview: Dictionary = {}
 	for item: Dictionary in bundle.items:
 		var type: StringName = StringName(str(item.get("type", "")))
@@ -129,6 +129,14 @@ static func _hint_title(s: AppServices, hint: Dictionary) -> String:
 		"player_level":
 			return t("menu.hint.player_level").format({"n": int(hint.get("target", 0))})
 	return ""
+
+
+## The run HUD: a tutorial level also gets its stored solution (tap hints).
+static func hud(level: Dictionary) -> Dictionary:
+	return {
+		"tutorial": bool(level.get("tutorial", false)),
+		"solution_taps": (level.get("solution", {}) as Dictionary).get("taps", [])
+	}
 
 
 static func worlds(s: AppServices) -> Dictionary:
@@ -216,7 +224,7 @@ static func daily(s: AppServices) -> Dictionary:
 	var level: Dictionary = s.daily.today_level()
 	var world: Dictionary = s.catalog.world(str(level.get("world", "")))
 	var rank: Dictionary = s.daily.rank_text_local(int(status.get("best_score", 0)))
-	var missions: Dictionary = {}
+	var missions: Dictionary[String, Array] = {}
 	for kind: String in ["daily", "weekly"]:
 		var list: Array = []
 		for m: Dictionary in s.missions.active(kind):
@@ -248,6 +256,28 @@ static func bonus_chest_offered(s: AppServices) -> bool:
 	var opened: Variant = s.profile.flags.get(BONUS_CHEST_FLAG, -1)
 	var today: bool = typeof(opened) == TYPE_INT and int(opened) == s.clock.day_number()
 	return not today and s.ads.is_rewarded_available(&"bonus_chest")
+
+
+## The result card for [param result] from its [param outcome]
+## ([method RunController.finish], or [method RunController.preview] while a
+## revive is on offer): the complete card for a cleared run, else the fail card.
+static func result_card(s: AppServices, result: RunResult, outcome: Dictionary, mode_id: StringName) -> Dictionary:
+	var card: Dictionary = {"result": result, "best": int(outcome.get("best", 0))}
+	if not result.completed:
+		card["progress"] = float(outcome.get("progress", 0.0))
+		card["can_revive"] = bool(outcome.get("can_revive", false))
+		return card
+	card["new_best"] = bool(outcome.get("new_best", false))
+	card["reward"] = outcome.get("reward")
+	card["can_double"] = bool(outcome.get("can_double", false))
+	card["has_next"] = bool(outcome.get("has_next", false))
+	# A daily run names its rank among the player's own daily scores (local:
+	# no global board without a backend).
+	card["rank_text"] = ""
+	if mode_id == &"daily":
+		var rank: Dictionary = s.daily.rank_text_local(result.score)
+		card["rank_text"] = t(str(rank.get("key", ""))).format(rank.get("params", {}) as Dictionary)
+	return card
 
 
 static func progress(s: AppServices, tab: String, board: Dictionary) -> Dictionary:
@@ -341,7 +371,7 @@ static func cosmetics(s: AppServices, mode: StringName) -> Dictionary:
 			var status: Dictionary = s.cosmetics.unlock_status(id)
 			# The service reports {"currency", "amount"}; the screen shows {"coins": n} / {"gems": n}.
 			var raw_price: Dictionary = status.get("price", {}) as Dictionary
-			var price: Dictionary = {}
+			var price: Dictionary[String, int] = {}
 			var affordable: bool = true
 			if raw_price.has("currency") and int(raw_price.get("amount", 0)) > 0:
 				var cur: String = str(raw_price["currency"])
