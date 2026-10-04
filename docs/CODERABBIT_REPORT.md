@@ -147,6 +147,8 @@ app-flow suites) passes, gdlint is clean and all 520 regenerated levels validate
 | M10 Release build | 2026-10-03 | export presets, CI, follow-up | iOS team ID, licence notices, docs | 0 | 1 | 2 | 3 | 0 | Android debug APK + iOS Xcode project exported; signing BLOCKED |
 | **Total** | | | | **13** | **67** | **107** | **184 of 187** | **0 open** | |
 
+Every critical and major finding above, row by row (issue → fix → commit → regression test → verification → status, critical first): `docs/REVIEW_FINDINGS.md`.
+
 The per-milestone counts assign every module and integrated finding (95 + 92 = 187) to the milestone
 whose code it concerns; each finding is counted once. The three findings not fixed are R-SAVE's two
 accepted, documented limits and R-FINAL's Time Attack unlock note (by design, see above). Real CodeRabbit runs
