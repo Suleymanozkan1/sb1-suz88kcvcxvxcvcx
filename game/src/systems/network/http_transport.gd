@@ -34,7 +34,7 @@ const LOCAL_PREFIXES: PackedStringArray = [
 const AUTHORITY_END: PackedStringArray = ["/", "?", "#"]
 ## Never valid in a URL we send (whitespace tricks, Windows-style separators).
 const FORBIDDEN_URL_CHARS: PackedStringArray = [" ", "\t", "\n", "\r", "\\"]
-const METHODS: Dictionary = {
+const METHODS: Dictionary[String, HTTPClient.Method] = {
 	"GET": HTTPClient.METHOD_GET,
 	"POST": HTTPClient.METHOD_POST,
 	"PUT": HTTPClient.METHOD_PUT,
@@ -47,7 +47,7 @@ const ERR_INSECURE_URL: String = "insecure_url"
 const ERR_NOT_IN_TREE: String = "not_in_tree"
 const ERR_HTTP_STATUS: String = "http_status"
 ## HTTPRequest.Result -> stable error code.
-const RESULT_ERRORS: Dictionary = {
+const RESULT_ERRORS: Dictionary[HTTPRequest.Result, String] = {
 	HTTPRequest.RESULT_CHUNKED_BODY_SIZE_MISMATCH: "body_size_mismatch",
 	HTTPRequest.RESULT_CANT_CONNECT: "cant_connect",
 	HTTPRequest.RESULT_CANT_RESOLVE: "cant_resolve",
@@ -87,7 +87,7 @@ func request(method: String, url: String, body: Dictionary = {}, timeout_s: floa
 	if not BODYLESS_METHODS.has(verb):
 		payload = JSON.stringify(body)
 		headers.append("Content-Type: application/json")
-	var err: Error = http.request(url, headers, METHODS[verb] as HTTPClient.Method, payload)
+	var err: Error = http.request(url, headers, METHODS[verb], payload)
 	if err != OK:
 		http.queue_free()
 		return HttpTransport.failure("request_error_%s" % error_string(err).to_snake_case())

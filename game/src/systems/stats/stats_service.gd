@@ -249,8 +249,8 @@ func disconnect_bus() -> void:
 
 
 ## Every known stat with its current value (for the profile/stats screen).
-func snapshot() -> Dictionary:
-	var out: Dictionary = {}
+func snapshot() -> Dictionary[String, int]:
+	var out: Dictionary[String, int] = {}
 	for stat: String in ALL_STATS:
 		out[stat] = value(stat)
 	return out

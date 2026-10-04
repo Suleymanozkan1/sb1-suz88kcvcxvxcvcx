@@ -85,7 +85,7 @@ func flush() -> bool:
 ## the reports come from an earlier session and carry their own context.
 ## Returns the number of events tracked.
 func track_error_reports(reports: Array[Dictionary]) -> int:
-	var grouped: Dictionary = {}
+	var grouped: Dictionary[String, Dictionary] = {}
 	var order: Array[String] = []
 	for report: Dictionary in reports:
 		var raw_err: Variant = report.get("error", {})
@@ -108,11 +108,11 @@ func track_error_reports(reports: Array[Dictionary]) -> int:
 						params[str(k)] = (extra as Dictionary)[k]
 			grouped[group_key] = params
 			order.append(group_key)
-		var entry: Dictionary = grouped[group_key] as Dictionary
+		var entry: Dictionary = grouped[group_key]
 		entry["count"] = int(entry["count"]) + 1
 	var tracked: int = 0
 	for group_key: String in order:
-		if _record(ERROR_EVENT, grouped[group_key] as Dictionary):
+		if _record(ERROR_EVENT, grouped[group_key]):
 			tracked += 1
 	return tracked
 

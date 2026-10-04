@@ -6,7 +6,7 @@ extends UiScreen
 signal mode_selected(mode_id: StringName)
 signal back_requested
 
-const MODE_ICONS: Dictionary = {
+const MODE_ICONS: Dictionary[StringName, StringName] = {
 	&"classic": &"play",
 	&"endless": &"endless",
 	&"time_attack": &"timer",

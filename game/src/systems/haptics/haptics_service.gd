@@ -40,12 +40,15 @@ const NEVER: int = -1
 var _settings: SettingsService
 var _vibrate: Callable
 var _clock_ms: Callable
-var _patterns: Dictionary = {}
-var _aliases: Dictionary = {}
+## kind -> sanitised pattern {"duration_ms", "amplitude", "min_interval_ms"}.
+var _patterns: Dictionary[StringName, Dictionary] = {}
+## alias kind -> pattern kind.
+var _aliases: Dictionary[StringName, StringName] = {}
 var _global_min_interval_ms: int = GLOBAL_MIN_INTERVAL_MS
 var _battery_scale: float = BATTERY_SAVER_AMPLITUDE_SCALE
 var _feedback_floor: float = FEEDBACK_STRENGTH_FLOOR
-var _last_by_kind: Dictionary = {}
+## pattern kind -> clock time (ms) it last played.
+var _last_by_kind: Dictionary[StringName, int] = {}
 var _last_any_ms: int = NEVER
 var _played: int = 0
 
@@ -109,7 +112,7 @@ func play(kind: StringName, strength: float = 1.0) -> bool:
 	var resolved: StringName = resolve(kind)
 	if resolved == &"":
 		return false
-	var p: Dictionary = _patterns[resolved] as Dictionary
+	var p: Dictionary = _patterns[resolved]
 	var now: int = int(_clock_ms.call())
 	if not _interval_elapsed(resolved, int(p["min_interval_ms"]), now):
 		return false
@@ -149,7 +152,7 @@ func has_pattern(kind: StringName) -> bool:
 ## A copy of the sanitised pattern for [param kind] (empty if none).
 func pattern(kind: StringName) -> Dictionary:
 	var resolved: StringName = resolve(kind)
-	return (_patterns[resolved] as Dictionary).duplicate() if resolved != &"" else {}
+	return _patterns[resolved].duplicate() if resolved != &"" else {}
 
 
 ## Number of vibrations requested so far.

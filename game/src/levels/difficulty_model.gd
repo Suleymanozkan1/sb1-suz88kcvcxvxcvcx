@@ -63,12 +63,12 @@ func _lerp_param(key: String, t: float) -> float:
 
 
 func build_spec(number: int) -> LevelSpec:
-	var loc: Dictionary = catalog.locate(number)
+	var loc: Dictionary[String, int] = catalog.locate(number)
 	if loc.is_empty():
 		push_error("level number out of range: %d" % number)
 		return null
-	var wi: int = int(loc["world_index"])
-	var local: int = int(loc["local_index"])
+	var wi: int = loc["world_index"]
+	var local: int = loc["local_index"]
 	var world: Dictionary = catalog.world_at(wi)
 	# The ramp is measured against a fixed campaign span, not the current level
 	# count: appending a world never retunes a shipped level (REQ-076). Levels
@@ -153,8 +153,8 @@ func _chapter_letter(world: Dictionary, chapter: Dictionary) -> String:
 
 
 func _apply_chapter(spec: LevelSpec, chapter: Dictionary) -> void:
-	spec.forms = (chapter.get("forms", {"hop": 1}) as Dictionary).duplicate()
-	spec.hazards = (chapter.get("hazards", {"barrier": 1}) as Dictionary).duplicate()
+	spec.forms = DifficultyModel._weights(chapter.get("forms", {"hop": 1.0}) as Dictionary)
+	spec.hazards = DifficultyModel._weights(chapter.get("hazards", {"barrier": 1.0}) as Dictionary)
 	spec.prism_chance = float(chapter.get("prism", 0.0))
 	spec.shield_chance = float(chapter.get("shield", 0.0))
 	spec.magnet_chance = float(chapter.get("magnet", 0.0))
@@ -225,12 +225,21 @@ static func _apply_mass_gravity(spec: LevelSpec, source: Dictionary) -> void:
 		spec.gravity_slots = Vector2i(int(slots[0]), int(slots[1]))
 
 
+## A {name: weight} table from level data (chapter or special "forms" /
+## "hazards"), weights as floats in data order.
+static func _weights(raw: Dictionary) -> Dictionary[String, float]:
+	var out: Dictionary[String, float] = {}
+	for key: Variant in raw:
+		out[str(key)] = float(raw[key])
+	return out
+
+
 func _first_form(spec: LevelSpec) -> String:
 	var best: String = "hop"
 	var best_w: float = -1.0
 	for f: String in spec.forms:
-		if float(spec.forms[f]) > best_w:
-			best_w = float(spec.forms[f])
+		if spec.forms[f] > best_w:
+			best_w = spec.forms[f]
 			best = f
 	# If the chapter introduces a new form, start in it so it is taught first.
 	for f: String in ["phase", "dash", "surge"]:
@@ -255,9 +264,9 @@ func _apply_special(spec: LevelSpec, special: Dictionary) -> void:
 	spec.pattern = str(special.get("pattern", ""))
 	spec.boss_name = str(special.get("name", ""))
 	if special.has("hazards"):
-		spec.hazards = (special["hazards"] as Dictionary).duplicate()
+		spec.hazards = DifficultyModel._weights(special["hazards"] as Dictionary)
 	if special.has("forms"):
-		spec.forms = (special["forms"] as Dictionary).duplicate()
+		spec.forms = DifficultyModel._weights(special["forms"] as Dictionary)
 		spec.start_form = _first_form(spec)
 	spec.speed *= 1.0 + float(special.get("speed_bonus", 0.0))
 	spec.speed_ramp = float(special.get("speed_ramp", spec.speed_ramp))

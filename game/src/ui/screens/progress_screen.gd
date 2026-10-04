@@ -22,7 +22,7 @@ const STAT_ROWS: PackedStringArray = [
 ]
 
 var _tabs: UiSegmented
-var _pages: Dictionary = {}
+var _pages: Dictionary[String, Control] = {}
 var _level: Label
 var _xp_meter: ProgressBar
 var _xp_label: Label
@@ -79,7 +79,7 @@ func _page(stack: Control, content: Control) -> ScrollContainer:
 
 func _show_tab(id: String) -> void:
 	for key: String in _pages:
-		(_pages[key] as Control).visible = key == id
+		_pages[key].visible = key == id
 
 
 # --- Overview ------------------------------------------------------------------

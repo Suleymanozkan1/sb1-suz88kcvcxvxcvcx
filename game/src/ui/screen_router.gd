@@ -9,11 +9,11 @@ signal back_unhandled
 
 var reduce_motion: bool = false
 var current_id: StringName = &""
-var _screens: Dictionary = {}
-var _built: Dictionary = {}
+var _screens: Dictionary[StringName, UiScreen] = {}
+var _built: Dictionary[StringName, bool] = {}
 var _overlays: Array[StringName] = []
-var _stale: Dictionary = {}
-var _payloads: Dictionary = {}
+var _stale: Dictionary[StringName, bool] = {}
+var _payloads: Dictionary[StringName, Dictionary] = {}
 
 
 func _init() -> void:
@@ -48,7 +48,7 @@ func _ensure_built(id: StringName) -> UiScreen:
 ## shown (a covered overlay when it is revealed again), so no screen keeps
 ## text in the previous language.
 func relocalize() -> void:
-	for id: Variant in _built:
+	for id: StringName in _built:
 		_stale[id] = true
 
 

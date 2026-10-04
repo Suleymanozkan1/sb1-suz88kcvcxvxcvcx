@@ -14,7 +14,7 @@ signal back_requested
 
 const TILE: int = 144
 const COLUMNS: int = 4
-const RARITY_KEYS: Dictionary = {
+const RARITY_KEYS: Dictionary[String, String] = {
 	"common": "rarity.common",
 	"rare": "rarity.rare",
 	"epic": "rarity.epic",

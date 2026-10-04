@@ -14,7 +14,7 @@ const MAX_TIER: int = 7
 const TIER_DOT: int = 20
 const MISSION_KINDS: PackedStringArray = ["daily", "weekly"]
 ## Typed cosmetic reward keys and their icons in a reward preview.
-const REWARD_ITEM_ICONS: Dictionary = {"skin": &"form_orb", "trail": &"form_comet"}
+const REWARD_ITEM_ICONS: Dictionary[String, StringName] = {"skin": &"form_orb", "trail": &"form_comet"}
 
 var _date: Label
 var _chest: VBoxContainer
@@ -30,7 +30,7 @@ var _missions_tabs: UiSegmented
 var _missions_list: VBoxContainer
 var _missions_reset: Label
 var _missions: Dictionary = {}
-var _reset_seconds: Dictionary = {"challenge": 0, "daily": 0, "weekly": 0}
+var _reset_seconds: Dictionary[String, int] = {"challenge": 0, "daily": 0, "weekly": 0}
 var _tick: float = 0.0
 
 
@@ -263,7 +263,7 @@ static func _reward_row(spec: Dictionary) -> HBoxContainer:
 	for kind: String in REWARD_ITEM_ICONS:
 		if typeof(spec.get(kind)) == TYPE_STRING:
 			var label: String = TranslationServer.translate("reward.label." + kind)
-			row.add_child(_small_chip(REWARD_ITEM_ICONS[kind] as StringName, label, Palette.PRIMARY))
+			row.add_child(_small_chip(REWARD_ITEM_ICONS[kind], label, Palette.PRIMARY))
 	return row
 
 
@@ -282,14 +282,14 @@ func _process(delta: float) -> void:
 		return
 	_tick -= 1.0
 	for k: String in _reset_seconds:
-		_reset_seconds[k] = maxi(0, int(_reset_seconds[k]) - 1)
+		_reset_seconds[k] = maxi(0, _reset_seconds[k] - 1)
 	_update_countdowns()
 
 
 func _update_countdowns() -> void:
 	if _reset == null:
 		return
-	_reset.text = tr("daily.resets_in").format({"t": format_duration(int(_reset_seconds["challenge"]))})
+	_reset.text = tr("daily.resets_in").format({"t": format_duration(_reset_seconds["challenge"])})
 	var kind: String = _missions_tabs.current if _missions_tabs != null else "daily"
 	_missions_reset.text = tr("daily.resets_in").format({"t": format_duration(int(_reset_seconds.get(kind, 0)))})
 

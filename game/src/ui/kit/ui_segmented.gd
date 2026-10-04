@@ -10,7 +10,7 @@ signal selected(option_id: String)
 var compact: bool = false
 var options: PackedStringArray = PackedStringArray()
 var current: String = ""
-var _buttons: Dictionary = {}
+var _buttons: Dictionary[String, UiButton] = {}
 
 
 func setup(option_ids: PackedStringArray, labels: PackedStringArray, initial: String) -> void:
@@ -34,7 +34,7 @@ func setup(option_ids: PackedStringArray, labels: PackedStringArray, initial: St
 func select(option_id: String, notify: bool) -> void:
 	current = option_id
 	for id: String in _buttons:
-		var b: UiButton = _buttons[id] as UiButton
+		var b: UiButton = _buttons[id]
 		var is_sel: bool = id == option_id
 		var color: Color = Palette.PRIMARY if is_sel else UiTokens.TEXT_MUTED
 		b.add_theme_color_override("font_color", color)

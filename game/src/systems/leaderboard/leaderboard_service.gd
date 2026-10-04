@@ -43,7 +43,7 @@ const DEFAULT_FETCH_LIMIT: int = 50
 const DEFAULT_DAILY_ACCEPT_DAYS_BACK: int = 1
 const DEFAULT_WEEKLY_ACCEPT_WEEKS_BACK: int = 1
 ## Used only when data/daily/daily.json has no "modes" table.
-const DEFAULT_MODES: Dictionary = {
+const DEFAULT_MODES: Dictionary[String, Dictionary] = {
 	"classic": {"ranked": true, "requires_completion": true, "level_board": true, "shields": true},
 	"daily": {"ranked": true, "requires_completion": true, "level_board": false, "shields": true},
 	"zen": {"ranked": false, "requires_completion": false, "level_board": false, "shields": true, "zen": true},
@@ -108,7 +108,7 @@ static func level_board(level_id: String) -> String:
 
 ## Splits a board id into {"type", "date_key" | "week_key" + "mode" | "mode" |
 ## "level_id"}; {} when malformed.
-static func parse_board(board_id: String) -> Dictionary:
+static func parse_board(board_id: String) -> Dictionary[String, String]:
 	var parts: PackedStringArray = board_id.split(SEPARATOR)
 	if parts.is_empty():
 		return {}
@@ -396,13 +396,13 @@ func _prune_queue() -> void:
 		if str(item.get("kind", "")) == QUEUE_KIND:
 			var queued_at: int = LeaderboardService._as_int(item.get("queued_at", null), 0)
 			var stale: bool = now - queued_at > max_age
-			var board: Dictionary = LeaderboardService.parse_board(str(item.get("board", "")))
+			var board: Dictionary[String, String] = LeaderboardService.parse_board(str(item.get("board", "")))
 			if board.is_empty():
 				stale = true
-			elif str(board["type"]) == BOARD_DAILY:
-				stale = stale or DailyChallengeService.day_for_date_key(str(board["date_key"])) < today - days_back
-			elif str(board["type"]) == BOARD_WEEKLY:
-				stale = stale or not weeks.has(str(board["week_key"]))
+			elif board["type"] == BOARD_DAILY:
+				stale = stale or DailyChallengeService.day_for_date_key(board["date_key"]) < today - days_back
+			elif board["type"] == BOARD_WEEKLY:
+				stale = stale or not weeks.has(board["week_key"])
 			if stale:
 				profile.pending_submissions.remove_at(i)
 				queue_changed.emit()

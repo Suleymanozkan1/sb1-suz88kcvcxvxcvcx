@@ -223,13 +223,14 @@ func finish() -> Dictionary:
 			return _finalize(data, check)
 		var kept: Array = []
 		var lvl: SimLevel = SimLevel.from_dict(data)
-		var miss_d: Dictionary = {}
+		# snapped distance -> lane of the missed spark there
+		var miss_d: Dictionary[float, int] = {}
 		for idx: Variant in missed:
 			miss_d[snappedf(lvl.e_d[int(idx)], 0.001)] = int(lvl.e_lane[int(idx)])
 		for ent: Variant in data["entities"] as Array:
 			var e: Dictionary = ent as Dictionary
 			var key: float = snappedf(float(e["d"]), 0.001)
-			if e["t"] == "spark" and miss_d.has(key) and int(miss_d[key]) == int(e.get("lane", -1)):
+			if e["t"] == "spark" and miss_d.has(key) and miss_d[key] == int(e.get("lane", -1)):
 				continue
 			kept.append(e)
 		data["entities"] = kept
@@ -290,9 +291,9 @@ func _finalize(data: Dictionary, check: Dictionary) -> Dictionary:
 
 
 func _mechanics_used(data: Dictionary) -> Array:
-	var used: Dictionary = {}
+	var used: Dictionary[String, bool] = {}
 	used["spark"] = true
-	var forms_seen: Dictionary = {str(data["start_form"]): true}
+	var forms_seen: Dictionary[String, bool] = {str(data["start_form"]): true}
 	var breakables: bool = false
 	for ent: Variant in data["entities"] as Array:
 		var e: Dictionary = ent as Dictionary
@@ -338,7 +339,9 @@ func _mechanics_used(data: Dictionary) -> Array:
 		used["ice"] = true
 	if float(mods["speed_ramp"]) > 0.0:
 		used["speed_ramp"] = true
-	var out: Array = used.keys()
+	# A plain array: it becomes the level's JSON "mechanics" list.
+	var out: Array = []
+	out.assign(used.keys())
 	out.sort()
 	return out
 
@@ -565,7 +568,7 @@ func _pick_hazard(allowed: Array[String]) -> String:
 	var memory: bool = spec.pattern == PATTERN_MEMORY
 	if memory and _motif.size() == MOTIF_LENGTH and allowed.has(_motif[_slot_index % MOTIF_LENGTH]):
 		return _motif[_slot_index % MOTIF_LENGTH]
-	var weights: Dictionary = {}
+	var weights: Dictionary[String, float] = {}
 	for name: String in allowed:
 		var w: float = float(spec.hazards.get(name, 0.0))
 		if w > 0.0:
@@ -847,10 +850,10 @@ func _maybe_place_prism(prev_d: float, d_slot: float, old_lane: int) -> void:
 
 
 func _place_form_gate(gap: float) -> void:
-	var options: Dictionary = {}
+	var options: Dictionary[String, float] = {}
 	for f: String in spec.forms:
-		if SimConst.form_from_name(f) != _form and float(spec.forms[f]) > 0.0:
-			options[f] = float(spec.forms[f])
+		if SimConst.form_from_name(f) != _form and spec.forms[f] > 0.0:
+			options[f] = spec.forms[f]
 	if options.is_empty():
 		_advance_empty(gap)
 		return
@@ -926,10 +929,10 @@ func _try_launch_slot(gap: float) -> bool:
 		if float(window["length"]) < spec.min_window:
 			return false
 		tap_tick = int(window["center"])
-	var flight: Dictionary = _simulate_flight(pad_level, tap_tick, d_pad)
-	if float(flight["to"]) - float(flight["from"]) < MIN_AIR_STRETCH:
+	var flight: Dictionary[String, float] = _simulate_flight(pad_level, tap_tick, d_pad)
+	if flight["to"] - flight["from"] < MIN_AIR_STRETCH:
 		return false
-	var d_wall: float = snappedf((float(flight["from"]) + float(flight["to"])) * 0.5, 0.01)
+	var d_wall: float = snappedf((flight["from"] + flight["to"]) * 0.5, 0.01)
 	var all_lanes: Array = []
 	for l: int in spec.lanes:
 		all_lanes.append(l)
@@ -949,7 +952,7 @@ func _try_launch_slot(gap: float) -> bool:
 	if not errors.is_empty():
 		return true
 	# Nothing may demand an input before the core is back on the floor.
-	_cursor_d = maxf(_cursor_d, snappedf(float(flight["land"]), 0.01))
+	_cursor_d = maxf(_cursor_d, snappedf(flight["land"], 0.01))
 	_reserve_reaction_room()
 	return true
 
@@ -957,14 +960,14 @@ func _try_launch_slot(gap: float) -> bool:
 ## Follows a launch from the checkpoint (tapping at [param tap_tick] if >= 0)
 ## and returns {"from", "to"}: the longest stretch above block height, and
 ## {"land"}: where the core touches down. All zero when it never launches.
-func _simulate_flight(lvl: SimLevel, tap_tick: int, d_pad: float) -> Dictionary:
+func _simulate_flight(lvl: SimLevel, tap_tick: int, d_pad: float) -> Dictionary[String, float]:
 	var sim: FluxSim = _retarget(_checkpoint, lvl)
 	var launches: int = sim.launches
 	var guard: int = 0
 	while sim.is_running() and sim.d < d_pad + 1.0 and sim.launches == launches and guard < FLIGHT_GUARD_TICKS:
 		sim.step(sim.tick == tap_tick)
 		guard += 1
-	var out: Dictionary = {"from": 0.0, "to": 0.0, "land": 0.0}
+	var out: Dictionary[String, float] = {"from": 0.0, "to": 0.0, "land": 0.0}
 	if sim.launches == launches:
 		return out
 	var run_from: float = -1.0

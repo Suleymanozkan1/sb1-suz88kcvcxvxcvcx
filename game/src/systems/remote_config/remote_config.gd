@@ -32,7 +32,7 @@ var last_fetch_ok: bool = false
 ## Keys rejected by the last [method apply_overrides] / fetch / cache load.
 var last_rejected: PackedStringArray = PackedStringArray()
 ## key -> sanitised spec {"type", "default", optional "min", "max", "format", "max_length"}
-var _schema: Dictionary = {}
+var _schema: Dictionary[String, Dictionary] = {}
 var _overrides: Dictionary = {}
 var _read: Callable = Callable()
 var _write: Callable = Callable()
@@ -101,7 +101,7 @@ func get_value(key: String) -> Variant:
 	if not _schema.has(key):
 		GameLog.warn("remote_config", "unknown key '%s'" % key)
 		return null
-	var spec: Dictionary = _schema[key] as Dictionary
+	var spec: Dictionary = _schema[key]
 	var raw: Variant = _overrides.get(key, spec["default"])
 	return RemoteConfig._clamped(spec, raw)
 
@@ -218,7 +218,7 @@ func save_cache() -> bool:
 func validate(key: String, value: Variant) -> Variant:
 	if not _schema.has(key):
 		return null
-	return RemoteConfig._validated(_schema[key] as Dictionary, value)
+	return RemoteConfig._validated(_schema[key], value)
 
 
 func _apply(values: Dictionary, replace: bool) -> PackedStringArray:

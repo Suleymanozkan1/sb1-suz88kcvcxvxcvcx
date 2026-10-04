@@ -73,7 +73,7 @@ var _provider: StoreProvider = null
 var _grant: Callable = Callable()
 var _track: Callable = Callable()
 ## product id -> validated product dictionary
-var _catalog: Dictionary = {}
+var _catalog: Dictionary[String, Dictionary] = {}
 var _order: PackedStringArray = PackedStringArray()
 var _busy: bool = false
 
@@ -159,7 +159,7 @@ func owns(product_id: String) -> bool:
 ## "price" is the platform's localized text ("" when the store is
 ## unavailable); "purchasable" is false when unavailable or already owned.
 func listings() -> Array[Dictionary]:
-	var prices: Dictionary = {}
+	var prices: Dictionary[String, String] = {}
 	var available: bool = _provider.is_available()
 	if available:
 		for raw: Variant in _provider.products():
@@ -167,7 +167,7 @@ func listings() -> Array[Dictionary]:
 				prices[str((raw as Dictionary).get("id", ""))] = str((raw as Dictionary).get("price", ""))
 	var out: Array[Dictionary] = []
 	for id: String in _order:
-		var p: Dictionary = _catalog[id] as Dictionary
+		var p: Dictionary = _catalog[id]
 		var owned: bool = owns(id)
 		(
 			out

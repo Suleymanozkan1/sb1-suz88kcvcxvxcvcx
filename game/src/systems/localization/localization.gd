@@ -20,7 +20,8 @@ const LANGUAGE_CODE_LENGTH: int = 2
 
 var _base_dir: String = DEFAULT_DIR
 var _bus: EventBus
-var _tables: Dictionary = {}
+## locale -> {key: text}
+var _tables: Dictionary[String, Dictionary] = {}
 var _installed: Array[Translation] = []
 var _locale: String = FALLBACK_LOCALE
 
@@ -35,8 +36,8 @@ func _init(base_dir: String = DEFAULT_DIR, bus: EventBus = null) -> void:
 
 ## Reads <locale>.json plus parts/*.<locale>.json under [param base_dir] and
 ## returns {locale: {key: text}}. Non-string values are skipped with a warning.
-static func load_all(base_dir: String = DEFAULT_DIR) -> Dictionary:
-	var out: Dictionary = {}
+static func load_all(base_dir: String = DEFAULT_DIR) -> Dictionary[String, Dictionary]:
+	var out: Dictionary[String, Dictionary] = {}
 	if not DirAccess.dir_exists_absolute(base_dir):
 		GameLog.error(LOG_CHANNEL, "translation directory %s missing" % base_dir)
 		return out
@@ -163,7 +164,7 @@ func _on_settings_changed(key: StringName, value: Variant) -> void:
 		install(str(value))
 
 
-static func _merge_file(out: Dictionary, locale: String, path: String) -> void:
+static func _merge_file(out: Dictionary[String, Dictionary], locale: String, path: String) -> void:
 	var data: Dictionary = JsonIO.read_dict(path)
 	if data.is_empty():
 		GameLog.warn(LOG_CHANNEL, "empty or invalid string table %s" % path)

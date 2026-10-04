@@ -88,7 +88,7 @@ const CONFIG_MINIMUMS: String = "min_per_category"
 const CONFIG_TIERS: String = "perfect_tiers"
 
 ## Typed parameter schema per category.
-const PARAM_SCHEMA: Dictionary = {
+const PARAM_SCHEMA: Dictionary[String, Dictionary] = {
 	"core_skin":
 	{
 		"style": ParamKind.INT,
@@ -120,7 +120,7 @@ const PARAM_SCHEMA: Dictionary = {
 }
 ## "category.param" -> name of the option list (in cosmetics.json) the value
 ## must come from. INT params are indices into the list, STRING params members.
-const OPTION_LISTS: Dictionary = {
+const OPTION_LISTS: Dictionary[String, String] = {
 	"core_skin.style": "core_styles",
 	"trail.style": "trail_styles",
 	"badge.icon": "badge_icons",
@@ -136,10 +136,10 @@ var items: Array[Dictionary] = []
 ## Product definitions from products.json in data order.
 var products: Array[Dictionary] = []
 var _config: Dictionary = {}
-var _by_id: Dictionary = {}
-var _products_by_id: Dictionary = {}
+var _by_id: Dictionary[String, Dictionary] = {}
+var _products_by_id: Dictionary[String, Dictionary] = {}
 ## category -> id of its first default item
-var _defaults: Dictionary = {}
+var _defaults: Dictionary[String, String] = {}
 var _load_errors: PackedStringArray = PackedStringArray()
 
 
@@ -482,7 +482,7 @@ func _int_problem(key: String, value: Variant) -> String:
 		return "must be an integer"
 	if not OPTION_LISTS.has(key):
 		return ""
-	var count: int = options(str(OPTION_LISTS[key])).size()
+	var count: int = options(OPTION_LISTS[key]).size()
 	var n: int = CosmeticCatalog._to_int(value, -1)
 	return "" if n >= 0 and n < count else "out of range 0..%d" % (count - 1)
 
@@ -499,7 +499,7 @@ func _float_problem(key: String, value: Variant) -> String:
 func _string_problem(key: String, value: Variant) -> String:
 	if typeof(value) != TYPE_STRING or (value as String).is_empty():
 		return "must be a non-empty string"
-	if OPTION_LISTS.has(key) and not options(str(OPTION_LISTS[key])).has(value as String):
+	if OPTION_LISTS.has(key) and not options(OPTION_LISTS[key]).has(value as String):
 		return "'%s' is not a known option" % (value as String)
 	return ""
 
@@ -539,7 +539,7 @@ func _tier_badge_errors() -> PackedStringArray:
 
 func _product_errors() -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
-	var sold: Dictionary = {}
+	var sold: Dictionary[String, String] = {}
 	for p: Dictionary in products:
 		var pid: String = str(p.get("id", ""))
 		if not _is_valid_id(pid):
@@ -558,7 +558,7 @@ func _product_errors() -> PackedStringArray:
 		for raw_id: Variant in list as Array:
 			var item_id: String = str(raw_id)
 			if sold.has(item_id):
-				errors.append("%s: item '%s' is already sold by %s" % [pid, item_id, str(sold[item_id])])
+				errors.append("%s: item '%s' is already sold by %s" % [pid, item_id, sold[item_id]])
 			sold[item_id] = pid
 			errors.append_array(_product_item_errors(pid, raw_id))
 	return errors
@@ -570,7 +570,7 @@ func _product_item_errors(pid: String, raw_id: Variant) -> PackedStringArray:
 		errors.append("%s: unknown cosmetic id '%s'" % [pid, str(raw_id)])
 		return errors
 	var item_id: String = raw_id as String
-	if str((_by_id[item_id] as Dictionary).get("category", "")) == BADGE:
+	if str(_by_id[item_id].get("category", "")) == BADGE:
 		errors.append("%s: badge '%s' cannot be sold" % [pid, item_id])
 	if unlock_of(item_id)["type"] != UNLOCK_PREMIUM:
 		errors.append("%s: item '%s' is not a premium item" % [pid, item_id])

@@ -14,7 +14,7 @@ const DEFAULT_PRESETS_PATH: String = "res://data/quality/presets.json"
 const AUTO: String = "auto"
 const PRESET_ORDER: Array[StringName] = [&"low", &"medium", &"high", &"ultra"]
 ## Parameter name -> expected Variant type.
-const PARAM_TYPES: Dictionary = {
+const PARAM_TYPES: Dictionary[String, Variant.Type] = {
 	"render_scale": TYPE_FLOAT,
 	"msaa_3d": TYPE_INT,
 	"post_fx": TYPE_BOOL,
@@ -61,7 +61,7 @@ const DETECT_DESKTOP: String = "desktop"
 var _settings: SettingsService
 var _bus: EventBus
 var _order: Array[StringName] = []
-var _presets: Dictionary = {}
+var _presets: Dictionary[StringName, Dictionary] = {}
 var _battery_max: StringName = &"low"
 var _battery_fps: int = DEFAULT_BATTERY_FPS
 var _battery_overrides: Dictionary = {}
@@ -102,7 +102,7 @@ static func validate_document(doc: Dictionary) -> PackedStringArray:
 		for key: String in PARAM_TYPES:
 			if not p.has(key):
 				problems.append("preset '%s' lacks %s" % [name, key])
-			elif not _type_ok(p[key], int(PARAM_TYPES[key])):
+			elif not _type_ok(p[key], PARAM_TYPES[key]):
 				problems.append("preset '%s' %s has wrong type" % [name, key])
 	var battery: Dictionary = _dict(doc.get("battery_saver", {}))
 	if not presets.has(str(battery.get("max_preset", ""))):
@@ -287,7 +287,7 @@ func _load(doc: Dictionary) -> void:
 	var overrides: Dictionary = _dict(battery.get("overrides", {}))
 	for key: Variant in overrides:
 		var k: String = str(key)
-		if PARAM_TYPES.has(k) and _type_ok(overrides[key], int(PARAM_TYPES[k])):
+		if PARAM_TYPES.has(k) and _type_ok(overrides[key], PARAM_TYPES[k]):
 			_battery_overrides[k] = _clamp_param(k, overrides[key])
 	_detect = _dict(doc.get("auto_detect", {}))
 	var down: Dictionary = _dict(doc.get("auto_downgrade", {}))
@@ -307,7 +307,7 @@ static func _sanitize(raw: Dictionary) -> Dictionary:
 	var p: Dictionary = {}
 	for key: String in PARAM_TYPES:
 		var v: Variant = raw.get(key, FALLBACK_PARAMS[key])
-		if not _type_ok(v, int(PARAM_TYPES[key])):
+		if not _type_ok(v, PARAM_TYPES[key]):
 			v = FALLBACK_PARAMS[key]
 		p[key] = _clamp_param(key, v)
 	return p

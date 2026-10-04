@@ -72,7 +72,7 @@ var _stats: StatsService
 ## Campaign order: index (global number - 1) -> level id.
 var _ids: PackedStringArray = PackedStringArray()
 ## level id -> global number (1-based).
-var _number: Dictionary = {}
+var _number: Dictionary[String, int] = {}
 ## index (global number - 1) -> 1-based world index.
 var _level_world: PackedInt32Array = PackedInt32Array()
 ## index (world index - 1) -> world id.
@@ -132,7 +132,7 @@ func record_level_result(result: RunResult, level_meta: Dictionary = {}) -> Dict
 	if not result.completed:
 		_profile.levels[level_id] = entry
 		return outcome
-	var world_index: int = _level_world[int(_number[level_id]) - 1]
+	var world_index: int = _level_world[_number[level_id] - 1]
 	var was_complete: bool = world_complete(world_index)
 	var was_perfect: bool = world_perfect(world_index)
 	var next_id: String = _next_id(level_id)
@@ -335,7 +335,7 @@ func next_unlock_hint() -> Dictionary:
 		return _hint(HINT_WORLD, _world_id(blocked), stars, _unlock_stars(blocked), HINT_KEY_WORLD)
 	var next_id: String = next_level_to_play()
 	if not next_id.is_empty() and not _is_cleared(next_id):
-		var world_index: int = _level_world[int(_number[next_id]) - 1]
+		var world_index: int = _level_world[_number[next_id] - 1]
 		var progress: int = world_cleared_count(world_index)
 		return _hint(HINT_LEVEL, next_id, progress, _catalog.levels_in(world_index), HINT_KEY_LEVEL)
 	var to_improve: String = _first_level_below_max_stars()

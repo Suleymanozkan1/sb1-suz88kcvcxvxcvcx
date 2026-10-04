@@ -79,7 +79,7 @@ var _daily_cfg: Dictionary = {}
 var _streak_cfg: Dictionary = {}
 var _model: DifficultyModel
 var _validator: LevelValidator = null
-var _cache: Dictionary = {}
+var _cache: Dictionary[String, Dictionary] = {}
 var _cache_order: PackedStringArray = PackedStringArray()
 
 
@@ -222,7 +222,7 @@ func spec_for(p_date_key: String) -> LevelSpec:
 ## date is not regenerated on every call; returns a copy).
 func level_for(p_date_key: String) -> Dictionary:
 	if _cache.has(p_date_key):
-		return (_cache[p_date_key] as Dictionary).duplicate(true)
+		return _cache[p_date_key].duplicate(true)
 	var fallback: Dictionary = _section(_daily_cfg, "fallback")
 	var attempts: int = maxi(1, int(fallback.get("attempts", DEFAULT_FALLBACK_ATTEMPTS)))
 	var validate: bool = bool(_daily_cfg.get("validate", true))

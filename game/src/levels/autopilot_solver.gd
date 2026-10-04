@@ -43,7 +43,8 @@ func solve(level: SimLevel) -> bool:
 	var frontier: Array[SearchNode] = [SearchNode.new(root, PackedInt32Array())]
 	var found: bool = false
 	while not frontier.is_empty():
-		var layer: Dictionary = {}
+		# state key -> best node reaching that state in this layer
+		var layer: Dictionary[int, SearchNode] = {}
 		for node: SearchNode in frontier:
 			for tap: bool in [false, true]:
 				var child: FluxSim = node.sim.clone()
@@ -100,7 +101,7 @@ func _prune(nodes: Array) -> Array[SearchNode]:
 	# forms (surge): states that differ only in how far they have travelled meet
 	# moving hazards at different moments, so they must not crowd each other out.
 	var reps: Array[SearchNode] = []
-	var seen: Dictionary = {}
+	var seen: Dictionary[int, bool] = {}
 	for n: SearchNode in typed:
 		var cls: int = (n.sim.lane * 4 + n.sim.phase * 2 + (1 if n.sim.heavy else 0)) * 8
 		cls += n.sim.plates * 2 + (1 if n.sim.airborne else 0)

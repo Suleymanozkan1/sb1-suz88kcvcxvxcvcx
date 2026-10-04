@@ -49,7 +49,7 @@ const IPV4_REGEX: String = "\\b\\d{1,3}(\\.\\d{1,3}){3}\\b"
 const IPV6_REGEX: String = "\\b[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{0,4}){4,7}\\b"
 
 ## event name -> {param name -> type name}
-var events: Dictionary = {}
+var events: Dictionary[String, Dictionary] = {}
 var forbidden_patterns: PackedStringArray = DEFAULT_FORBIDDEN.duplicate()
 var max_params: int = DEFAULT_MAX_PARAMS
 var max_string_length: int = DEFAULT_MAX_STRING_LENGTH
@@ -108,8 +108,10 @@ func has_event(event: String) -> bool:
 
 
 ## Declared parameters of [param event] as {name: type}; empty when unknown.
-func param_types(event: String) -> Dictionary:
-	return (events.get(event, {}) as Dictionary).duplicate()
+func param_types(event: String) -> Dictionary[String, String]:
+	var out: Dictionary[String, String] = {}
+	out.assign(events.get(event, {}) as Dictionary)
+	return out
 
 
 ## Integer limit from the "limits" block with a fallback for missing/bad data.
@@ -226,7 +228,7 @@ func _add_event(event: String, raw_spec: Variant) -> void:
 			load_issues.append("%s: params must be an object" % event)
 	else:
 		load_issues.append("%s: definition must be an object" % event)
-	var params: Dictionary = {}
+	var params: Dictionary[String, String] = {}
 	for raw_param: Variant in declared:
 		var param: String = str(raw_param)
 		var type_name: String = str(declared[raw_param])

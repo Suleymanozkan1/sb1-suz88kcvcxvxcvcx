@@ -6,7 +6,7 @@ const INDEX_PATH: String = "res://data/worlds/index.json"
 
 var worlds: Array[Dictionary] = []
 var errors: PackedStringArray = PackedStringArray()
-var _by_id: Dictionary = {}
+var _by_id: Dictionary[String, Dictionary] = {}
 
 
 static func load_default() -> WorldCatalog:
@@ -66,7 +66,7 @@ func global_number(world_index_1: int, local_index_1: int) -> int:
 
 
 ## Returns {"world_index": int, "local_index": int} for a global number.
-func locate(global_number_1: int) -> Dictionary:
+func locate(global_number_1: int) -> Dictionary[String, int]:
 	var remaining: int = global_number_1
 	for i: int in range(1, worlds.size() + 1):
 		var count: int = levels_in(i)
@@ -80,7 +80,7 @@ static func level_id(world_index_1: int, local_index_1: int) -> String:
 	return "w%02d_l%02d" % [world_index_1, local_index_1]
 
 
-static func parse_level_id(id: String) -> Dictionary:
+static func parse_level_id(id: String) -> Dictionary[String, int]:
 	if id.length() != 7 or not id.begins_with("w") or id.substr(3, 2) != "_l":
 		return {}
 	var w: String = id.substr(1, 2)

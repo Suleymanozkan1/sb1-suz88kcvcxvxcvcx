@@ -24,11 +24,11 @@ var target_duration: float = 12.0
 var duration_bounds: Vector2 = Vector2(5.0, 15.0)
 
 ## Weights by form name ("hop", "phase", "dash", "surge").
-var forms: Dictionary = {"hop": 1.0}
+var forms: Dictionary[String, float] = {"hop": 1.0}
 var start_form: String = "hop"
 var form_segment: int = 6
 ## Weights by hazard entity name.
-var hazards: Dictionary = {"barrier": 1.0}
+var hazards: Dictionary[String, float] = {"barrier": 1.0}
 
 var change_prob: float = 0.4
 var density: float = 0.8

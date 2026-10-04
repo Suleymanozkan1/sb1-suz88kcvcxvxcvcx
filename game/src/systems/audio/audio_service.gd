@@ -134,7 +134,7 @@ var _locked: bool = false
 var _lock_age: float = 0.0
 var _seek_cooldown: float = 0.0
 var _ready_ok: bool = false
-var _warned_buses: Dictionary = {}
+var _warned_buses: Dictionary[StringName, bool] = {}
 
 
 ## Wires the service to settings and a sound bank and builds the player pool.
