@@ -165,3 +165,91 @@ played offline are never punished.
 
 Detections are for the backend only. The client never punishes a player for
 a rejected submission; it simply is not ranked.
+
+
+Reward claims bound currencies only. Bonus stars, skins and trails (achievement
+rewards, see `RewardEngine`) are not claimable: a claim whose `deltas` names
+`stars`, `skin`, `trail` or anything else outside `verifier.reward_caps` is
+rejected as `unknown_currency`.
+
+## Cloud save (`HttpCloudSaveProvider`, `CloudSaveService`)
+
+Like leaderboards, the cloud save is **off in the shipped build**: remote config
+`cloud_save.base_url` is empty, so the game uses `NullCloudSaveProvider`,
+nothing is sent anywhere, and Settings says "Cloud save isn't available in this
+build". The URL is validated like every remote URL (HTTPS, one plain host, no
+credentials). The client, protocol and merge are complete and tested; the
+local save stays the source of truth and works offline.
+
+### Endpoints
+
+`GET {base_url}/v1/saves/{install_id}` (install id URI-encoded) →
+`200 {"blob": "<save envelope>", "revision": "<token>"}`, or `404` when no
+cloud copy exists yet.
+
+`PUT {base_url}/v1/saves/{install_id}`
+
+```json
+{"blob": "{\"checksum\":\"…\",\"format\":\"fluxdrop-save\",\"payload\":{…},\"saved_at\":1790000000,\"version\":1}",
+ "base_revision": "r41", "app_version": "1.0.0"}
+```
+
+→ `200 {"revision": "<new token>"}` when stored, or
+`409 {"blob": "<current envelope>", "revision": "<current token>"}` when
+`base_revision` is not the current revision.
+
+Both: `429`, `5xx` or no answer = transient (the client keeps `cloud.dirty`
+in the profile and syncs again at the next trigger: boot, network back online,
+app pause, or "Sync now"); any other `4xx` = final. A `2xx` (or `409`) whose
+body does not have exactly this shape is never applied and is retried later:
+`blob` must be a string, `revision` a token of 1–128 characters from
+`[A-Za-z0-9._:-]` (`CloudSaveProvider.valid_revision`). Responses larger than
+the client transport's 1 MiB body limit (`HttpTransport.MAX_BODY_BYTES`) never
+arrive, so a backend should refuse blobs above that size (and must refuse
+anything above `SaveService.MAX_SAVE_CHARS`, which the client also enforces on
+upload).
+
+### Revisions and conflicts
+
+The server keeps one `(blob, revision)` pair per save slot and treats a PUT as
+a compare-and-swap: it is stored only when `base_revision` equals the current
+revision (`""` when the slot is empty), and the server then issues a new,
+never reused revision (a counter or random token). Otherwise it answers `409`
+with its current copy and changes nothing. The client merges that copy with
+`ProfileMerge` (union / maximum of progress, earliest unlock times, missions
+claimed on either side stay claimed, the wallet taken whole from the newer
+save — never summed) and PUTs once more with the returned revision; a second
+conflict waits for the next sync. The client never overwrites a cloud copy it
+could not read: a copy with a bad checksum or from a newer save version
+(`SaveService.decode` refuses both) leaves both sides untouched.
+
+The slot key is the random per-install id (not PII; keep it out of access
+logs). Linking installs to one player (platform sign-in) is outside this
+repository; a backend that links installs serves the linked account's save for
+each linked install id, which is how a second device sees the first device's
+progress. On a fresh install with no play history the cloud wallet wins, so a
+starting balance never replaces a real one.
+
+### What the server must check
+
+- **The envelope, with the client's own rules.** Run `SaveService.decode(blob)`
+  on every PUT (format `fluxdrop-save`, SHA-256 checksum over the canonical
+  payload, a version no newer than the server build's
+  `SaveService.CURRENT_VERSION`, the size cap) and answer `422` when it fails,
+  then sanitise the payload with `PlayerProfile.from_dict` before reading any
+  field. Run the same game build as the clients, as for replays.
+- **Never trust currencies blindly.** The checksum detects damage and casual
+  edits only; its salt ships with the game, so anyone can produce a valid
+  envelope with any balance. The server must cross-check `coins` and `gems`
+  (and the `ledger` that explains them) against what it has verified for this
+  install / account: the starting balance, accepted reward claims
+  (`ReplayVerifier.verify_reward_claim` with `apply_remote_tuning` applied to
+  the live remote-config values, see "Reward claims" above) and verified store
+  purchases. A save holding more than that is refused (`422`) or stored with
+  its currencies clamped and the install flagged for review — never used as
+  evidence for a reward or a rank.
+- **Progress is the player's own.** Levels, stars, achievements and bonus
+  stars in a cloud copy only restore the player's own progress; leaderboard
+  ranks still come exclusively from verified replays (`ReplayVerifier.verify`).
+- **Rate-limit PUTs** per install (a healthy client pushes at most once per
+  trigger) and keep only the newest copy per slot.
