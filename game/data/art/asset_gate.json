@@ -228,10 +228,10 @@
       "topology": "Full-screen ColorRect on a CanvasLayer.",
       "texture": "Screen copy only.",
       "animation": "Decays: chroma 3/s, shock 2.2/s, tint 1.6/s; the rect is hidden when all are near 0.",
-      "readability": "Fail = impact, perfect = reward, form change / overdrive = state change.",
+      "readability": "Fail = impact (the only chromatic split), perfect = reward, form change / overdrive = a distortion ring.",
       "mobile_cost": "Full-screen pass + screen copy only while active; off on the low preset and with battery saver.",
       "verdict": "pass_with_note",
-      "note": "Chromatic split also fires at overdrive start (0.35, gameplay_view.gd) although §9 names fail as the only chromatic split; full-screen cost not measured on a device."
+      "note": "Full-screen cost not measured on a device."
     },
     {
       "id": "shader.ripple",
@@ -258,7 +258,7 @@
       "role": "Sky gradient, the flux sink on the horizon, optional sparse stars.",
       "style": "§6: the sink is the only large light shape; environment colours pass WorldTheme.quiet first.",
       "scale": "Sink at 0.6 of the height; stars on a 110 x 190 cell grid.",
-      "perspective": "Uses SCREEN_UV: the gradient, sink and stars are screen-locked (they do not move with lean or shake).",
+      "perspective": "Background laid out from the eye direction in the camera's rest frame (identical to the screen layout at rest), so lean, shake and lane follow turn the view across it; the radiance pass uses the gradient only.",
       "material": "Sky shader; radiance (cubemap) pass gets the gradient only.",
       "lighting": "Sink core exp(-r x 40) x 1.2 goes above 1.0 and blooms (energy); sink strength 0.75 in high-key worlds.",
       "topology": "n/a: sky.",
@@ -266,8 +266,8 @@
       "animation": "Static.",
       "readability": "Gives the run a direction: the core drops towards the sink.",
       "mobile_cost": "RADIANCE_SIZE_32; two exp() per pixel, plus a hash and a third exp() where stars are on.",
-      "verdict": "pass_with_note",
-      "note": "Screen-locked sky: camera lean and shake move the world but not the sink."
+      "verdict": "pass",
+      "note": ""
     },
     {
       "id": "shader.spark",
@@ -285,7 +285,7 @@
       "readability": "Same silhouette for every collectible; colour states the role.",
       "mobile_cost": "One MultiMesh draw call per type for the whole level.",
       "verdict": "pass_with_note",
-      "note": "Spark height is 0.30 u where §4 says 0.32 u; prisms are a larger shard without the orbiting ring that §4 describes."
+      "note": "Spark height is 0.30 u where §4 says 0.32 u (within the shard family; kept). Prisms carry the orbiting ring (mesh.prism_ring)."
     },
     {
       "id": "shader.trail",
@@ -1333,7 +1333,7 @@
       "readability": "One look per category; locked items drawn at 45 % opacity.",
       "mobile_cost": "CPU draw on redraw only.",
       "verdict": "pass_with_note",
-      "note": "Core-skin swatches draw every core skin as the same disc and rings in its colours, so the 10 shader styles are not visible before purchase (the 3D preview was removed in 25f2423)."
+      "note": "Core-skin swatches play the skin's real animated style (shader.core_swatch); other categories keep the flat drawing in the item's own colours. Judged on llvmpipe captures."
     },
     {
       "id": "font.outfit_400",

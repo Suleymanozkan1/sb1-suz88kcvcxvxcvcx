@@ -105,6 +105,10 @@ func build_spec(number: int) -> LevelSpec:
 	elif local == boss_level:
 		spec.kind = "boss"
 	spec.chapter_phase = "high_pressure" if spec.is_special() else chapter_phase(chapter, local)
+	if spec.is_special() and music.has("boss_bpm"):
+		# Set pieces play the world's boss loop (faster): their beat grid follows it,
+		# so beat-timed gates and sliders land on the music they are heard with.
+		spec.beat_seconds = 60.0 / maxf(float(music["boss_bpm"]), 40.0)
 	var phase_cfg: Dictionary = (
 		(curve.get("chapter_phases", {}) as Dictionary).get(spec.chapter_phase, {}) as Dictionary
 	)

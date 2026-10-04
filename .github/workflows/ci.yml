@@ -185,8 +185,13 @@ jobs:
           $GODOT --headless --path . --import
           $GODOT --headless --path . --export-debug "iOS" build/ios/FluxDrop.ipa
           ls -la build/ios
-      - name: Compile for the simulator without signing
+      - name: Compile and link the device app without signing (arm64)
         working-directory: game/build/ios
+        # Godot's simulator library ships x86_64 only, which an arm64 runner cannot link; the
+        # device build links the real arm64 engine. pipefail: a failed build fails the step
+        # (piping into tail used to hide it).
         run: |
-          xcodebuild -project FluxDrop.xcodeproj -scheme FluxDrop -sdk iphonesimulator \
-            -configuration Debug CODE_SIGNING_ALLOWED=NO build | tail -20
+          set -o pipefail
+          xcodebuild -project FluxDrop.xcodeproj -scheme FluxDrop -configuration Debug \
+            -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tail -40

@@ -13,6 +13,8 @@ const POP_TIME: float = 0.12
 const POP_PEAK_SCALE: float = 1.25
 ## Fraction of POP_TIME spent growing to the peak before collapsing.
 const POP_PEAK_AT: float = 0.35
+## Initial size of the finished-pop buffer (a busy frame of collects).
+const POP_BUFFER_START: int = 16
 const HIDDEN: Transform3D = Transform3D(Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO), Vector3.ZERO)
 ## Prism ring: radius round the 0.18 shard, tube, tilt off the floor, spin and
 ## brightness (below the shard: the shard is the reward, the ring its frame).
@@ -42,6 +44,8 @@ var _pulled: Dictionary[int, Vector3] = {}
 var _tilted: Dictionary[int, bool] = {}
 ## Collected entity index -> [elapsed seconds, position] while its pop plays.
 var _popping: Dictionary[int, Array] = {}
+## Pops finished this frame (reused; only its first entries are meaningful).
+var _pops_done: PackedInt32Array = PackedInt32Array()
 
 var _built: bool = false
 
@@ -57,15 +61,23 @@ func _process(delta: float) -> void:
 
 ## Plays the collect pops forward by [param delta] seconds.
 func advance_pops(delta: float) -> void:
-	for k: int in _popping.keys():
+	# Iterates the map itself (keys() would copy it every frame) and erases the
+	# finished pops afterwards from a buffer that keeps its capacity.
+	var done: int = 0
+	for k: int in _popping:
 		var state: Array = _popping[k]
 		var elapsed: float = float(state[0]) + delta
 		if elapsed >= POP_TIME:
-			_popping.erase(k)
-			_set_instance(k, HIDDEN)
+			if done >= _pops_done.size():
+				_pops_done.resize(maxi(POP_BUFFER_START, _pops_done.size() * 2))
+			_pops_done[done] = k
+			done += 1
 			continue
 		state[0] = elapsed
 		_set_instance(k, Transform3D(_basis_of(k).scaled(Vector3.ONE * pop_scale(elapsed)), state[1] as Vector3))
+	for i: int in done:
+		_popping.erase(_pops_done[i])
+		_set_instance(_pops_done[i], HIDDEN)
 
 
 ## Scale of a collected item [param elapsed] seconds into its pop.

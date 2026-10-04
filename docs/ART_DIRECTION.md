@@ -304,7 +304,12 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 | Flux sink | `sky.gdshader` | The direction of the run | Kept |
 | Sparse stars | `sky.gdshader` | Space (Void Space, or a background cosmetic) | Kept |
 | Depth fog | `gameplay_view.gd` | Depth | Kept |
-| Key-light shadows (high and ultra presets) | `gameplay_view.gd` | Grounds hazards and the core | Kept |
+| Key-light shadows (Medium and above, the mobile default; ribs and details do not cast) | `gameplay_view.gd` | Grounds hazards and the core | Kept |
+| Surface relief per material (off on Low) | `structure.gdshader` | What the structure is made of (brushed metal, stone, ceramic crackle, ice and crystal facets, obsidian, lacquer) | Kept |
+| Side details on the rib rhythm (conduits, pipes, panels, crystals, cables) | `mesh_factory.gd` `detail`, `gameplay_view.gd` | Which world you are in, and depth at the shaft walls | Kept |
+| Light shafts (open-light worlds, Medium and above, ≤ 8 %) | `light_shaft.gdshader` | Where the light comes from; depth | Kept |
+| Floor gloss per world | `floor.gdshader` | Ice, water and polished stone underfoot | Kept |
+| Reflection probe (High and Ultra; environment layer only) | `gameplay_view.gd` | Polished surfaces reflect the shaft, never hazards or energy | Kept |
 
 ### 13.6 Feedback, camera and screen effects
 

@@ -130,3 +130,24 @@ func test_no_track_no_lock() -> void:
 	var bare: AudioService = AudioService.new()
 	assert_near(bare.sync_run(3.0, true), 0.0, 0.0001, "safe before setup")
 	bare.free()
+
+
+func test_set_pieces_are_built_on_the_boss_loop_tempo() -> void:
+	# R-6 assessment: bosses and challenges play the faster boss loop, so their
+	# beat-timed gates must be built on its tempo, not the world loop's.
+	var bank: Dictionary = JsonIO.read_dict(SoundBank.DEFAULT_PATH)["music"] as Dictionary
+	var catalog: WorldCatalog = WorldCatalog.load_default()
+	var repo: LevelRepository = LevelRepository.new(catalog)
+	for wi: int in range(1, catalog.world_count() + 1):
+		var world: Dictionary = catalog.world_at(wi)
+		var music: Dictionary = world["music"] as Dictionary
+		var track: Dictionary = bank[str(world["id"])] as Dictionary
+		assert_eq(int(music["bpm"]), int(track["bpm"]), "%s world tempo matches its loop" % world["id"])
+		assert_eq(int(music["boss_bpm"]), int(track["boss_bpm"]), "%s boss tempo matches its loop" % world["id"])
+		var normal: Dictionary = repo.load_level(WorldCatalog.level_id(wi, 20))
+		assert_near(float(normal["beat_seconds"]), 60.0 / float(music["bpm"]), 0.001, "normal levels: world loop")
+		for local: int in [26, 52]:
+			var special: Dictionary = repo.load_level(WorldCatalog.level_id(wi, local))
+			assert_near(
+				float(special["beat_seconds"]), 60.0 / float(music["boss_bpm"]), 0.001, "%s: boss loop" % special["id"]
+			)
