@@ -12,12 +12,23 @@ const SOURCES: PackedStringArray = ["campaign", "campaign_pick", "daily", "endle
 const UNLOCK_TYPES: PackedStringArray = [
 	"none", "levels_cleared", "perfects", "bosses_cleared", "world_cleared", "stars"
 ]
+## Unlock rule type -> the progress counter it compares against ("none" and
+## unknown types are always open).
+const UNLOCK_PROGRESS_KEYS: Dictionary[String, String] = {
+	"levels_cleared": "levels_cleared",
+	"perfects": "perfects",
+	"bosses_cleared": "bosses_cleared",
+	"world_cleared": "worlds_cleared",
+	"stars": "stars",
+}
 const ENDLESS_SEED_SALT: String = "fluxdrop-endless-v1:"
 
 static var _shared: ModeCatalog
 
 var modes: Array[Dictionary] = []
 var score_rewards: Dictionary = {}
+## Test builds: every mode is open regardless of its unlock rule.
+var unlock_all: bool = false
 ## Mode id -> its mode document (the same dictionaries as in [member modes]).
 var _by_id: Dictionary[String, Dictionary] = {}
 
@@ -97,20 +108,13 @@ func verifier_modifiers(mode_id: StringName) -> Dictionary:
 
 ## progress: {"levels_cleared", "perfects", "bosses_cleared", "worlds_cleared", "stars"}.
 func is_unlocked(mode_id: StringName, progress: Dictionary) -> bool:
+	if unlock_all:
+		return _by_id.has(String(mode_id))
 	var unlock: Dictionary = mode(mode_id).get("unlock", {}) as Dictionary
-	var value: int = int(unlock.get("value", 0))
-	match str(unlock.get("type", "none")):
-		"levels_cleared":
-			return int(progress.get("levels_cleared", 0)) >= value
-		"perfects":
-			return int(progress.get("perfects", 0)) >= value
-		"bosses_cleared":
-			return int(progress.get("bosses_cleared", 0)) >= value
-		"world_cleared":
-			return int(progress.get("worlds_cleared", 0)) >= value
-		"stars":
-			return int(progress.get("stars", 0)) >= value
-	return true
+	var key: String = str(UNLOCK_PROGRESS_KEYS.get(str(unlock.get("type", "none")), ""))
+	if key.is_empty():
+		return true
+	return int(progress.get(key, 0)) >= int(unlock.get("value", 0))
 
 
 ## Translation key + format args describing the honest unlock requirement.

@@ -49,6 +49,12 @@ internet permissions) and **iOS** (Xcode project, arm64, iOS 14+). Data JSON is 
   Editor Settings, then
   `godot --headless --path game --export-debug "Android" build/android/fluxdrop-debug.apk`.
   CI does this on every push (`.github/workflows/ci.yml`, job `android`).
+* Android "unlock all" test build: the preset **Android (Unlock All)** exports the same game with the
+  `unlock_all` feature tag under its own package (`com.fluxdrop.game.unlockall`, label "FLUX DROP Test"),
+  so it installs beside the real game with its own save. Every level, world, mode and cosmetic is open;
+  the profile keeps only real progress (`AppInfo.unlock_all_build`, `tests/unit/test_unlock_all_build.gd`).
+  `godot --headless --path game --export-debug "Android (Unlock All)" build/android/fluxdrop-unlockall.apk`.
+  Not for store release.
 * Android release and store upload need a release keystore and Play Console account (not in the repo).
 * iOS: the Xcode project exports on any OS once an App Store team ID is set
   (`--export-debug "iOS" build/ios/FluxDrop.ipa` with `application/export_project_only=true`; verified

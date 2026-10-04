@@ -98,6 +98,8 @@ func boot(storage: SaveStorage = null, game_clock: GameClock = null) -> void:
 	localization.install(settings.get_string("language"))
 	localization.bind_settings(settings)
 	_boot_economy()
+	if AppInfo.unlock_all_build():
+		unlock_everything()
 	_boot_meta()
 	_boot_platform()
 	_boot_feel()
@@ -136,6 +138,15 @@ func _boot_economy() -> void:
 		{},
 		cosmetics_catalog.category_of
 	)
+
+
+## Test builds: every level, world, mode and cosmetic is open. Only the
+## checks change; the profile keeps the player's real progress.
+func unlock_everything() -> void:
+	progression.unlock_all = true
+	modes.unlock_all = true
+	cosmetics.unlock_all = true
+	GameLog.info("app", "unlock-all test build: every level, world, mode and cosmetic is open")
 
 
 func _boot_meta() -> void:

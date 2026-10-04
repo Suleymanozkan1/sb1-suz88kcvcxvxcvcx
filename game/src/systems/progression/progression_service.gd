@@ -64,6 +64,9 @@ var max_xp_grant: int = DEFAULT_MAX_XP_GRANT
 var max_total_xp: int = DEFAULT_MAX_TOTAL_XP
 ## Run modes whose results update level records (zen/endless never unlock).
 var record_modes: PackedStringArray = DEFAULT_RECORD_MODES.duplicate()
+## Test builds ([method AppInfo.unlock_all_build]): every level and world is
+## open. Nothing is written to the profile, so real unlocks stay honest.
+var unlock_all: bool = false
 
 var _profile: PlayerProfile
 var _bus: EventBus
@@ -212,7 +215,7 @@ func is_level_unlocked(level_id: String) -> bool:
 	var n: int = int(_number.get(level_id, 0))
 	if n <= 0:
 		return false
-	if n == 1:
+	if n == 1 or unlock_all:
 		return true
 	var world_index: int = _level_world[n - 1]
 	if world_index != 1 and not _profile.unlocked_worlds.has(_world_id(world_index)):
@@ -225,7 +228,7 @@ func is_world_unlocked(world_id: String) -> bool:
 	var index: int = _world_index(world_id)
 	if index <= 0:
 		return false
-	return index == 1 or _profile.unlocked_worlds.has(world_id)
+	return index == 1 or unlock_all or _profile.unlocked_worlds.has(world_id)
 
 
 ## Unlocks every world whose rule now holds; returns the newly unlocked ids

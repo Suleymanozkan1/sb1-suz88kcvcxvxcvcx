@@ -99,12 +99,13 @@ static func solution_taps(level: Dictionary) -> PackedInt32Array:
 	return taps
 
 
-## Bosses of every world whose boss the player has already beaten, in order.
+## Bosses of every world whose boss the player has already beaten, in order
+## (every boss in an unlock-all test build).
 func boss_rush_queue() -> PackedStringArray:
 	var out: PackedStringArray = PackedStringArray()
 	for i: int in range(1, services.catalog.world_count() + 1):
 		var id: String = WorldCatalog.level_id(i, BOSS_LOCAL_INDEX)
-		if services.profile.is_cleared(id):
+		if services.profile.is_cleared(id) or services.progression.unlock_all:
 			out.append(id)
 	return out
 

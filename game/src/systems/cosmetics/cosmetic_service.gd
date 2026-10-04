@@ -29,6 +29,9 @@ const PROGRESS_ACHIEVEMENTS: String = "achievements"
 ## The catalog this service works on (read-only use; exposed for UI lookups
 ## such as [method CosmeticCatalog.typed_params] for badges).
 var catalog: CosmeticCatalog = null
+## Test builds: every item can be worn without buying it. Counts and the
+## profile keep real ownership only.
+var unlock_all: bool = false
 var _profile: PlayerProfile = null
 var _bus: EventBus = null
 var _economy: Object = null
@@ -82,6 +85,12 @@ func ensure_defaults() -> bool:
 
 ## True when the player owns [param id] (category defaults always count).
 func owns(id: String) -> bool:
+	if unlock_all and catalog.has_item(id):
+		return true
+	return _really_owns(id)
+
+
+func _really_owns(id: String) -> bool:
 	if not catalog.has_item(id):
 		return false
 	if _profile.cosmetics_owned.has(id):
@@ -249,7 +258,7 @@ func shop_items() -> Array[Dictionary]:
 func owned_count() -> int:
 	var count: int = 0
 	for it: Dictionary in catalog.items:
-		if owns(str(it["id"])):
+		if _really_owns(str(it["id"])):
 			count += 1
 	return count
 
