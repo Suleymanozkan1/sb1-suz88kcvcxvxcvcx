@@ -20,7 +20,7 @@ func _ready() -> void:
 	apply_safe_area()
 
 
-func current_insets() -> Dictionary:
+func current_insets() -> Dictionary[String, float]:
 	var screen: Vector2i = debug_screen_size
 	var safe: Rect2i = debug_safe_rect
 	if screen == Vector2i.ZERO:
@@ -40,8 +40,8 @@ func current_insets() -> Dictionary:
 
 
 func apply_safe_area() -> void:
-	var insets: Dictionary = current_insets()
-	add_theme_constant_override("margin_left", base_margin + int(ceil(float(insets["left"]))))
-	add_theme_constant_override("margin_top", base_margin + int(ceil(float(insets["top"]))))
-	add_theme_constant_override("margin_right", base_margin + int(ceil(float(insets["right"]))))
-	add_theme_constant_override("margin_bottom", base_margin + int(ceil(float(insets["bottom"]))))
+	var insets: Dictionary[String, float] = current_insets()
+	add_theme_constant_override("margin_left", base_margin + ceili(insets["left"]))
+	add_theme_constant_override("margin_top", base_margin + ceili(insets["top"]))
+	add_theme_constant_override("margin_right", base_margin + ceili(insets["right"]))
+	add_theme_constant_override("margin_bottom", base_margin + ceili(insets["bottom"]))

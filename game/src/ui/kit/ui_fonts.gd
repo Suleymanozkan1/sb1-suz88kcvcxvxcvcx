@@ -6,14 +6,14 @@ extends RefCounted
 const DIR: String = "res://assets/fonts/"
 const WEIGHTS: Array[int] = [400, 600, 800]
 
-static var _fonts: Dictionary = {}
-static var _variations: Dictionary = {}
+static var _fonts: Dictionary[int, Font] = {}
+static var _variations: Dictionary[String, Font] = {}
 
 
 static func get_font(weight: int) -> Font:
 	var w: int = _nearest(weight)
 	if _fonts.has(w):
-		return _fonts[w] as Font
+		return _fonts[w]
 	var base: FontFile = load(DIR + "outfit-latin-%d-normal.woff2" % w) as FontFile
 	var ext: FontFile = load(DIR + "outfit-latin-ext-%d-normal.woff2" % w) as FontFile
 	if base == null:
@@ -29,7 +29,7 @@ static func get_font(weight: int) -> Font:
 static func tracked(weight: int, tracking: int) -> Font:
 	var key: String = "%d:%d" % [weight, tracking]
 	if _variations.has(key):
-		return _variations[key] as Font
+		return _variations[key]
 	var v: FontVariation = FontVariation.new()
 	v.base_font = get_font(weight)
 	v.spacing_glyph = tracking

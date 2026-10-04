@@ -8,7 +8,7 @@ signal retry_requested
 signal revive_requested
 signal home_requested
 
-const TIP_KEYS: Dictionary = {
+const TIP_KEYS: Dictionary[SimConst.FailReason, String] = {
 	SimConst.FailReason.WRONG_PHASE: "fail.tip.phase",
 	SimConst.FailReason.OBJECTIVE: "fail.tip.objective",
 	SimConst.FailReason.MISSED_SPARK: "fail.tip.missed",

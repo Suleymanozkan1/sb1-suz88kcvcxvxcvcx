@@ -13,8 +13,8 @@ signal back_requested
 const QUALITY_IDS: PackedStringArray = ["auto", "low", "medium", "high", "ultra"]
 const LANG_IDS: PackedStringArray = ["auto", "en", "tr"]
 
-var _toggles: Dictionary = {}
-var _sliders: Dictionary = {}
+var _toggles: Dictionary[String, UiToggle] = {}
+var _sliders: Dictionary[String, HSlider] = {}
 var _quality: UiSegmented
 var _language: UiSegmented
 var _restore_status: Label
@@ -200,9 +200,9 @@ func _slider_row(icon_name: StringName, key: String, label: String) -> HBoxConta
 func enter(payload: Dictionary) -> void:
 	var settings: Dictionary = payload.get("settings", {}) as Dictionary
 	for key: String in _toggles:
-		(_toggles[key] as UiToggle).set_value(bool(settings.get(key, false)))
+		_toggles[key].set_value(bool(settings.get(key, false)))
 	for key2: String in _sliders:
-		(_sliders[key2] as HSlider).set_value_no_signal(float(settings.get(key2, 1.0)))
+		_sliders[key2].set_value_no_signal(float(settings.get(key2, 1.0)))
 	_quality.select(str(settings.get("quality", "auto")), false)
 	_language.select(str(settings.get("language", "auto")), false)
 	_version.text = tr("settings.version").format({"v": str(payload.get("version", ""))})

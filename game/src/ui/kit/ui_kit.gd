@@ -5,7 +5,7 @@ extends RefCounted
 
 enum ButtonRole { PRIMARY, SECONDARY, TERTIARY, DESTRUCTIVE, ICON, CHOICE }
 
-const ROLE_VARIATION: Dictionary = {
+const ROLE_VARIATION: Dictionary[ButtonRole, StringName] = {
 	ButtonRole.PRIMARY: &"PrimaryButton",
 	ButtonRole.SECONDARY: &"SecondaryButton",
 	ButtonRole.TERTIARY: &"TertiaryButton",

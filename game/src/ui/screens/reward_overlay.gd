@@ -9,7 +9,7 @@ extends UiScreen
 signal continue_requested
 signal item_landed(index: int)
 
-const ITEM_ICONS: Dictionary = {
+const ITEM_ICONS: Dictionary[String, Array] = {
 	"coins": [&"coin", Palette.ACCENT],
 	"gems": [&"gem", Palette.SECONDARY],
 	"xp": [&"progress", Palette.PRIMARY],
@@ -94,7 +94,7 @@ func enter(payload: Dictionary) -> void:
 				continue
 			if not ITEM_ICONS.has(type) or type == "cosmetic" or type == "badge":
 				continue
-			var spec: Array = ITEM_ICONS[type] as Array
+			var spec: Array = ITEM_ICONS[type]
 			var cell: VBoxContainer = UiKit.vbox(UiTokens.UNIT / 2)
 			cell.alignment = BoxContainer.ALIGNMENT_CENTER
 			var glyph: IconGlyph = UiKit.icon(spec[0] as StringName, 40, spec[1] as Color)
@@ -116,7 +116,7 @@ func enter(payload: Dictionary) -> void:
 
 ## A skin / trail unlock: its icon, its name and "New skin" / "New trail".
 func _named_cell(type: String, item_name: String) -> VBoxContainer:
-	var spec: Array = ITEM_ICONS[type] as Array
+	var spec: Array = ITEM_ICONS[type]
 	var cell: VBoxContainer = UiKit.vbox(UiTokens.UNIT / 2)
 	cell.alignment = BoxContainer.ALIGNMENT_CENTER
 	var glyph: IconGlyph = UiKit.icon(spec[0] as StringName, 40, spec[1] as Color)
