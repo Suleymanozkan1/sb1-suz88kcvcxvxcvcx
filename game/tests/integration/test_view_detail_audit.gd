@@ -110,3 +110,28 @@ func test_the_sky_turns_with_the_camera() -> void:
 	var rest: Basis = mat.get_shader_parameter("rest_view") as Basis
 	var forward: Vector3 = CameraRig.rest_basis() * Vector3.FORWARD
 	assert_true((rest * forward).is_equal_approx(Vector3.FORWARD), "the rest view looks straight at the sink")
+
+
+func test_a_passed_gate_arch_never_hides_the_core() -> void:
+	assert_eq(EntityView.arch_sink(0.0), 0.0, "the arch stands while the core goes through")
+	assert_eq(EntityView.arch_sink(EntityView.ARCH_SINK_TO), 1.0, "then it is gone into the floor")
+	var sinking: float = _sightline_crossing(true)
+	var standing: float = _sightline_crossing(false)
+	assert_gt(standing, 1.0, "a standing arch's beam would sweep over the core for over a metre of travel")
+	assert_lt(sinking, standing * 0.5, "sinking cuts that to a brief graze right behind the core")
+
+
+## Metres of travel during which the arch's top beam overlaps the camera's line
+## to the core (camera at rest, beam and core with their real sizes).
+func _sightline_crossing(sinks: bool) -> float:
+	var cam: Vector3 = CameraRig.BASE_OFFSET
+	var core_y: float = SimConst.CORE_RADIUS
+	var metres: float = 0.0
+	for step: int in 81:
+		var through: float = float(step) * 0.1
+		var sink: float = EntityView.arch_sink(through) * EntityView.ARCH_SINK_DEPTH if sinks else 0.0
+		var top: float = ViewKit.ARCH_HEIGHT + ViewKit.ARCH_POST * 0.5 - sink
+		var sightline: float = core_y + (cam.y - core_y) * (through / cam.z)
+		if top - ViewKit.ARCH_POST < sightline + SimConst.CORE_RADIUS and top > sightline - SimConst.CORE_RADIUS:
+			metres += 0.1
+	return metres

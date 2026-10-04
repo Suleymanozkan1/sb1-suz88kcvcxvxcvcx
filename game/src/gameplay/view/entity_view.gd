@@ -12,6 +12,11 @@ const LAMP_WARN_TIME: float = 0.35
 const PICKUP_BOB: float = 0.05
 ## Mass plates float at collect height like the other pickups.
 const PLATE_Y: float = 0.4
+## A passed gate arch sinks between these distances behind the core (m), by
+## its full height plus the beam (it ends below the floor).
+const ARCH_SINK_FROM: float = 0.2
+const ARCH_SINK_TO: float = 1.6
+const ARCH_SINK_DEPTH: float = ViewKit.ARCH_HEIGHT + ViewKit.ARCH_POST
 
 var entity_index: int = -1
 var entity_type: int = -1
@@ -258,6 +263,16 @@ func animate(delta: float, lvl: SimLevel, sim_time: float, core_d: float = 0.0) 
 	# Appear: matter rises out of the floor (mechanical ease-out, no overshoot).
 	var a: float = ease(appear, 0.4)
 	position.y = (a - 1.0) * 0.6
+	if entity_type == SimConst.EntityType.PHASE_GATE or entity_type == SimConst.EntityType.FORM_GATE:
+		position.y -= arch_sink(core_d - lvl.e_d[entity_index]) * ARCH_SINK_DEPTH
+
+
+## How far a passed gate arch has sunk (0..1) [param through] metres after the
+## core went through it: its top beam would otherwise cross the camera's line to
+## the core (the player is never hidden, ART_DIRECTION §2), so it goes back into
+## the floor as quickly as it rose.
+static func arch_sink(through: float) -> float:
+	return smoothstep(ARCH_SINK_FROM, ARCH_SINK_TO, through)
 
 
 ## Shutter panel physically drops into its floor slot while the gate is open.
