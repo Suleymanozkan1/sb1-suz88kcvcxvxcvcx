@@ -25,6 +25,13 @@ const CORE_Y: float = 0.38
 const SILHOUETTE_DISTANCE: float = 150.0
 const SILHOUETTE_PARALLAX: float = 0.03
 const SILHOUETTE_MAX_APPROACH: float = 40.0
+## Environment grade and glow (only HDR energy blooms; matter never does).
+const GLOW_INTENSITY: float = 0.72
+const GRADE_CONTRAST: float = 1.08
+const GRADE_SATURATION: float = 1.12
+## Runway light strength along the track edges (lower in high-key worlds).
+const EDGE_LIGHT: float = 1.25
+const EDGE_LIGHT_BRIGHT: float = 0.45
 ## Bursts whose colour and size follow the equipped particle style.
 const SKINNED_BURSTS: PackedStringArray = ["collect", "prism", "streak"]
 ## Colour slots of the equipped particle style for those bursts.
@@ -261,6 +268,8 @@ func apply_world(world_theme: WorldTheme) -> void:
 	_floor_mat.set_shader_parameter("caustics", 0.12 if theme.caustics else 0.0)
 	_floor_mat.set_shader_parameter("gloss", theme.floor_gloss)
 	_floor_mat.set_shader_parameter("caustic_color", theme.key_color)
+	_floor_mat.set_shader_parameter("edge_light", theme.key_color)
+	_floor_mat.set_shader_parameter("edge_energy", EDGE_LIGHT_BRIGHT if theme.bright else EDGE_LIGHT)
 	_ribs.multimesh.mesh = MeshFactory.rib(theme.rib_profile)
 	_ribs.multimesh.instance_count = RIB_COUNT
 	_ribs.material_override = kit.structure_material
@@ -311,7 +320,7 @@ func _apply_environment() -> void:
 	# Only HDR energy (> 1.0) blooms; matter never does.
 	environment.glow_enabled = _glow
 	environment.glow_hdr_threshold = 1.0
-	environment.glow_intensity = 0.55
+	environment.glow_intensity = GLOW_INTENSITY
 	environment.glow_bloom = 0.0
 	environment.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
 	environment.fog_enabled = true
@@ -321,7 +330,11 @@ func _apply_environment() -> void:
 	environment.fog_depth_end = FOG_END
 	environment.fog_depth_curve = 1.4
 	environment.fog_sky_affect = 0.0
-	environment.adjustment_enabled = false
+	# A light grade: a touch more contrast and colour so materials and the
+	# warning lights read crisply on small screens (cheap: part of tonemapping).
+	environment.adjustment_enabled = true
+	environment.adjustment_contrast = GRADE_CONTRAST
+	environment.adjustment_saturation = GRADE_SATURATION
 
 
 func _apply_core_skin_defaults() -> void:

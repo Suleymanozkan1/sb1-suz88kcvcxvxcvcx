@@ -17,6 +17,16 @@ const MEMBRANE_SHADER: Shader = preload("res://assets/shaders/membrane.gdshader"
 const CHEVRON_SHADER: Shader = preload("res://assets/shaders/chevron.gdshader")
 const CORE_SHADER: Shader = preload("res://assets/shaders/core.gdshader")
 const STRUCTURE_SHADER: Shader = preload("res://assets/shaders/structure.gdshader")
+const HAZARD_SHADER: Shader = preload("res://assets/shaders/hazard.gdshader")
+## Warning-light strength: blooms in dark worlds, held back in high-key ones
+## where bloom on a light background washes the colour out.
+const WARN_ENERGY: float = 2.4
+const WARN_ENERGY_BRIGHT: float = 1.3
+const WARN_RIM: float = 0.4
+const WARN_RIM_BRIGHT: float = 0.12
+## hazard.gdshader pattern of pulse-gate shutters in every world (a gate panel
+## always wears hazard stripes, whatever the world's obstacles look like).
+const SHUTTER_PATTERN: int = 1
 const BLOCK_HEIGHT: float = 0.9
 const SHUTTER_THICKNESS: float = 0.12
 const POST_WIDTH: float = 0.12
@@ -56,7 +66,8 @@ const GRAVITY_CHEVRON_INTENSITY: float = 0.2
 static var _soft_dot: GradientTexture2D
 
 var theme: WorldTheme
-var block_mesh: ArrayMesh
+## The world's lane-blocker shapes (HazardShapes), materials on their surfaces.
+var barrier_meshes: Array[ArrayMesh] = []
 var slider_mesh: ArrayMesh
 var glass_mesh: ArrayMesh
 var shutter_mesh: ArrayMesh
@@ -73,7 +84,10 @@ var pad_insert_mesh: QuadMesh
 var plate_mesh: ArrayMesh
 var plate_ring_mesh: TorusMesh
 
-var hazard_material: StandardMaterial3D
+## Obstacle body (hazard.gdshader in the world's style) and warning light.
+var hazard_body_material: ShaderMaterial
+var hazard_light_material: StandardMaterial3D
+var shutter_material: ShaderMaterial
 var structure_material: ShaderMaterial
 var track_material: StandardMaterial3D
 var lamp_off_material: StandardMaterial3D
@@ -116,10 +130,6 @@ var _gravity_materials: Array[ShaderMaterial] = []
 func _init(world_theme: WorldTheme) -> void:
 	theme = world_theme
 	var bw: float = SimConst.BLOCK_HALF_WIDTH * 2.0
-	block_mesh = MeshFactory.chamfered_box(Vector3(bw, BLOCK_HEIGHT, SimConst.HAZARD_HALF_DEPTH * 2.0), HAZARD_CHAMFER)
-	slider_mesh = MeshFactory.chamfered_box(
-		Vector3(bw, BLOCK_HEIGHT * 0.82, SimConst.HAZARD_HALF_DEPTH * 2.3), HAZARD_CHAMFER
-	)
 	glass_mesh = MeshFactory.chamfered_box(
 		Vector3(bw * 0.97, BLOCK_HEIGHT * 0.95, SimConst.HAZARD_HALF_DEPTH * 1.9), HAZARD_CHAMFER
 	)
@@ -158,21 +168,55 @@ func _init(world_theme: WorldTheme) -> void:
 	plate_ring_mesh.rings = 24
 	plate_ring_mesh.ring_segments = 4
 	_build_materials()
+	_build_hazards()
+
+
+## The world's obstacles: its shape family with the body and warning-light
+## materials baked onto the surfaces (one set per world, shared by every view).
+func _build_hazards() -> void:
+	barrier_meshes = HazardShapes.barriers(theme.hazard_style)
+	for mesh: ArrayMesh in barrier_meshes:
+		_dress(mesh)
+	slider_mesh = HazardShapes.sled()
+	_dress(slider_mesh)
+
+
+func _dress(mesh: ArrayMesh) -> void:
+	mesh.surface_set_material(0, hazard_body_material)
+	if mesh.get_surface_count() > 1:
+		mesh.surface_set_material(1, hazard_light_material)
+
+
+## The barrier shape for lane [param lane] of entity [param index]: rows mix
+## the world's shapes, and the choice is stable for an entity.
+func barrier_mesh(index: int, lane: int) -> ArrayMesh:
+	return barrier_meshes[posmod(index * 31 + lane * 17, barrier_meshes.size())]
+
+
+func _hazard_body(pattern: int) -> ShaderMaterial:
+	var surface: Vector3 = HazardShapes.SURFACES.get(theme.hazard_style, HazardShapes.SURFACES["machined"])
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = HAZARD_SHADER
+	m.set_shader_parameter("body", theme.hazard_body)
+	m.set_shader_parameter("warn", theme.hazard_warn)
+	m.set_shader_parameter("pattern", pattern)
+	m.set_shader_parameter("roughness", surface.x)
+	m.set_shader_parameter("metallic", surface.y)
+	m.set_shader_parameter("clearcoat", surface.z)
+	m.set_shader_parameter("warn_energy", WARN_ENERGY_BRIGHT if theme.bright else WARN_ENERGY)
+	m.set_shader_parameter("warn_rim", WARN_RIM_BRIGHT if theme.bright else WARN_RIM)
+	return m
 
 
 func _build_materials() -> void:
-	hazard_material = StandardMaterial3D.new()
-	# High-key light lifts and desaturates the warm albedo after tonemapping;
-	# a deeper base keeps the same perceived WARNING hue in bright worlds.
-	hazard_material.albedo_color = Palette.WARNING.darkened(0.28) if theme.bright else Palette.WARNING
-	hazard_material.roughness = 0.55
-	hazard_material.metallic = 0.0
-	hazard_material.metallic_specular = 0.5
-	hazard_material.rim_enabled = true
-	hazard_material.rim = 0.22
-	hazard_material.rim_tint = 0.4
-	# Small matte blocks gain nothing from self-shadowing; avoids shadow acne.
-	hazard_material.disable_receive_shadows = true
+	hazard_body_material = _hazard_body(HazardShapes.PATTERNS.get(theme.hazard_style, 0))
+	shutter_material = _hazard_body(SHUTTER_PATTERN)
+	hazard_light_material = StandardMaterial3D.new()
+	hazard_light_material.albedo_color = theme.hazard_warn
+	hazard_light_material.roughness = 0.3
+	hazard_light_material.emission_enabled = true
+	hazard_light_material.emission = theme.hazard_warn
+	hazard_light_material.emission_energy_multiplier = WARN_ENERGY_BRIGHT if theme.bright else WARN_ENERGY
 	structure_material = _structure(theme.structure, theme.rib_material)
 	track_material = StandardMaterial3D.new()
 	track_material.albedo_color = theme.lane_color.darkened(0.45)

@@ -48,6 +48,13 @@ var bpm: float = 120.0
 var boss_name: String = ""
 ## High-key world (light background): UI and hazard bodies adapt contrast.
 var bright: bool = false
+## Obstacles (ART_DIRECTION §4, §5): the world's shape family (HazardShapes),
+## its body colour and its warning light. The warning light is the cue every
+## world shares: always red to orange-red, so a hazard reads as one at a glance
+## however it is built.
+var hazard_style: String = "machined"
+var hazard_body: Color = Color("#39404d")
+var hazard_warn: Color = Palette.WARNING
 
 
 static func from_world(world: Dictionary) -> WorldTheme:
@@ -87,6 +94,11 @@ static func from_world(world: Dictionary) -> WorldTheme:
 	t.silhouette = str(a.get("silhouette", t.silhouette))
 	t.caustics = bool(a.get("caustics", false))
 	t.floor_gloss = clampf(float(a.get("floor_gloss", 0.0)), 0.0, 1.0)
+	var hz: Dictionary = a.get("hazard", {}) as Dictionary
+	var style: String = str(hz.get("style", t.hazard_style))
+	t.hazard_style = style if HazardShapes.STYLES.has(style) else "machined"
+	t.hazard_body = _c(hz, "body", t.hazard_body)
+	t.hazard_warn = _c(hz, "warn", t.hazard_warn)
 	t.bpm = float((world.get("music", {}) as Dictionary).get("bpm", 120))
 	t.boss_name = str((world.get("boss", {}) as Dictionary).get("name", ""))
 	t.bright = t.sky_bottom.get_luminance() > 0.5

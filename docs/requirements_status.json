@@ -526,8 +526,8 @@
  },
  "REQ-106": {
   "status": "PARTIAL",
-  "evidence": "A coherent stylised 3D look: 11 custom shaders (game/assets/shaders), PBR presets (ViewKit.STRUCTURE_PRESETS), HDR glow, AgX. The renders in lead/worlds_final and lead/ribs show clean but simple chamfered-box hazards and flat silhouettes.",
-  "note": "Unchanged in kind: relief, shafts, probe and skins improved the look, but captures still show primitive chamfered blocks and simple ribs; 'premium' is human-judged and never seen on a phone."
+  "evidence": "A coherent stylised 3D look: custom shaders (game/assets/shaders), PBR presets (ViewKit.STRUCTURE_PRESETS), HDR glow, AgX, a light contrast/saturation grade and runway lamps (gameplay_view.gd, floor.gdshader). Obstacles are built per world from ten shape families (HazardShapes: machined/laser fence, crystal, lava rock, industrial, sea mine, pods, ice, rust barrels, monolith, candy) with hazard.gdshader materials; test_view_hazards.gd.",
+  "note": "Obstacles are no longer identical orange blocks (two shapes per world, own body material, shared warm warning light), but ribs stay simple and 'premium' is a human judgement made only on llvmpipe captures, never on a phone."
  },
  "REQ-107": {
   "status": "PARTIAL",
@@ -536,8 +536,8 @@
  },
  "REQ-108": {
   "status": "PARTIAL",
-  "evidence": "ViewKit.STRUCTURE_PRESETS gives each StandardMaterial3D its roughness, metallic, specular and clearcoat (anodised, steel, stone, ice, lacquer, crystal...); glass.gdshader with fresnel; sky radiance for metals. Renders show flat single-colour hazards and ribs.",
-  "note": "Structure now has a PBR ShaderMaterial with procedural relief normals per preset (structure.gdshader), hazards keep a plain satin StandardMaterial3D; no texture maps; material quality judged only on llvmpipe."
+  "evidence": "ViewKit.STRUCTURE_PRESETS gives structure its roughness, metallic, specular and clearcoat (anodised, steel, stone, ice, lacquer, crystal...); glass.gdshader with fresnel; sky radiance for metals; hazards use hazard.gdshader with per-family roughness/metallic/clearcoat (HazardShapes.SURFACES) and procedural patterns (lava cracks, glyphs, stripes, inner glow, veins).",
+  "note": "Structure has procedural relief normals per preset (structure.gdshader) and hazards a per-world PBR shader; no texture maps; material quality judged only on llvmpipe."
  },
  "REQ-109": {
   "status": "IMPLEMENTED",
@@ -1606,7 +1606,7 @@
  },
  "REQ-322": {
   "status": "PARTIAL",
-  "evidence": "ART_DIRECTION.md section 2; Palette.ENERGY_CORE 2.4 (only strong bloom), WARNING satin hazards, quiet top-centre HUD score; environment colours (sky, fog, floor, lanes) clamped to S <= 0.45 / V <= 0.55 by WorldTheme.quiet (test_environment_colours_stay_quiet_in_every_world); renders show core above hazards above environment.",
+  "evidence": "ART_DIRECTION.md section 2; Palette.ENERGY_CORE 2.4 (only strong bloom), hazards marked by a warm warning light kept in the red to orange-red band and >= 25 deg from every role hue (test_the_warning_light_is_always_a_danger_colour), quiet top-centre HUD score; environment colours (sky, fog, floor, lanes) clamped to S <= 0.45 / V <= 0.55 by WorldTheme.quiet (test_environment_colours_stay_quiet_in_every_world); renders show core above hazards above environment.",
   "note": "Structure hue now kept off gameplay-role hues (WorldTheme.off_roles; test_structure_never_wears_a_gameplay_role_colour) and environment S/V capped (test_environment_colours_stay_quiet_in_every_world). Structure value/brightness is not bounded: Candy Reactor and Frozen Pulse ribs are among the brightest large areas on screen in review24 captures; priority never checked with players or a human reviewer."
  },
  "REQ-323": {

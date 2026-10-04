@@ -1,5 +1,7 @@
 // FLUX DROP shaft floor: matte panels, recessed lane grooves, seams for speed.
-// Matter never glows (ART_DIRECTION §1): all detail is albedo/roughness only.
+// The panels are matter and never glow (ART_DIRECTION §1); the only light is
+// the runway strip along the track's outer edges (a functional lamp), whose
+// dashes stream past with the run's distance as a speed cue.
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
@@ -17,6 +19,10 @@ uniform vec4 caustic_color : source_color = vec4(0.6, 0.95, 0.9, 1.0);
 uniform float beat = 0.0;
 // Polished floors (ice, wet stone, obsidian) reflect the shaft (0 = matte).
 uniform float gloss = 0.0;
+// Runway lights along the outer track edges (0 switches them off).
+uniform vec4 edge_light : source_color = vec4(0.8, 0.86, 0.95, 1.0);
+uniform float edge_energy = 0.0;
+uniform float edge_dash = 2.4;
 
 varying vec3 local_pos;
 
@@ -64,6 +70,11 @@ void fragment() {
 		col = mix(col, caustic_color.rgb, caustic * caustics);
 	}
 	ALBEDO = col;
+	if (edge_energy > 0.0) {
+		float edge = aa_line(abs(x) - half_span - 0.16, 0.022);
+		float dash = smoothstep(0.35, 0.45, fract(dist / edge_dash)) * (1.0 - smoothstep(0.85, 0.95, fract(dist / edge_dash)));
+		EMISSION = edge_light.rgb * edge * dash * edge_energy;
+	}
 	ROUGHNESS = mix(0.82 - groove * 0.2, 0.24, gloss);
 	METALLIC = 0.18;
 	SPECULAR = 0.4;

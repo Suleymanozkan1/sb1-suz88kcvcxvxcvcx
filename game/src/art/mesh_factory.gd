@@ -103,6 +103,57 @@ static func _add_tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, xform:
 		st.add_vertex(xform * v)
 
 
+## Public building blocks for other art scripts (HazardShapes): a chamfered box,
+## a flat-shaded prism / frustum / cone and a low-poly ball, all in the blocks'
+## one vertex format (position + flat normal) so they share one surface.
+static func add_box(st: SurfaceTool, size: Vector3, xform: Transform3D, ratio: float = CHAMFER_RATIO) -> void:
+	_append_chamfered_box(st, size, ratio, xform)
+
+
+## Prism along local Y with [param sides] faces; [param top_radius] 0 makes a cone.
+static func add_prism(
+	st: SurfaceTool, bottom_radius: float, top_radius: float, height: float, sides: int, xform: Transform3D
+) -> void:
+	var hh: float = height * 0.5
+	for k: int in sides:
+		var a0: float = TAU * float(k) / float(sides)
+		var a1: float = TAU * float(k + 1) / float(sides)
+		var b0: Vector3 = Vector3(cos(a0) * bottom_radius, -hh, sin(a0) * bottom_radius)
+		var b1: Vector3 = Vector3(cos(a1) * bottom_radius, -hh, sin(a1) * bottom_radius)
+		var t0: Vector3 = Vector3(cos(a0) * top_radius, hh, sin(a0) * top_radius)
+		var t1: Vector3 = Vector3(cos(a1) * top_radius, hh, sin(a1) * top_radius)
+		if top_radius > 0.0:
+			_add_quad(st, [b0, b1, t1, t0], xform)
+			_add_tri(st, t0, t1, Vector3(0, hh, 0), xform)
+		else:
+			_add_tri(st, b0, b1, Vector3(0, hh, 0), xform)
+		_add_tri(st, b1, b0, Vector3(0, -hh, 0), xform)
+
+
+## Low-poly ball (latitude rings x longitude segments), flat shaded.
+static func add_ball(st: SurfaceTool, radius: float, rings: int, segments: int, xform: Transform3D) -> void:
+	for r: int in rings:
+		var p0: float = PI * float(r) / float(rings) - PI * 0.5
+		var p1: float = PI * float(r + 1) / float(rings) - PI * 0.5
+		for k: int in segments:
+			var a0: float = TAU * float(k) / float(segments)
+			var a1: float = TAU * float(k + 1) / float(segments)
+			var v00: Vector3 = _sphere_point(radius, p0, a0)
+			var v01: Vector3 = _sphere_point(radius, p0, a1)
+			var v10: Vector3 = _sphere_point(radius, p1, a0)
+			var v11: Vector3 = _sphere_point(radius, p1, a1)
+			if r == 0:
+				_add_tri(st, v00, v11, v10, xform)
+			elif r == rings - 1:
+				_add_tri(st, v00, v01, v10, xform)
+			else:
+				_add_quad(st, [v00, v01, v11, v10], xform)
+
+
+static func _sphere_point(radius: float, lat: float, lon: float) -> Vector3:
+	return Vector3(cos(lat) * cos(lon), sin(lat), cos(lat) * sin(lon)) * radius
+
+
 ## Octahedral shard: the single collectible silhouette.
 static func shard(radius: float, height: float) -> SphereMesh:
 	var key: String = "shard:%f:%f" % [radius, height]

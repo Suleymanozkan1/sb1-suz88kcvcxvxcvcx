@@ -101,7 +101,7 @@ func configure(index: int, type: int, lvl: SimLevel, kit: ViewKit) -> void:
 				if (lvl.e_mask[index] & (1 << l)) != 0:
 					var x: float = SimConst.lane_x(l, lanes)
 					var body: MeshInstance3D = _part(
-						n * 2, kit.block_mesh, kit.hazard_material, Vector3(x, h * 0.5, 0.0), true
+						n * 2, kit.barrier_mesh(index, l), null, Vector3(x, h * 0.5, 0.0), true
 					)
 					if n == 0:
 						_body = body
@@ -111,9 +111,7 @@ func configure(index: int, type: int, lvl: SimLevel, kit: ViewKit) -> void:
 			var from_lane: int = int(lvl.e_p0[index])
 			var to_lane: int = int(lvl.e_p1[index])
 			_part(0, kit.track_mesh(lanes, from_lane, to_lane), kit.track_material, Vector3.ZERO, false)
-			_body = _part(
-				1, kit.slider_mesh, kit.hazard_material, Vector3(lvl.slider_x(index, 0.0), h * 0.41, 0.0), true
-			)
+			_body = _part(1, kit.slider_mesh, null, Vector3(lvl.slider_x(index, 0.0), h * 0.41, 0.0), true)
 			_shadow = _part(2, kit.blob_mesh, kit.blob_material, Vector3(lvl.slider_x(index, 0.0), 0.006, 0.0), false)
 		SimConst.EntityType.PULSE_GATE:
 			var k: int = 0
@@ -122,7 +120,7 @@ func configure(index: int, type: int, lvl: SimLevel, kit: ViewKit) -> void:
 					continue
 				var x2: float = SimConst.lane_x(l2, lanes)
 				var half: float = SimConst.BLOCK_HALF_WIDTH + ViewKit.POST_WIDTH * 0.6
-				_body = _part(0, kit.shutter_mesh, kit.hazard_material, Vector3(x2, h * 0.5, 0.0), true)
+				_body = _part(0, kit.shutter_mesh, kit.shutter_material, Vector3(x2, h * 0.5, 0.0), true)
 				_part(1, kit.post_mesh, kit.structure_material, Vector3(x2 - half, h * 0.62, 0.0), true)
 				_part(2, kit.post_mesh, kit.structure_material, Vector3(x2 + half, h * 0.62, 0.0), true)
 				_lamps.append(_part(3, kit.lamp_mesh, kit.lamp_off_material, Vector3(x2 - half, h * 1.29, 0.0), false))

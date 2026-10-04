@@ -16,13 +16,15 @@ and never on the scenery.
 |---|---|
 | Core, its trail, sparks, prisms, phase membranes, portal membranes, the far "flux sink" | Barriers, sliders, shutters, breakable glass, frames/ribs, floor, gate arches |
 
-Small *functional* indicator lights on matter (for example a shutter's "closing" lamp) are allowed, because
-they carry gameplay information. Decoration never glows.
+Small *functional* indicator lights on matter (for example a shutter's "closing" lamp, an obstacle's
+warning light, the runway lamps at the lane edges) are allowed, because they carry gameplay
+information. Decoration never glows.
 
 ## 2. Visual priority (enforced by value, saturation and motion)
 
 1. **Player** (core): highest value, the only strong bloom, always in motion.
-2. **Immediate hazard**: WARNING hue, strong silhouette, mid-high value, matte-satin finish.
+2. **Immediate hazard**: a strong silhouette in the world's own obstacle family, always marked by a warm
+   warning light (red to orange-red) and a warm rim; the body material belongs to the world.
 3. **Objective**: HUD objective chip; collectibles that form the path.
 4. **Interaction**: gates and pickups, each with a unique silhouette.
 5. **Score / combo**: top-centre HUD, quiet until it changes.
@@ -39,7 +41,7 @@ Worlds change only environment colours, light and materials.
 | PRIMARY | `#46E6F0` | Core default energy, phase A, primary UI action |
 | SECONDARY | `#F0468C` | Phase B energy, secondary emphasis |
 | ACCENT | `#F5C451` | Rewards: prisms, stars, coins, best scores |
-| WARNING | `#FF6A3D` | Every hazard body; danger cues |
+| WARNING | `#FF6A3D` | Danger cues; each world tunes its obstacle warning light inside the red to orange-red band |
 | SUCCESS | `#5BE3A1` | Shield, cleared states, positive confirmation |
 | FAILURE | `#E5484D` | Fail state, damage, destructive actions |
 | Ink / Graphite / Slate | `#0B0E14` / `#1A1F29` / `#2A3140` | UI surfaces, environment darks |
@@ -58,12 +60,20 @@ contrast, but stay within the saturation cap. Each world defines `sky_top`, `sky
   the colour, communicates the tap meaning.
 * **Collectibles:** spark = small octahedral shard (always the same silhouette); prism = larger shard
   with an orbiting ring (the "premium" version of the same family).
-* **Obstacles:** chamfered blocks. Every hazard uses the same, bolder chamfer ratio (16 % of the
-  shortest edge, `ViewKit.HAZARD_CHAMFER`; structure, posts and ribs use 8 %, `MeshFactory.CHAMFER_RATIO`)
-  and the same height (0.9 u). Variation comes from what they do: a *barrier* is a solid block; a
-  *slider* is a block on a visible floor track whose length shows its range; a *shutter* (pulse gate)
-  is a panel that physically drops into the floor when open; a *breakable* is the same block in glass
-  with fracture lines.
+* **Obstacles:** each world builds its lane blockers from its own shape family
+  (`HazardShapes`, `art.hazard.style`), two shapes per world mixed along a row so a run never shows a
+  wall of identical boxes: machined blocks and laser fences (Neon Core), crystal clusters (Crystal
+  Valley), lava rock with glowing cracks (Molten Grid), striped industrial blocks and drum stacks
+  (Cloud Factory), spiked sea mines (Deep Ocean), organic pods with pulsing veins (Cyber Garden), ice
+  spikes with a warm core (Frozen Pulse), rusted barrels and crates (Desert Reactor), glyph monoliths
+  (Void Space) and candy blocks and lollipops (Candy Reactor). Every shape fits the lane block
+  (1.16 u wide, 0.44 u deep, at least 0.75 u tall, standing on the floor), so the silhouette never
+  lies about the collision box. One cue is shared by all of them: a warm warning light (a lamp, a
+  band, cracks, veins or an inner glow; red to orange-red, ≥ 25° from every role hue) and a warm
+  fresnel rim that keeps dark bodies readable on dark floors. Body colours that sit near a role hue
+  stay desaturated (≤ 0.35). Behaviour still tells the type: a *slider* is a sled on a visible floor
+  track whose length shows its range; a *shutter* (pulse gate) is a striped panel that physically
+  drops into the floor when open; a *breakable* is a glass block with fracture lines.
 * **Gates:** a chamfered arch spanning all lanes; the membrane inside is energy.
 * **Mass & gravity:** a *launch pad* is a matte slab in the structure material with a PRIMARY chevron
   insert pointing down the track (a force, like a current); a *plate* is matte ballast (heavy-surge
@@ -83,7 +93,7 @@ height 0.32 u. Everything is measured against the core.
 | Material | Albedo value | Roughness | Metallic | Specular | Emission | Notes |
 |---|---|---|---|---|---|---|
 | Anodised metal (ribs) | 0.18–0.30 | 0.42 | 0.85 | 0.5 | 0 | Clear key-light highlights |
-| Satin hazard paint | WARNING | 0.55 | 0.0 | 0.5 | 0 | Bevel catches light, giving a crisp silhouette |
+| Hazard body (per world) | world `art.hazard.body` | 0.08–0.9 | 0.0–0.55 | 0.5 | warning light only | `hazard.gdshader`: machined, crystal, lava rock, painted stripes, glyphs, ice, candy, organic; clearcoat on glassy and candy families |
 | Ceramic / porcelain | 0.75–0.9 | 0.3 | 0.0 | 0.6 | 0 | High-key world (Cloud Factory) |
 | Stone / sandstone | 0.35–0.55 | 0.85 | 0.0 | 0.3 | 0 | Desert, Crystal Valley rock |
 | Glass (breakables) | tint 0.6 | 0.08 | 0.0 | 0.7 | 0 | Fresnel-strong; fracture lines are darker, never glowing |
@@ -112,8 +122,13 @@ world units so nothing stretches or tiles visibly; Low quality and battery saver
   information: you see what is close to you.
 * **Background:** the "flux sink" glow on the horizon is the only large light shape. It gives the run a
   direction.
-* **Glow/bloom:** HDR threshold ≥ 1.0. Only energy exceeds it. Tonemapper: AgX (Mobile) / ACES
-  (Compatibility).
+* **Glow/bloom:** HDR threshold ≥ 1.0. Only energy and the functional warning lights exceed it.
+  Tonemapper: AgX (Mobile) / ACES (Compatibility).
+* **Grade:** a light global adjustment (contrast 1.08, saturation 1.12, `gameplay_view.gd`) so the
+  materials do not look washed out after tonemapping; environment colours are still capped by
+  `WorldTheme.quiet()` before the grade.
+* **Runway lamps:** dashed lights just outside the lanes in the key-light colour (`floor.gdshader`
+  `edge_light`), dimmer in high-key worlds. They mark the playable width at speed.
 * No lens flares, no volumetric fog, no motion blur. Fog is distance-only, for depth.
 * **Light shafts:** in worlds with open light (Crystal Valley, Deep Ocean, Cyber Garden, Desert Reactor)
   four faint beams of the key light colour lean through the far shaft at 6 % opacity (within the 8 %
@@ -264,8 +279,9 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 
 | Element | Where | Communicates | Kept / removed |
 |---|---|---|---|
-| Barrier block | `entity_view.gd` | Solid: do not touch | Kept |
-| Slider block and its floor track | `entity_view.gd`, `view_kit.gd` `track_mesh` | A moving hazard and its full range | Kept |
+| Barrier shape (two per world, mixed along a row) | `hazard_shapes.gd`, `view_kit.gd` `barrier_mesh` | Solid: do not touch; which world you are in | Kept |
+| Obstacle warning light (lamp, band, cracks, veins, inner glow) and warm rim | `hazard.gdshader`, `view_kit.gd` | Danger, the same in every world | Kept |
+| Slider sled (warning strip on its front face) and its floor track | `hazard_shapes.gd` `sled`, `view_kit.gd` `track_mesh` | A moving hazard and its full range | Kept |
 | Pulse-gate shutter, posts, floor slot | `entity_view.gd` `_animate_shutter` | Timed gate: open when dropped, shut when raised | Kept |
 | Pulse-gate lamps | `entity_view.gd` | Closing soon / closed (the one functional light on matter, §1) | Kept |
 | Breakable glass block with cracks | `glass.gdshader` | Breakable by a dash or a full plate stack | Kept |
@@ -292,6 +308,7 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 |---|---|---|---|
 | Lane surfaces (lighter than the outer floor) | `floor.gdshader` | The playable width | Kept |
 | Lane grooves | `floor.gdshader` | Lane boundaries | Kept |
+| Runway lamps outside the lanes (dashed, key-light colour) | `floor.gdshader` `edge_light` | The playable width and speed | Kept |
 | Groove lips (brighten on the beat) | `floor.gdshader` `beat` | Lane edges; the music beat (off with reduce motion) | Kept |
 | Panel seams | `floor.gdshader` | Speed | Kept |
 | Deep Ocean caustics (albedo only) | `floor.gdshader` | The underwater world | Kept |
