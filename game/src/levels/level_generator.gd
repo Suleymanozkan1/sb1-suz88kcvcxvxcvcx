@@ -356,7 +356,7 @@ func _replay_plan(data: Dictionary) -> Dictionary:
 	replay.tap_ticks = _taps
 	replay.play_on(sim)
 	var missed: Array = []
-	var ev: PackedInt32Array = sim.events
+	var ev: PackedInt32Array = sim.recorded_events()
 	var i: int = 0
 	while i < ev.size():
 		if ev[i] == SimConst.EventType.SPARK_MISSED:

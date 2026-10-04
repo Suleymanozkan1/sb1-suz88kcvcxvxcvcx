@@ -1,7 +1,11 @@
 // FLUX DROP breakable glass: same chamfered block, but transparent with dark
 // fracture lines so "destructible" reads differently from a solid barrier.
+// Fine Voronoi fractures (a 3x3 cell search per fragment): High and Ultra.
+// Low and Medium use glass_lite.gdshader (analytic lines, no loop).
 shader_type spatial;
 render_mode blend_mix, cull_back, depth_draw_always, diffuse_burley, specular_schlick_ggx;
+
+#include "res://assets/shaders/glass_common.gdshaderinc"
 
 uniform vec4 tint : source_color = vec4(1.0, 0.7, 0.56, 1.0);
 uniform float base_alpha = 0.42;
@@ -38,9 +42,9 @@ void fragment() {
 	// Fracture lines in world-unit scale (no stretching): darker, slightly opaque.
 	float edge = cell_edge(obj_pos.xy * 3.2 + obj_pos.z * 1.7);
 	float crack = 1.0 - smoothstep(0.02, 0.06, edge);
-	ALBEDO = mix(tint.rgb, tint.rgb * 0.35, crack);
-	ROUGHNESS = mix(0.08, 0.5, crack);
+	ALBEDO = fd_glass_albedo(crack, tint.rgb);
+	ROUGHNESS = fd_glass_roughness(crack);
+	ALPHA = fd_glass_alpha(crack, fres, base_alpha);
 	METALLIC = 0.0;
 	SPECULAR = 0.75;
-	ALPHA = clamp(base_alpha + fres * 0.4 + crack * 0.3, 0.0, 0.95);
 }

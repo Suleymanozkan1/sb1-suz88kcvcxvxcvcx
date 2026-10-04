@@ -14,6 +14,8 @@ const FLAG_RESOLVED: int = 2
 const FLAG_CLOSE: int = 4
 ## Set when a launched core passed over a hazard it would have hit on the floor.
 const FLAG_VAULT: int = 8
+## Initial event buffer: room for 32 events (one busy frame), doubled on demand.
+const EVENT_BUFFER_START: int = 96
 
 var level: SimLevel
 ## Presentation events are recorded only when needed (off for solver searches).
@@ -80,8 +82,11 @@ var vaults: int = 0
 var stack_crashes: int = 0
 var cursor: int = 0
 var ent_flags: PackedByteArray = PackedByteArray()
-## Flat triples: [event_type, entity_index, value, ...].
+## Flat triples [event_type, entity_index, value, ...] in events[0, event_len).
+## The buffer keeps its capacity: clear_events() only resets the length, so a
+## running game does not allocate per tick (Godot frees a packed array on clear).
 var events: PackedInt32Array = PackedInt32Array()
+var event_len: int = 0
 
 
 func _init(sim_level: SimLevel = null) -> void:
@@ -148,7 +153,7 @@ func reset() -> void:
 	cursor = 0
 	ent_flags = PackedByteArray()
 	ent_flags.resize(level.entity_count())
-	events.clear()
+	event_len = 0
 
 
 ## Call after [method SimLevel.append_entities] (endless streaming).
@@ -335,9 +340,22 @@ func _broken_ahead() -> int:
 
 func _emit(type: int, entity: int, value: int) -> void:
 	if record_events:
-		events.append(type)
-		events.append(entity)
-		events.append(value)
+		if event_len + 3 > events.size():
+			events.resize(maxi(EVENT_BUFFER_START, events.size() * 2))
+		events[event_len] = type
+		events[event_len + 1] = entity
+		events[event_len + 2] = value
+		event_len += 3
+
+
+## Forgets the recorded events, keeping the buffer for reuse.
+func clear_events() -> void:
+	event_len = 0
+
+
+## A copy of the recorded events (tools and tests; the game reads the buffer).
+func recorded_events() -> PackedInt32Array:
+	return events.slice(0, event_len)
 
 
 func _target_speed() -> float:

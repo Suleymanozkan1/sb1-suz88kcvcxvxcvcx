@@ -6,6 +6,8 @@ extends RefCounted
 ## functional lamps) uses emission.
 
 const GLASS_SHADER: Shader = preload("res://assets/shaders/glass.gdshader")
+## Analytic-crack glass for Low and Medium (no per-fragment Voronoi search).
+const GLASS_LITE_SHADER: Shader = preload("res://assets/shaders/glass_lite.gdshader")
 const MEMBRANE_SHADER: Shader = preload("res://assets/shaders/membrane.gdshader")
 const CHEVRON_SHADER: Shader = preload("res://assets/shaders/chevron.gdshader")
 const CORE_SHADER: Shader = preload("res://assets/shaders/core.gdshader")
@@ -241,6 +243,11 @@ func _structure(albedo: Color, kind: String) -> ShaderMaterial:
 ## Surface relief on structure (off on the Low preset).
 func set_detail(enabled: bool) -> void:
 	structure_material.set_shader_parameter("detail_strength", 1.0 if enabled else 0.0)
+
+
+## Fine Voronoi fractures (High and Ultra) or the analytic variant.
+func set_fine_glass(enabled: bool) -> void:
+	glass_material.shader = GLASS_SHADER if enabled else GLASS_LITE_SHADER
 
 
 func _membrane(color: Color, radial: bool, density: float) -> ShaderMaterial:

@@ -60,15 +60,18 @@ func test_quality_presets_drive_reflections_shadows_and_relief() -> void:
 	var view: GameplayView = _view_for("w07_l20", "frozen_pulse")
 	view.set_quality(true, 1.0, 28, true, true, true, true, true)
 	assert_true(view._probe.visible, "High: reflection probe on")
+	assert_eq(view.kit.glass_material.shader, ViewKit.GLASS_SHADER, "High: fine Voronoi glass")
+	assert_false(bool((presets["medium"] as Dictionary)["fine_glass"]), "Medium uses the analytic glass")
 	assert_gt(float(view.kit.structure_material.get_shader_parameter("detail_strength")), 0.0, "surface relief on")
 	view._update_frame(0.016)
 	var first: Vector3 = view._probe.position
 	view._update_frame(0.016)
 	assert_eq(view._probe.position, first, "the probe does not move (re-capture) every frame")
-	view.set_quality(false, 0.4, 12, false, false, false, false, false)
+	view.set_quality(false, 0.4, 12, false, false, false, false, false, false)
 	assert_false(view._probe.visible, "Low: no probe")
 	assert_eq(float(view.kit.structure_material.get_shader_parameter("detail_strength")), 0.0, "no relief")
 	assert_false(view.key_light.shadow_enabled, "no shadows")
+	assert_eq(view.kit.glass_material.shader, ViewKit.GLASS_LITE_SHADER, "Low: no per-fragment cell search")
 
 func test_every_world_has_side_detail_and_shafts_where_light_is_open() -> void:
 	var shafts: int = 0

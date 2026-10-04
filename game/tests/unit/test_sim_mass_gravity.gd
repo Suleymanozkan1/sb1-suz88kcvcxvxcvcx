@@ -21,7 +21,7 @@ func _run(sim: FluxSim, taps: Array = []) -> FluxSim:
 
 
 func _has_event(sim: FluxSim, type: int) -> bool:
-	for k: int in range(0, sim.events.size(), 3):
+	for k: int in range(0, sim.event_len, 3):
 		if sim.events[k] == type:
 			return true
 	return false
@@ -270,4 +270,4 @@ func test_mass_and_gravity_runs_are_deterministic() -> void:
 	assert_eq(first.tick, second.tick)
 	assert_eq(first.score, second.score)
 	assert_eq(first.d, second.d)
-	assert_eq(first.events, second.events, "same events tick for tick")
+	assert_eq(first.recorded_events(), second.recorded_events(), "same events tick for tick")

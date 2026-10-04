@@ -6,7 +6,9 @@ extends Node
 
 signal run_started(level_id: String)
 signal run_ended(result: RunResult)
-signal frame_events(events: PackedInt32Array)
+## [param events] holds [param count] values: (type, entity, value) triples. The
+## buffer is reused next frame, so listeners read it during the call only.
+signal frame_events(events: PackedInt32Array, count: int)
 
 enum Phase { IDLE, READY, RUNNING, ENDED }
 
@@ -42,7 +44,6 @@ var _pending_taps: int = 0
 var _last_tap_tick: int = -RunReplay.MIN_TAP_GAP_TICKS
 ## Ticks of the most recent applied taps (window check, same rule as the server).
 var _recent_taps: PackedInt32Array = PackedInt32Array()
-var _frame_events: PackedInt32Array = PackedInt32Array()
 
 
 ## Loads level data; [param modifiers] may contain zen, speed_scale,
@@ -99,7 +100,8 @@ func _reset_run_state() -> void:
 	_pending_taps = 0
 	_last_tap_tick = -RunReplay.MIN_TAP_GAP_TICKS
 	_recent_taps.clear()
-	_frame_events.clear()
+	if sim != null:
+		sim.clear_events()
 	_autopilot_index = 0
 	time_scale = 1.0
 	hit_stop = 0.0
@@ -173,10 +175,8 @@ func _process(delta: float) -> void:
 		var tap: bool = _next_tap()
 		if tap:
 			replay.record_tap(sim.tick)
+		# Events gather in the sim's reusable buffer and go out once per frame.
 		sim.step(tap)
-		if not sim.events.is_empty():
-			_frame_events.append_array(sim.events)
-			sim.events.clear()
 		_accum -= SimConst.DT
 		steps += 1
 		if not sim.is_running():
@@ -184,9 +184,9 @@ func _process(delta: float) -> void:
 	if steps == MAX_STEPS_PER_FRAME:
 		_accum = minf(_accum, SimConst.DT)
 	alpha = clampf(_accum / SimConst.DT, 0.0, 1.0)
-	if not _frame_events.is_empty():
-		frame_events.emit(_frame_events)
-		_frame_events = PackedInt32Array()
+	if sim.event_len > 0:
+		frame_events.emit(sim.events, sim.event_len)
+		sim.clear_events()
 	if not sim.is_running():
 		_end()
 
@@ -223,7 +223,7 @@ func step_ticks(count: int, taps_at: PackedInt32Array = PackedInt32Array()) -> v
 		if tap:
 			replay.record_tap(sim.tick)
 		sim.step(tap)
-		sim.events.clear()
+		sim.clear_events()
 	if not sim.is_running() and phase != Phase.ENDED:
 		_end()
 

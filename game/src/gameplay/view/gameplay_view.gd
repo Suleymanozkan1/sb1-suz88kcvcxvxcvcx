@@ -476,7 +476,8 @@ func set_quality(
 	shadows: bool,
 	glow: bool = true,
 	ambient_particles: bool = true,
-	reflections: bool = false
+	reflections: bool = false,
+	fine_glass: bool = true
 ) -> void:
 	_ensure_built()
 	post_fx_enabled = post_fx
@@ -491,6 +492,7 @@ func set_quality(
 	_surface_detail = dynamic_light
 	if kit != null:
 		kit.set_detail(_surface_detail)
+		kit.set_fine_glass(fine_glass)
 	key_light.shadow_enabled = shadows
 	environment.glow_enabled = _glow
 	_probe.visible = reflections
@@ -818,9 +820,9 @@ func _entity_pos(index: int) -> Vector3:
 	return Vector3(SimConst.lane_x(lvl.e_lane[index], lvl.lane_count), CORE_Y, -lvl.e_d[index])
 
 
-func _on_frame_events(events: PackedInt32Array) -> void:
+func _on_frame_events(events: PackedInt32Array, count: int) -> void:
 	var i: int = 0
-	while i + 2 < events.size():
+	while i + 2 < count:
 		_handle_event(events[i], events[i + 1], events[i + 2])
 		i += 3
 

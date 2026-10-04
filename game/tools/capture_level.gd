@@ -68,7 +68,8 @@ func _setup() -> void:
 			bool(p.get("shadows", true)),
 			bool(p.get("glow", true)),
 			bool(p.get("ambient_particles", true)),
-			bool(p.get("reflections", false))
+			bool(p.get("reflections", false)),
+			bool(p.get("fine_glass", true))
 		)
 	if not _fail_on_purpose:
 		for t: Variant in (data["solution"] as Dictionary)["taps"] as Array:

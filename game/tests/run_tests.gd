@@ -86,10 +86,14 @@ func _collect(dir_path: String, out: PackedStringArray) -> void:
 
 func _run_file(path: String) -> void:
 	var script: GDScript = load(path) as GDScript
-	if script == null:
+	# A parse error can still hand back a script object: it cannot be
+	# instantiated and lists no methods. Either way the file's tests did not
+	# run, which must fail the suite rather than shrink it silently.
+	if script == null or not script.can_instantiate():
 		_total += 1
 		_failed += 1
-		_failure_lines.append("%s: could not load script" % path)
+		_failure_lines.append("%s: could not load script (parse error?)" % path)
+		print("   FAIL %s: could not load script" % path.get_file())
 		return
 	var methods: PackedStringArray = PackedStringArray()
 	for m: Dictionary in script.get_script_method_list():
