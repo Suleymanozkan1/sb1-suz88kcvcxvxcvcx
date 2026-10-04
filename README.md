@@ -28,6 +28,7 @@ godot --headless --path game -s res://tools/generate_levels.gd -- --check  # reg
 # lint and scans (pip install gdtoolkit==4.5.0)
 (cd game && gdlint src tests tools server)
 python3 tools/ci/placeholder_scan.py && python3 tools/ci/license_check.py
+python3 tools/report/asset_gate.py --check   # every asset registered against the art direction
 
 # screenshots (needs a display; use xvfb-run on Linux)
 xvfb-run -a godot --path game --rendering-driver opengl3 --resolution 540x960 \
@@ -113,7 +114,8 @@ No third-party runtime code is shipped. Reference repositories inspected (and wh
 * **CodeRabbit**: the CLI could not be installed (network policy); substitute independent reviews are
   logged in [docs/CODERABBIT_REPORT.md](docs/CODERABBIT_REPORT.md).
 * **Online services**: no hosted backend; leaderboards are local-only until `leaderboard.base_url` is
-  configured. Ads, in-app purchases and push notifications use null providers that report
+  configured, and cloud save (sync with a deterministic merge, `game/server/README.md`) stays off with an
+  honest Settings label until `cloud_save.base_url` is configured. Ads, in-app purchases and push notifications use null providers that report
   "unavailable" honestly; real SDKs and accounts are needed.
 * **Device testing**: no physical device was available — performance, battery, thermal and haptics were
   verified by code, headless tests and software-rendered screenshots, not on hardware.
@@ -130,6 +132,8 @@ No third-party runtime code is shipped. Reference repositories inspected (and wh
 | [docs/REQUIREMENTS_CHECKLIST.md](docs/REQUIREMENTS_CHECKLIST.md) | every requirement with an ID (written before development) |
 | [docs/REPOSITORIES.md](docs/REPOSITORIES.md) | reference repositories inspected and what was (not) used |
 | [docs/CODERABBIT_REPORT.md](docs/CODERABBIT_REPORT.md) | milestone reviews (CodeRabbit blocked → substitute reviews) |
+| [docs/REVIEW_FINDINGS.md](docs/REVIEW_FINDINGS.md) | every critical and major review finding: issue → fix → test → verify |
+| [docs/ASSET_GATE.md](docs/ASSET_GATE.md) | per-asset art gate (generated from `game/data/art/asset_gate.json`) |
 | [docs/FINAL_IMPLEMENTATION_REPORT.md](docs/FINAL_IMPLEMENTATION_REPORT.md) | status of every requirement with evidence |
 | [game/server/README.md](game/server/README.md) | server-side replay verification |
 
