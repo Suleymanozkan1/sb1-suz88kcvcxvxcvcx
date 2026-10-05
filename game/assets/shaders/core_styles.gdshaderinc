@@ -85,10 +85,12 @@ vec3 fd_core_style(int style, vec3 obj, float ndv, float t, vec3 ca, vec3 cb, ve
 		float twinkle = 0.5 + 0.5 * sin(t * 4.0 + fd_hash13(cell + 3.0) * 6.2831);
 		float point_m = 1.0 - smoothstep(0.0, 0.42, length(fract(p * 5.0) - 0.5));
 		col = mix(cb * 0.3, ca * 0.55, 0.5 + 0.5 * obj.y) + star * point_m * twinkle * 2.4;
-	} else { // Plasma (default)
-		m = fd_fbm(p + vec3(0.0, t * 1.4, t * 0.6));
+	} else { // Plasma (default): warped plasma with bright filaments running through it
+		vec3 q = p + vec3(0.0, t * 1.4, t * 0.6);
+		m = fd_fbm(q + vec3(fd_fbm(q * 0.7 + vec3(t * 0.3)) * 1.6));
 		m = smoothstep(0.2, 0.85, m);
-		col = mix(ca, cb, m * 0.65);
+		float fil = 1.0 - smoothstep(0.0, 0.05, abs(fd_noise3(q * 1.6) - 0.5));
+		col = mix(ca, cb, m * 0.8) + mix(ca, rim, 0.5) * fil * 0.9;
 	}
 	return col;
 }

@@ -22,7 +22,8 @@ information. Decoration never glows.
 
 ## 2. Visual priority (enforced by value, saturation and motion)
 
-1. **Player** (core): highest value, the only strong bloom, always in motion.
+1. **Player** (the flux craft carrying the core): its energy parts and engine flames are the highest
+   value and the strongest bloom; always in motion.
 2. **Immediate hazard**: a strong silhouette in the world's own obstacle family, always marked by a warm
    warning light (red to orange-red) and a warm rim; the body material belongs to the world.
 3. **Objective**: HUD objective chip; collectibles that form the path.
@@ -55,8 +56,16 @@ contrast, but stay within the saturation cap. Each world defines `sky_top`, `sky
 
 ## 4. Shape language
 
-* **Core family:** circle-derived primitives that tell the form at a glance. ORB = sphere, PRISM =
-  octahedron, COMET = capsule along the motion axis, SURGE = sphere inside a ring. The silhouette, not
+* **Player craft (`CraftShapes`):** the player is a small flux craft with the energy core in its
+  canopy, seen from behind: wings, glowing engines and their flames. Each form is its own craft, so the
+  silhouette still tells the tap meaning: HOP = the Glider (rounded hull, swept wings, twin engines),
+  PHASE = the Prism (a tall crystal hull with blade wings, all energy so the phase colour fills it),
+  DASH = the Dart (a long needle, wings swept right back, one big engine and a long flame), SURGE = the
+  Hauler (a chunky round hull inside its ring). Hull: ceramic paint tinted by the skin or form colour
+  (dark graphite in high-key worlds); trim: dark metal; energy parts (canopy, crystal, nozzles, wing
+  lights) wear the core shader, so skins show there. Drawn 1.3x the core radius, with its half span
+  kept under 0.6 u so the wings never seem to touch the next lane's blocks. It banks into lane
+  changes, hovers, and barrel-rolls on a phase change (off with reduce motion). The silhouette, not
   the colour, communicates the tap meaning.
 * **Collectibles:** spark = small octahedral shard (always the same silhouette); prism = larger shard
   with an orbiting ring (the "premium" version of the same family).
@@ -131,7 +140,7 @@ world units so nothing stretches or tiles visibly; Low quality and battery saver
   `edge_light`), dimmer in high-key worlds. They mark the playable width at speed.
 * No lens flares, no volumetric fog, no motion blur. Fog is distance-only, for depth.
 * **Light shafts:** in worlds with open light (Crystal Valley, Deep Ocean, Cyber Garden, Desert Reactor)
-  four faint beams of the key light colour lean through the far shaft at 6 % opacity (within the 8 %
+  four faint beams of the key light colour lean through the far shaft at 6 % opacity (within the 20 %
   atmosphere cap), Medium and above; they are the volumetric look without volumetric fog.
 
 ## 7. Environment layering
@@ -140,10 +149,17 @@ world units so nothing stretches or tiles visibly; Low quality and battery saver
 * **Midground:** ribs every 7 u (rhythm, speed and depth via parallax), and one kind of wall detail
   between them per world (`art.detail`: conduits, pipes, panels, crystals or sagging cables), outside
   the rib pillars so the lanes stay clear.
-* **Background:** the sky gradient and sink, plus one world "story" silhouette far away (for example
-  The Turbine's rotor for Neon Core's boss, a crystal ridge, foundry chimneys), drawn in fog colour.
-* **Atmosphere particles:** at most 24 on screen, at most 8 % opacity, with a reason (dust in the key
-  light, rising embers, bubbles). Never "particle rain".
+* **Background:** the sky gradient and sink, one world "story" silhouette far away (for example
+  The Turbine's rotor for Neon Core's boss, a crystal ridge, foundry chimneys), drawn in fog colour,
+  and each world's own far scenery in the sky (`art.sky`, `sky.gdshader`): a skyline on the horizon
+  (a city with lit windows, crystal spires, volcanoes with lava runs, chimneys with steam, a kelp reef,
+  giant glowing fungi, snow-capped ice peaks, dunes with beacon pylons, floating rocks, candy hills)
+  and above it nebula, clouds, aurora, light rays, a sun, moon or ringed planet and stars. Silhouettes
+  use quiet environment colours; their lights stay at saturation ≤ 0.6 and below the bloom threshold.
+  The sky is static (no TIME: a time-driven sky would re-bake its radiance every frame); its soft
+  layers are drawn at half resolution and dropped on Low.
+* **Atmosphere particles:** up to 48 on screen (twice the world's `atmosphere.count` on High), at most
+  20 % opacity, with a reason (dust in the key light, rising embers, bubbles). Never "particle rain".
 
 ## 8. Motion language
 
@@ -243,22 +259,26 @@ tables below list every visual element on screen in gameplay and in the UI, read
 `game/src/app/game_flow.gd`). "Kept" means the element has a job; "kept, open" means it has a job but the audit
 found a gap, listed in 13.11. Elements removed during the polish passes are in 13.10.
 
-### 13.1 Player (core)
+### 13.1 Player (flux craft and core)
 
 | Element | Where | Communicates | Kept / removed |
 |---|---|---|---|
-| Core body: ORB sphere, PRISM shard, COMET capsule, SURGE sphere | `core_view.gd` | Where the player is and what a tap does now (the form, by silhouette) | Kept |
-| Core colour and shader style | `core.gdshader` | HOP: the equipped skin; PHASE / DASH / SURGE: the form or phase colour (gameplay meaning) | Kept (colour-overriding styles yield to the form colour, `form_lock`) |
-| SURGE ring | `core_view.gd` `ring` | The SURGE form (sphere-in-ring silhouette) | Kept |
+| Craft per form: Glider, crystal Prism, needle Dart, round Hauler | `craft_shapes.gd`, `core_view.gd` | Where the player is and what a tap does now (the form, by silhouette) | Kept (replaced the orb, shard, capsule and sphere) |
+| Energy parts colour and shader style (canopy core, crystal, nozzles, wing lights) | `core.gdshader` | HOP: the equipped skin; PHASE / DASH / SURGE: the form or phase colour (gameplay meaning) | Kept (colour-overriding styles yield to the form colour, `form_lock`) |
+| Hull paint tint | `core_view.gd` `_apply_paint` | The skin in HOP, the form colour otherwise; dark in high-key worlds | Kept |
+| Engine flames | `flame.gdshader` | Speed; a long flame in DASH and overdrive | Kept |
+| Engine sparks | `core_view.gd` `ions` | Thrust; streams behind the craft (fewer on lower presets) | Kept |
+| Bank, yaw, hover, phase barrel roll | `core_view.gd` `_update_flight` | A lane change in progress; a phase change (§8) | Kept |
+| SURGE ring | `core_view.gd` `ring` | The SURGE form (craft-in-ring silhouette) | Kept |
 | Ink shell | `ink_shell.gdshader` | Separates the core from the light floor of high-key worlds | Kept |
-| Halo | `glow_sprite.gdshader` | Core position; grows with the combo | Kept |
+| Halo with a soft rayed corona | `glow_sprite.gdshader` | Player position; grows with the combo | Kept |
 | Core point light | `core_view.gd` `light` | Proximity: hazards near the core light up (§6) | Kept |
 | Shield ring on the core | `core_view.gd` `shield_ring` | A shield is active (one hit absorbed) | Kept |
 | Hop direction chevron | `core_view.gd` `chevron` | Which way the next hop goes (3+ lanes) | Kept |
 | Orbiting charge shards (up to 8) | `core_view.gd` `shards` | Charges collected towards overdrive | Kept |
 | Plate stack discs (up to 3) | `core_view.gd` `stack_discs` | Plates carried; a full stack breaks glass | Kept |
 | Ground shadow under the core | `gameplay_view.gd` `_make_core_shadow` | Height of a launched core | Kept |
-| Squash, stretch, spin, implode | `core_view.gd` | Tap accepted, the form's motion, the fail moment (§8) | Kept |
+| Squash, stretch, implode | `core_view.gd` | Tap accepted, the form's motion, the fail moment (§8) | Kept |
 | Trail ribbon | `trail_ribbon.gd`, `trail.gdshader` | Speed and direction; in PHASE / DASH / SURGE its colour is the form colour | Kept (the rainbow style yields to it, `form_lock`) |
 | Tap ripple | `tap_ripple.gd`, `ripple.gdshader` | Tap accepted (form colour) or refused dash (grey) | Kept |
 
@@ -316,10 +336,13 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 | Monolith height pattern | `gameplay_view.gd` `RIB_HEIGHT_PATTERN` | Desert Reactor's slabs (fixed rule, not random) | Kept |
 | Story silhouette | `mesh_factory.gd` `silhouette` | The world's story far away (e.g. the World 1 boss turbine) | Kept |
 | Turbine rotation | `gameplay_view.gd` | The boss machine is running | Kept |
-| Atmosphere motes (≤ 24, ≤ 8 %) | `ambient_motes.gd` `AmbientMotes.configure` | The world's air: dust in the key light, embers, bubbles, snow, sand, twinkling glitter, rising spores | Kept |
+| Atmosphere motes (≤ 48, ≤ 20 %) | `ambient_motes.gd` `AmbientMotes.configure` | The world's air: dust in the key light, embers, bubbles, snow, sand, twinkling glitter, rising spores | Kept |
 | Sky gradient | `sky.gdshader` | The world's light and mood | Kept |
 | Flux sink | `sky.gdshader` | The direction of the run | Kept |
-| Sparse stars | `sky.gdshader` | Space (Void Space, or a background cosmetic) | Kept |
+| Stars (sized, twinkle-free) | `sky.gdshader` | Night and space skies (per world, or a background cosmetic) | Kept |
+| Skyline per world (city, spires, volcanoes, chimneys, reef, fungi, ice peaks, dunes, rocks, candy hills) | `sky.gdshader` `skyline` | Which world you are in, far away; depth beyond the shaft | Kept |
+| Nebula, clouds, aurora, light rays | `sky.gdshader` | The world's air and light (space, sky, ice, water, sun) | Kept |
+| Sun, moon or ringed planet | `sky.gdshader` `body` | Where the light comes from; the world's place | Kept |
 | Depth fog | `gameplay_view.gd` | Depth | Kept |
 | Key-light shadows (Medium and above, the mobile default; ribs and details do not cast) | `gameplay_view.gd` | Grounds hazards and the core | Kept |
 | Surface relief per material (off on Low) | `structure.gdshader` | What the structure is made of (brushed metal, stone, ceramic crackle, ice and crystal facets, obsidian, lacquer) | Kept |

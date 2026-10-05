@@ -17,6 +17,9 @@ uniform float rim_strength = 1.6;
 // 1 while the form colour carries meaning (PHASE/DASH/SURGE): styles that
 // would hide color_a give way to it (ART_DIRECTION §2, form colour first).
 uniform float form_lock = 0.0;
+// Depth: the centre burns hotter than the limb, so the body reads as a ball of
+// energy with its skin pattern visible, not a flat overexposed disc.
+uniform float depth_shade = 0.3;
 
 varying vec3 obj_pos;
 
@@ -31,6 +34,7 @@ void fragment() {
 	float fres = pow(1.0 - ndv, 2.4);
 	float t = TIME * anim_speed;
 	vec3 col = fd_core_style(style, obj_pos, ndv, t, color_a.rgb, color_b.rgb, rim_color.rgb, form_lock);
+	col *= mix(1.0 - depth_shade, 1.0 + depth_shade * 0.5, pow(ndv, 1.6));
 	col += rim_color.rgb * fres * rim_strength;
 	col = mix(col, vec3(1.0, 0.95, 0.7), overdrive * 0.35 * (0.5 + 0.5 * sin(t * 20.0)));
 	ALBEDO = col * (intensity + pulse);

@@ -40,6 +40,8 @@ const PARTICLE_SLOT_PRISM: int = 1
 const PARTICLE_SLOT_STREAK: int = 2
 ## GRAVITY_ENTER carries the well's gravity in percent: above normal is heavy.
 const NORMAL_GRAVITY_PERCENT: int = 100
+## Ambient motes per unit of the world's `atmosphere.count` (High preset).
+const MOTE_DENSITY: float = 2.0
 const FOG_BEGIN: float = 28.0
 const FOG_END: float = 115.0
 const SHAFT_SHADER: Shader = preload("res://assets/shaders/light_shaft.gdshader")
@@ -305,8 +307,9 @@ func _apply_environment() -> void:
 	_sky_mat.set_shader_parameter("sky_bottom", theme.sky_bottom)
 	_sky_mat.set_shader_parameter("sink_color", theme.sink)
 	_sky_mat.set_shader_parameter("sink_strength", 0.75 if theme.bright else 1.0)
-	_sky_mat.set_shader_parameter("star_density", 1.0 if theme.atmosphere == "stars" else 0.0)
+	_sky_mat.set_shader_parameter("star_density", theme.stars)
 	_sky_mat.set_shader_parameter("rest_view", CameraRig.rest_basis().inverse())
+	_apply_sky_scenery()
 	sky.sky_material = _sky_mat
 	sky.radiance_size = Sky.RADIANCE_SIZE_32
 	environment.sky = sky
@@ -335,6 +338,31 @@ func _apply_environment() -> void:
 	environment.adjustment_enabled = true
 	environment.adjustment_contrast = GRADE_CONTRAST
 	environment.adjustment_saturation = GRADE_SATURATION
+
+
+## The world's far scenery (skyline, nebula, clouds, aurora, rays, sun / moon /
+## planet) into the sky material; the soft layers follow the quality detail.
+func _apply_sky_scenery() -> void:
+	_sky_mat.set_shader_parameter("skyline", WorldTheme.SKYLINES.find(theme.skyline))
+	_sky_mat.set_shader_parameter("skyline_color", theme.skyline_color)
+	_sky_mat.set_shader_parameter("skyline_light", theme.skyline_light)
+	_sky_mat.set_shader_parameter("haze_color", theme.fog)
+	_sky_mat.set_shader_parameter("nebula", theme.nebula)
+	_sky_mat.set_shader_parameter("nebula_a", theme.nebula_a)
+	_sky_mat.set_shader_parameter("nebula_b", theme.nebula_b)
+	_sky_mat.set_shader_parameter("clouds", theme.clouds)
+	_sky_mat.set_shader_parameter("cloud_color", theme.cloud_color)
+	_sky_mat.set_shader_parameter("cloud_shade", theme.cloud_shade)
+	_sky_mat.set_shader_parameter("aurora", theme.aurora)
+	_sky_mat.set_shader_parameter("aurora_a", theme.aurora_a)
+	_sky_mat.set_shader_parameter("aurora_b", theme.aurora_b)
+	_sky_mat.set_shader_parameter("rays", theme.rays)
+	_sky_mat.set_shader_parameter("ray_dir", theme.ray_dir)
+	_sky_mat.set_shader_parameter("ray_color", theme.key_color)
+	_sky_mat.set_shader_parameter("body_kind", WorldTheme.BODY_KINDS.find(theme.body_kind))
+	_sky_mat.set_shader_parameter("body", theme.body)
+	_sky_mat.set_shader_parameter("body_color", theme.body_color)
+	_sky_mat.set_shader_parameter("detail", _surface_detail)
 
 
 func _apply_core_skin_defaults() -> void:
@@ -508,6 +536,7 @@ func set_quality(
 	_glow = glow
 	_ambient = ambient_particles
 	bursts.set_amount_scale(particle_scale)
+	core_view.set_particle_scale(particle_scale)
 	trail.set_length(trail_points)
 	core_view.set_light_enabled(dynamic_light)
 	# Surface relief follows dynamic lighting: both are off on Low and in
@@ -517,6 +546,8 @@ func set_quality(
 	if kit != null:
 		kit.set_detail(_surface_detail)
 		kit.set_fine_glass(fine_glass)
+	if _sky_mat != null:
+		_sky_mat.set_shader_parameter("detail", _surface_detail)
 	key_light.shadow_enabled = shadows
 	environment.glow_enabled = _glow
 	_probe.visible = reflections
@@ -528,7 +559,7 @@ func set_quality(
 ## Ambient motes follow the quality preset (and battery saver): fewer on
 ## lower presets, none when ambient particles are off.
 func _apply_atmosphere_quality() -> void:
-	_atmosphere.amount = maxi(1, int(float(theme.atmosphere_count) * _particle_scale))
+	_atmosphere.amount = maxi(1, int(float(theme.atmosphere_count) * MOTE_DENSITY * _particle_scale))
 	_atmosphere.emitting = _ambient and theme.atmosphere_count > 0 and _particle_scale > 0.2
 	_shafts.visible = _ambient and theme.shafts
 	_shaft_mat.set_shader_parameter("shaft_color", theme.key_color)

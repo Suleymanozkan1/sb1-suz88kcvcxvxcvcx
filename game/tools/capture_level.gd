@@ -5,6 +5,8 @@ extends SceneTree
 ##       -s res://tools/capture_level.gd -- --level=w01_l05 --out=/tmp/shots --at=1.5,4,7 [--stop] [--fail]
 ## --stop quits after the last --at shot instead of playing the level to its end.
 ## --quality=<low|medium|high|ultra> applies that preset's view settings.
+## --closeup frames the core from close by (a camera riding with it) to judge
+## the character's detail.
 
 var _session: GameplaySession
 var _view: GameplayView
@@ -18,6 +20,7 @@ var _done: bool = false
 var _fail_on_purpose: bool = false
 var _stop_after_shots: bool = false
 var _quality: String = ""
+var _closeup: bool = false
 
 
 func _initialize() -> void:
@@ -35,6 +38,8 @@ func _initialize() -> void:
 			_stop_after_shots = true
 		elif arg == "--fail":
 			_fail_on_purpose = true
+		elif arg == "--closeup":
+			_closeup = true
 	if _shots.is_empty():
 		_shots = PackedFloat64Array([1.0, 3.0, 6.0])
 	DirAccess.make_dir_recursive_absolute(_out)
@@ -71,6 +76,13 @@ func _setup() -> void:
 			bool(p.get("reflections", false)),
 			bool(p.get("fine_glass", true))
 		)
+	if _closeup:
+		var cam: Camera3D = Camera3D.new()
+		cam.fov = 34.0
+		_view.core_view.add_child(cam)
+		var eye: Vector3 = Vector3(1.1, 0.8, 2.4)
+		cam.transform = Transform3D(Basis.looking_at(Vector3(0.0, 0.02, 0.0) - eye), eye)
+		cam.make_current()
 	if not _fail_on_purpose:
 		for t: Variant in (data["solution"] as Dictionary)["taps"] as Array:
 			_taps.append(int(t))

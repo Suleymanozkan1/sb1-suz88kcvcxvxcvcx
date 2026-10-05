@@ -2,12 +2,12 @@ class_name AmbientMotes
 extends RefCounted
 ## Ambient motes of a world's atmosphere (docs/ART_DIRECTION.md §7: decoration
 ## with a reason, such as dust in the key light, rising embers or bubbles, and
-## at most 8 % opacity). [method configure] dresses the view's one
+## at most 20 % opacity, so the air reads without covering the course). [method configure] dresses the view's one
 ## CPUParticles3D for a world's `art.atmosphere` style; [GameplayView] places
 ## it and scales its amount with the quality preset.
 
-## Decoration never exceeds 8 % opacity (§7).
-const MAX_ALPHA: float = 0.08
+## Decoration never exceeds 20 % opacity (§7).
+const MAX_ALPHA: float = 0.2
 ## Every style starts from a slow upward drift of small soft dots through a box
 ## around the shaft ahead of the core.
 const LIFETIME: float = 5.0
@@ -16,8 +16,8 @@ const SPREAD_DEGREES: float = 25.0
 const SPEED_MIN: float = 0.08
 const SPEED_MAX: float = 0.25
 const SCALE_MIN: float = 0.6
-const SIZE: float = 0.06
-const ALPHA: float = 0.06
+const SIZE: float = 0.085
+const ALPHA: float = 0.13
 ## Styles that read as points of light sit at the opacity cap.
 const ALPHA_BRIGHT: float = MAX_ALPHA
 ## Embers: warm, rising on the heat.
@@ -25,7 +25,7 @@ const EMBER_COLOR: Color = Color("#ffb37a")
 const EMBER_GRAVITY: Vector3 = Vector3(0, 0.35, 0)
 ## Bubbles: a little larger, rising.
 const BUBBLE_GRAVITY: Vector3 = Vector3(0, 0.3, 0)
-const BUBBLE_SIZE: float = 0.07
+const BUBBLE_SIZE: float = 0.1
 ## Snow: falling.
 const SNOW_GRAVITY: Vector3 = Vector3(0, -0.35, 0)
 ## Sand: blown sideways, barely sinking.
@@ -37,23 +37,23 @@ const STAR_SPEED_MIN: float = 2.0
 const STAR_SPEED_MAX: float = 3.0
 ## Puffs: large soft clouds, kept fainter.
 const PUFF_SIZE: float = 0.4
-const PUFF_ALPHA: float = 0.05
+const PUFF_ALPHA: float = 0.09
 ## Sprinkles: the world's story accent, lightened, falling.
 const SPRINKLE_LIGHTEN: float = 0.4
 const SPRINKLE_GRAVITY: Vector3 = Vector3(0, -0.25, 0)
 ## Glitter: crystal dust, tiny and nearly still, white with a hint of the key
 ## light, each mote catching the light in turn.
 const GLITTER_KEY_TINT: float = 0.3
-const GLITTER_SIZE: float = 0.035
+const GLITTER_SIZE: float = 0.05
 const GLITTER_GRAVITY: Vector3 = Vector3(0, -0.04, 0)
 ## Spores: larger, soft, rising slowly on a sideways drift.
 const SPORE_LIGHTEN: float = 0.35
-const SPORE_SIZE: float = 0.09
+const SPORE_SIZE: float = 0.12
 const SPORE_DIRECTION: Vector3 = Vector3(0.35, 1.0, 0.0)
 const SPORE_SPEED_MIN: float = 0.04
 const SPORE_SPEED_MAX: float = 0.12
 const SPORE_GRAVITY: Vector3 = Vector3(0.05, 0.08, 0)
-const SPORE_ALPHA: float = 0.07
+const SPORE_ALPHA: float = 0.16
 ## Twinkle (glitter): alpha keys over a mote's life, dark, a flash, dark, a
 ## second fainter flash.
 const TWINKLE_OFFSETS: PackedFloat32Array = [0.0, 0.2, 0.3, 0.55, 0.65, 0.8, 1.0]

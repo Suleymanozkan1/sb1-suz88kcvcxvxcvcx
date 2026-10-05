@@ -2,8 +2,8 @@
 
 > One tap. The core decides.
 
-FLUX DROP is a portrait, one-input arcade game for iOS and Android. An energy core falls down a shaft
-on rails; the player has exactly one input — a tap — and what that tap *does* depends on the core's
+FLUX DROP is a portrait, one-input arcade game for iOS and Android. A small flux craft carrying an
+energy core falls down a shaft on rails; the player has exactly one input — a tap — and what that tap *does* depends on the core's
 current **form**. Levels change the form mid-run through form gates, so the same thumb movement means
 "hop", "switch colour", "dash" or "go heavy" depending on the moment. That is the hook: one input, four
 verbs, read from the shape of the thing you control.
@@ -24,10 +24,10 @@ A typical early level lasts 8–15 s, late levels 30–60 s; specials (mid-world
 
 | Form | Silhouette | Tap does | Teaches |
 |---|---|---|---|
-| **HOP** (orb) | sphere | jump to the neighbouring lane (2 lanes: toggle; 3 lanes: ping-pong with a chevron showing direction) | spacing, anticipation |
-| **PHASE** (prism) | octahedron | switch colour between cyan and magenta; phase gates only let the matching colour through | colour reading |
-| **DASH** (comet) | capsule | short burst: smashes breakables, chain-reacts nearby ones; cooldown | commitment, chains |
-| **SURGE** (sphere-in-ring) | sphere + ring | toggle heavy / light: heavy falls faster, light slower | timing through moving hazards |
+| **HOP** (orb) | the Glider: rounded hull, swept wings, twin engines | jump to the neighbouring lane (2 lanes: toggle; 3 lanes: ping-pong with a chevron showing direction) | spacing, anticipation |
+| **PHASE** (prism) | the Prism: tall crystal hull, blade wings | switch colour between cyan and magenta; phase gates only let the matching colour through | colour reading |
+| **DASH** (comet) | the Dart: long needle, one big engine | short burst: smashes breakables, chain-reacts nearby ones; cooldown | commitment, chains |
+| **SURGE** (sphere-in-ring) | the Hauler: round hull inside a ring | toggle heavy / light: heavy falls faster, light slower | timing through moving hazards |
 
 The form is always visible from **shape first, colour second** (colour-blind safe). A form change is
 announced by a form gate, a morph animation, a HUD hint (`TAP = …`) and a distinct sound.

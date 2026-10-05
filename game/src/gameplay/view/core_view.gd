@@ -1,13 +1,19 @@
 class_name CoreView
 extends Node3D
-## The energy core — the game's signature and visual priority #1.
+## The player: a small flux craft carrying the energy core in its canopy —
+## the game's signature and visual priority #1.
 ##
-## Its form is told by silhouette (ART_DIRECTION §4): ORB sphere (hop), PRISM
-## octahedron (phase), COMET capsule (dash), SURGE sphere-in-ring (weight).
-## Motion character (§8): elastic and alive — anticipation squash, stretch
-## along the motion, one overshoot, settle. Only the core may bloom strongly.
+## Each form is its own craft ([CraftShapes]), so the silhouette tells the tap
+## meaning (ART_DIRECTION §4): the Glider (hop), the crystal Prism (phase), the
+## needle Dart (dash) and the round Hauler in its ring (surge). Seen from behind
+## it reads by its wings, glowing engines and their flames. Its energy parts
+## (canopy core, crystal, nozzles, wing lights) wear the core shader, so skins
+## show there. Motion character (§8): elastic and alive — anticipation squash,
+## stretch, one overshoot, settle; it banks into lane changes, hovers, and
+## barrel-rolls on a phase change. Only its energy may bloom strongly.
 
 const CORE_SHADER: Shader = preload("res://assets/shaders/core.gdshader")
+const FLAME_SHADER: Shader = preload("res://assets/shaders/flame.gdshader")
 const GLOW_SHADER: Shader = preload("res://assets/shaders/glow_sprite.gdshader")
 const INK_SHADER: Shader = preload("res://assets/shaders/ink_shell.gdshader")
 ## In high-key worlds the core trades raw brightness for hue so it never melts
@@ -20,9 +26,53 @@ const SPRING_D: float = 18.0
 const SPRING_STEP: float = 1.0 / 120.0
 const MAX_SPRING_DELTA: float = 0.1
 const ANTICIPATION: float = 0.04
-const HALO_SIZE: float = 1.5
+const HALO_SIZE: float = 1.3
 const HALO_INTENSITY: float = 0.2
+## Corona: soft rays in the halo, stronger with the combo.
+const HALO_RAYS: float = 6.0
+const HALO_RAY_STRENGTH: float = 0.15
+const HALO_RAY_COMBO: float = 0.35
 const LIGHT_RANGE: float = 3.4
+## Hull: light ceramic paint with a hint of the skin (or form) colour; dark in
+## high-key worlds so it never melts into a light floor. Trim is dark metal.
+## The craft is drawn this much larger than the core's collision radius (its
+## wings still clear a neighbouring lane's blocks by half a lane).
+const CRAFT_SCALE: float = 1.3
+const HULL_COLOR: Color = Color("#e6ebf2")
+const HULL_DARK: Color = Color("#353e50")
+const HULL_TINT: float = 0.22
+const HULL_ROUGHNESS: float = 0.3
+const HULL_CLEARCOAT: float = 0.7
+const TRIM_COLOR: Color = Color("#262d3a")
+const TRIM_ROUGHNESS: float = 0.35
+const TRIM_METALLIC: float = 0.75
+## Engine flames: length (world units) at rest, per unit of run speed, and the
+## Dart's afterburner multiplier.
+const FLAME_LENGTH: float = 0.2
+const FLAME_PER_SPEED: float = 0.014
+const FLAME_DASH: float = 2.0
+const FLAME_INTENSITY: float = 2.4
+## Bank into lane changes: roll (radians) per unit of lateral speed, capped;
+## a slight yaw into the turn; eased at BANK_RATE per second.
+const BANK_PER_SPEED: float = 0.07
+const BANK_MAX: float = 0.6
+const YAW_PER_SPEED: float = 0.025
+const YAW_MAX: float = 0.22
+const BANK_RATE: float = 12.0
+## Hover bob: height and rate (radians per second).
+const HOVER_HEIGHT: float = 0.022
+const HOVER_RATE: float = 3.2
+## Phase change: one barrel roll in this many seconds.
+const ROLL_TIME: float = 0.32
+## Engine sparks (left in the world, so they stream behind the craft).
+const ION_AMOUNT: int = 20
+const ION_LIFETIME: float = 0.45
+const ION_SIZE: float = 0.04
+const ION_EMIT_RADIUS: float = 0.05
+const ION_SPEED_MIN: float = 0.6
+const ION_SPEED_MAX: float = 1.6
+const ION_RISE: Vector3 = Vector3(0.0, 0.25, 0.0)
+const ION_OFFSET: Vector3 = Vector3(0.0, -0.04, 0.42)
 const LIGHT_ENERGY: float = 1.1
 ## Mass plates ride on top of the core as a stack of thin ballast discs.
 const STACK_DISC_RADIUS: float = 0.2
@@ -64,10 +114,6 @@ const IMPLODE_TIME: float = 0.06
 const SPIN_BASE: float = 1.5
 const SPIN_PER_SPEED: float = 0.18
 const REDUCED_SPIN: float = 0.3
-## Per-form spin: the orb and surge sphere roll with a slight yaw; the prism
-## turns about its axis.
-const ORB_YAW_SHARE: float = 0.25
-const PRISM_SPIN: float = 1.4
 ## Surge ring: wobbles about its upright pose (amplitude in radians, rate as a
 ## share of the spin) and turns faster than the sphere it carries.
 const RING_WOBBLE: float = 0.25
@@ -89,10 +135,12 @@ const FULL_STACK_PULSE_RATE: float = 6.0
 ## Overdrive charge shards orbit the core: speed (radians per second), radius
 ## and height above the core's centre.
 const SHARD_ORBIT_SPEED: float = 2.6
-const SHARD_ORBIT_RADIUS: float = 0.48
+const SHARD_ORBIT_RADIUS: float = 0.56
 const SHARD_ORBIT_Y: float = 0.02
 
 var body: MeshInstance3D
+var flames: MeshInstance3D
+var ions: CPUParticles3D
 var ink_shell: MeshInstance3D
 var halo: MeshInstance3D
 var shield_ring: MeshInstance3D
@@ -117,9 +165,21 @@ var _accent_mat: ShaderMaterial = ShaderMaterial.new()
 var _halo_mat: ShaderMaterial = ShaderMaterial.new()
 var _ink_mat: ShaderMaterial = ShaderMaterial.new()
 var _shield_mat: StandardMaterial3D = StandardMaterial3D.new()
+var _hull_mat: StandardMaterial3D = StandardMaterial3D.new()
+var _trim_mat: StandardMaterial3D = StandardMaterial3D.new()
+var _flame_mat: ShaderMaterial = ShaderMaterial.new()
+var _ion_mat: StandardMaterial3D = StandardMaterial3D.new()
+## Ion sparks follow the particle quality (0 turns them off).
+var _ion_scale: float = 1.0
 var _form: int = -1
-## Body mesh per form (SimConst.Form).
+## Craft mesh per form (SimConst.Form).
 var _meshes: Dictionary[int, Mesh] = {}
+var _tint: Color = Palette.PRIMARY
+var _bank: float = 0.0
+var _yaw: float = 0.0
+var _roll_left: float = 0.0
+var _last_x: float = 0.0
+var _hover: float = 0.0
 var _scale_off: Vector3 = Vector3.ZERO
 var _scale_vel: Vector3 = Vector3.ZERO
 var _spin: float = 0.0
@@ -144,9 +204,20 @@ func _ensure_built() -> void:
 	_mat.shader = CORE_SHADER
 	_accent_mat.shader = CORE_SHADER
 	body = MeshInstance3D.new()
-	body.material_override = _mat
 	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	add_child(body)
+	_hull_mat.roughness = HULL_ROUGHNESS
+	_hull_mat.clearcoat_enabled = true
+	_hull_mat.clearcoat = HULL_CLEARCOAT
+	_trim_mat.albedo_color = TRIM_COLOR
+	_trim_mat.roughness = TRIM_ROUGHNESS
+	_trim_mat.metallic = TRIM_METALLIC
+	flames = MeshInstance3D.new()
+	_flame_mat.shader = FLAME_SHADER
+	_flame_mat.set_shader_parameter("intensity", FLAME_INTENSITY)
+	flames.material_override = _flame_mat
+	flames.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(flames)
 	ink_shell = MeshInstance3D.new()
 	_ink_mat.shader = INK_SHADER
 	_ink_mat.set_shader_parameter("ink", Palette.GRAPHITE)
@@ -154,6 +225,9 @@ func _ensure_built() -> void:
 	ink_shell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	ink_shell.visible = false
 	body.add_child(ink_shell)
+	ions = _make_ions()
+	ions.position = ION_OFFSET
+	add_child(ions)
 	halo = MeshInstance3D.new()
 	var quad: QuadMesh = QuadMesh.new()
 	quad.size = Vector2(1.0, 1.0)
@@ -161,13 +235,15 @@ func _ensure_built() -> void:
 	_halo_mat.shader = GLOW_SHADER
 	_halo_mat.set_shader_parameter("size", HALO_SIZE)
 	_halo_mat.set_shader_parameter("intensity", HALO_INTENSITY)
+	_halo_mat.set_shader_parameter("rays", HALO_RAYS)
+	_halo_mat.set_shader_parameter("ray_strength", HALO_RAY_STRENGTH)
 	halo.material_override = _halo_mat
 	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(halo)
 	shield_ring = MeshInstance3D.new()
 	var hex: TorusMesh = TorusMesh.new()
-	hex.inner_radius = 0.5
-	hex.outer_radius = 0.54
+	hex.inner_radius = 0.58
+	hex.outer_radius = 0.62
 	hex.rings = 6
 	hex.ring_segments = 4
 	shield_ring.mesh = hex
@@ -180,8 +256,8 @@ func _ensure_built() -> void:
 	add_child(shield_ring)
 	ring = MeshInstance3D.new()
 	var torus: TorusMesh = TorusMesh.new()
-	torus.inner_radius = 0.4
-	torus.outer_radius = 0.46
+	torus.inner_radius = 0.5
+	torus.outer_radius = 0.57
 	ring.mesh = torus
 	ring.material_override = _accent_mat
 	ring.visible = false
@@ -227,23 +303,48 @@ func _ensure_built() -> void:
 	apply_skin_colors()
 
 
+func _make_ions() -> CPUParticles3D:
+	var p: CPUParticles3D = CPUParticles3D.new()
+	p.local_coords = false
+	p.amount = ION_AMOUNT
+	p.lifetime = ION_LIFETIME
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = ION_EMIT_RADIUS
+	p.direction = Vector3(0.0, 0.1, 1.0)
+	p.spread = 25.0
+	p.initial_velocity_min = ION_SPEED_MIN
+	p.initial_velocity_max = ION_SPEED_MAX
+	p.gravity = ION_RISE
+	p.scale_amount_min = 0.4
+	p.scale_amount_max = 1.0
+	var shrink: Curve = Curve.new()
+	shrink.add_point(Vector2(0.0, 1.0))
+	shrink.add_point(Vector2(1.0, 0.0))
+	p.scale_amount_curve = shrink
+	var quad: QuadMesh = QuadMesh.new()
+	quad.size = Vector2(ION_SIZE, ION_SIZE)
+	_ion_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_ion_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	_ion_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_ion_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_ion_mat.vertex_color_use_as_albedo = true
+	_ion_mat.albedo_texture = ViewKit.soft_dot_texture()
+	quad.material = _ion_mat
+	p.mesh = quad
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return p
+
+
+## Ion sparks follow the particle quality: fewer on lower presets, none at 0.
+func set_particle_scale(amount_scale: float) -> void:
+	_ensure_built()
+	_ion_scale = clampf(amount_scale, 0.0, 1.0)
+	ions.amount = maxi(1, int(round(float(ION_AMOUNT) * _ion_scale)))
+
+
 func _build_meshes() -> void:
-	var r: float = SimConst.CORE_RADIUS
-	var orb: SphereMesh = SphereMesh.new()
-	orb.radius = r
-	orb.height = r * 2.0
-	orb.radial_segments = 32
-	orb.rings = 16
-	_meshes[SimConst.Form.HOP] = orb
-	_meshes[SimConst.Form.PHASE] = MeshFactory.shard(r * 1.12, r * 2.7)
-	var comet: CapsuleMesh = CapsuleMesh.new()
-	comet.radius = r * 0.82
-	comet.height = r * 3.1
-	_meshes[SimConst.Form.DASH] = comet
-	var surge: SphereMesh = SphereMesh.new()
-	surge.radius = r * 0.78
-	surge.height = r * 1.56
-	_meshes[SimConst.Form.SURGE] = surge
+	for form: int in [SimConst.Form.HOP, SimConst.Form.PHASE, SimConst.Form.DASH, SimConst.Form.SURGE]:
+		_meshes[form] = CraftShapes.build(form)
 
 
 ## Applies cosmetic skin parameters (cosmetics never touch gameplay state).
@@ -267,6 +368,7 @@ func apply_skin_colors() -> void:
 	_mat.set_shader_parameter("rim_strength", 0.35 if high_key else 1.6)
 	_halo_mat.set_shader_parameter("glow_color", skin_color_a)
 	light.light_color = skin_color_a
+	_apply_paint()
 
 
 ## High-key worlds (light floor): ink shell on, core intensity lowered so its
@@ -276,6 +378,7 @@ func set_high_key(enabled: bool) -> void:
 	high_key = enabled
 	ink_shell.visible = enabled
 	apply_skin_colors()
+	_apply_paint()
 
 
 func set_light_enabled(enabled: bool) -> void:
@@ -283,23 +386,25 @@ func set_light_enabled(enabled: bool) -> void:
 	light.visible = enabled
 
 
-## Height of a form mesh's top as it is drawn: the dash capsule lies along
-## the motion axis, so its radius (z extent) is its height.
-static func form_top(mesh: Mesh, form: int) -> float:
+## Height of a form's craft top as it is drawn (every craft is built upright,
+## so [param form] no longer changes the axis).
+static func form_top(mesh: Mesh, _form: int) -> float:
 	if mesh == null:
 		return SimConst.CORE_RADIUS
-	var box: AABB = mesh.get_aabb()
-	return box.end.z if form == SimConst.Form.DASH else box.end.y
+	return mesh.get_aabb().end.y
 
 
 func set_form(form: int, phase: int, heavy: bool) -> void:
 	if form != _form:
 		_form = form
 		body.mesh = _meshes.get(form, _meshes[SimConst.Form.HOP]) as Mesh
+		body.set_surface_override_material(CraftShapes.SURFACE_HULL, _hull_mat)
+		body.set_surface_override_material(CraftShapes.SURFACE_TRIM, _trim_mat)
+		body.set_surface_override_material(CraftShapes.SURFACE_ENERGY, _mat)
 		ink_shell.mesh = body.mesh
-		body.rotation = Vector3.ZERO
+		flames.mesh = CraftShapes.flames(form)
 		ring.visible = form == SimConst.Form.SURGE
-		_stack_top = form_top(body.mesh, form)
+		_stack_top = form_top(body.mesh, form) * CRAFT_SCALE
 	# Form tint only where it carries meaning (phase / dash / surge weight).
 	var tint: Color = skin_color_a if form == SimConst.Form.HOP else Palette.form_color(form, phase, heavy)
 	_mat.set_shader_parameter("color_a", tint)
@@ -315,11 +420,23 @@ func set_form(form: int, phase: int, heavy: bool) -> void:
 	_accent_mat.set_shader_parameter("intensity", 1.3)
 	_halo_mat.set_shader_parameter("glow_color", tint)
 	light.light_color = tint
+	_tint = tint
+	_apply_paint()
+
+
+## Hull paint, flame and spark colours from the current tint (skin colour in
+## HOP, the form colour otherwise).
+func _apply_paint() -> void:
+	var base: Color = HULL_DARK if high_key else HULL_COLOR
+	var accent: Color = skin_color_b if _form == SimConst.Form.HOP else _tint
+	_hull_mat.albedo_color = base.lerp(accent, HULL_TINT)
+	_flame_mat.set_shader_parameter("flame_color", _tint)
+	ions.color = _tint
 
 
 func set_direction_hint(visible_hint: bool, dir: int) -> void:
 	chevron.visible = visible_hint
-	chevron.position = Vector3(0.46 * float(dir), 0.0, 0.0)
+	chevron.position = Vector3(0.64 * float(dir), 0.0, 0.0)
 	chevron.rotation_degrees = Vector3(-90, 0, -90 if dir > 0 else 90)
 
 
@@ -336,10 +453,13 @@ func hop_motion(direction: float) -> void:
 	_pending_stretch = HOP_STRETCH_KICK * absf(direction)
 
 
-## Phase: a crisp twist and pulse (the colour change is the information).
+## Phase: a crisp twist, a barrel roll and a pulse (the colour change is the
+## information; reduce motion skips the roll).
 func phase_motion() -> void:
 	_scale_vel += PHASE_TWIST_KICK
 	_pulse = maxf(_pulse, PHASE_PULSE)
+	if not reduce_motion:
+		_roll_left = ROLL_TIME
 
 
 ## Form change: shrink then pop into the new silhouette.
@@ -378,25 +498,25 @@ func update_visuals(delta: float, sim: FluxSim) -> void:
 		s *= maxf(0.0, 1.0 - _implode / IMPLODE_TIME)
 		if _implode > IMPLODE_TIME:
 			visible = false
-	body.scale = s
+	body.scale = s * CRAFT_SCALE
 	for i: int in stack_discs.size():
 		# On the form's own top, and with its squash and stretch.
 		stack_discs[i].position.y = _stack_top * s.y + STACK_DISC_GAP * (float(i) + 0.6)
 	var spin_rate: float = (SPIN_BASE + sim.speed * SPIN_PER_SPEED) * (REDUCED_SPIN if reduce_motion else 1.0)
 	_spin += delta * spin_rate
-	match _form:
-		SimConst.Form.HOP, SimConst.Form.SURGE:
-			body.rotation = Vector3(-_spin, _spin * ORB_YAW_SHARE, 0.0)
-		SimConst.Form.PHASE:
-			body.rotation = Vector3(0.0, _spin * PRISM_SPIN, 0.0)
-		SimConst.Form.DASH:
-			body.rotation = Vector3(PI * 0.5, 0.0, _spin)
+	_update_flight(delta, sim)
 	ring.rotation = Vector3(PI * 0.5 + sin(_spin * RING_WOBBLE_RATE) * RING_WOBBLE, _spin * RING_SPIN, 0.0)
 	_pulse = move_toward(_pulse, 0.0, delta * PULSE_DECAY)
 	_mat.set_shader_parameter("pulse", _pulse)
 	_mat.set_shader_parameter("overdrive", 1.0 if sim.overdrive_timer > 0.0 else 0.0)
 	var combo_glow: float = clampf(float(sim.combo) / COMBO_GLOW_FULL, 0.0, 1.0)
 	_halo_mat.set_shader_parameter("intensity", HALO_INTENSITY + combo_glow * HALO_COMBO + _pulse * HALO_PULSE)
+	_halo_mat.set_shader_parameter("ray_strength", HALO_RAY_STRENGTH + combo_glow * HALO_RAY_COMBO)
+	ions.emitting = visible and _ion_scale > 0.0 and _implode < 0.0
+	var flame: float = FLAME_LENGTH + sim.speed * FLAME_PER_SPEED
+	if _form == SimConst.Form.DASH or sim.overdrive_timer > 0.0:
+		flame *= FLAME_DASH
+	_flame_mat.set_shader_parameter("length", flame)
 	light.light_energy = LIGHT_ENERGY + combo_glow * LIGHT_COMBO
 	shield_ring.visible = sim.shields > 0
 	shield_ring.rotation.z += delta * SHIELD_SPIN
@@ -406,6 +526,25 @@ func update_visuals(delta: float, sim: FluxSim) -> void:
 		# A full stack is a loaded state: the core breathes until it is spent.
 		_pulse = maxf(_pulse, FULL_STACK_PULSE + FULL_STACK_PULSE_SWING * sin(_spin * FULL_STACK_PULSE_RATE))
 	_update_shards(delta, sim.charges if sim.overdrive_timer <= 0.0 else SimConst.MAX_CHARGES)
+
+
+## Banking into lane changes (from the craft's own lateral speed), a slight
+## yaw into the turn, the phase barrel roll and the hover bob.
+func _update_flight(delta: float, sim: FluxSim) -> void:
+	var vx: float = (position.x - _last_x) / delta if delta > 0.0 else 0.0
+	_last_x = position.x
+	var ease_k: float = 1.0 - exp(-BANK_RATE * delta)
+	_bank = lerpf(_bank, clampf(-vx * BANK_PER_SPEED, -BANK_MAX, BANK_MAX), ease_k)
+	_yaw = lerpf(_yaw, clampf(-vx * YAW_PER_SPEED, -YAW_MAX, YAW_MAX), ease_k)
+	var roll: float = 0.0
+	if _roll_left > 0.0:
+		_roll_left = maxf(0.0, _roll_left - delta)
+		if _roll_left > 0.0:
+			roll = TAU * ease(1.0 - _roll_left / ROLL_TIME, -1.8)
+	if not reduce_motion and sim.is_running():
+		_hover += delta * HOVER_RATE
+	body.rotation = Vector3(0.0, _yaw, _bank + roll)
+	body.position.y = sin(_hover) * HOVER_HEIGHT
 
 
 ## Semi-implicit spring integrated in fixed sub-steps: stable even when a frame

@@ -74,7 +74,7 @@ func test_glitter_and_spores_have_their_own_air() -> void:
 	assert_gt(spore_size.x, dust_size.x, "spores are larger than dust")
 	assert_gt(spores._atmosphere.gravity.y, 0.0, "spores rise")
 	for view: GameplayView in [glitter, spores]:
-		assert_le(view._atmosphere.color.a, AmbientMotes.MAX_ALPHA + 0.0001, "≤ 8 % opacity")
+		assert_le(view._atmosphere.color.a, AmbientMotes.MAX_ALPHA + 0.0001, "within the opacity cap")
 
 
 func test_form_colour_wins_over_colour_overriding_skins() -> void:

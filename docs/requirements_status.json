@@ -126,8 +126,8 @@
  },
  "REQ-026": {
   "status": "PARTIAL",
-  "evidence": "CoreView (src/gameplay/view/core_view.gd): 4 silhouettes (orb/prism/comet/sphere-in-ring), core.gdshader, ink shell, halo, charge shards, 19 skins; seen in lead/worlds_final/*.png llvmpipe captures.",
-  "note": "Core now has 19 distinct animated styles and a form-colour lock; 'visually high-quality' remains a human/device judgement (llvmpipe captures only)."
+  "evidence": "CoreView (src/gameplay/view/core_view.gd) draws the player as a flux craft per form (src/art/craft_shapes.gd: Glider, crystal Prism, needle Dart, ringed Hauler) with ceramic hull, metal trim, energy parts in core.gdshader (19 skins), engine flames (flame.gdshader), engine sparks, banking, hover and a phase barrel roll; ink shell, halo corona, charge shards; test_view_character.gd.",
+  "note": "The orb was replaced by a craft per form after player feedback ('change the character completely'); 'visually high-quality' remains a human/device judgement (llvmpipe captures only)."
  },
  "REQ-027": {
   "status": "IMPLEMENTED",
@@ -531,8 +531,8 @@
  },
  "REQ-107": {
   "status": "PARTIAL",
-  "evidence": "Real-time 3D (Node3D, Camera3D, DirectionalLight3D) with stylised procedural meshes from MeshFactory (chamfered boxes, rib profiles, silhouettes) and stylised shaders; see the lead/worlds_final renders.",
-  "note": "Stylised real-time 3D confirmed; 'high-end' remains a human judgement with low geometric detail (review24 captures)."
+  "evidence": "Real-time 3D (Node3D, Camera3D, DirectionalLight3D) with stylised procedural meshes (MeshFactory, HazardShapes, CraftShapes) and stylised shaders, including a per-world sky with skyline, nebula, clouds, aurora, rays and celestial bodies (sky.gdshader).",
+  "note": "Stylised real-time 3D confirmed; 'high-end' remains a human judgement made on llvmpipe captures only."
  },
  "REQ-108": {
   "status": "PARTIAL",
@@ -571,7 +571,7 @@
  },
  "REQ-115": {
   "status": "IMPLEMENTED",
-  "evidence": "GameplayView._setup_atmosphere: per-world motes (embers, bubbles, snow, sand, stars, puffs, sprinkles, dust); floor caustics; the sky sink; depth fog; the turbine silhouette; per-world music loops (assets/audio/music/<world>.wav, plus _hi and _boss versions).",
+  "evidence": "GameplayView._setup_atmosphere: per-world motes (embers, bubbles, snow, sand, stars, puffs, sprinkles, dust); floor caustics; the sky sink and per-world sky scenery (skyline, nebula, clouds, aurora, rays, sun / moon / planet); depth fog; the turbine silhouette; per-world music loops (assets/audio/music/<world>.wav, plus _hi and _boss versions).",
   "note": "Each world has its own visual and audio ambience. Ambient motes are off on Low."
  },
  "REQ-116": {
@@ -586,7 +586,7 @@
  },
  "REQ-118": {
   "status": "IMPLEMENTED",
-  "evidence": "GameplayView: far silhouette at SILHOUETTE_DISTANCE 150 with SILHOUETTE_PARALLAX 0.03; ribs every 7 m (RIB_SPACING); scrolling floor seams; depth fog 28-115 m; sky gradient; CameraRig lateral lerp (_lateral) adds parallax.",
+  "evidence": "GameplayView: far silhouette at SILHOUETTE_DISTANCE 150 with SILHOUETTE_PARALLAX 0.03; ribs every 7 m (RIB_SPACING); scrolling floor seams; depth fog 28-115 m; sky gradient with a per-world skyline and celestial body at infinity; CameraRig lateral lerp (_lateral) adds parallax.",
   "note": "Layered depth with parallax."
  },
  "REQ-119": {
@@ -626,8 +626,8 @@
  },
  "REQ-126": {
   "status": "PARTIAL",
-  "evidence": "ART_DIRECTION rules are applied in code: only energy glows (unshaded HDR core vs lit matter), WARNING-orange chamfered hazards, a ribbed shaft, a different core silhouette per form. Consistent across the 10 world renders (lead/worlds_final).",
-  "note": "Consistent, but recognisability was never validated. A glowing orb in a lane of orange blocks is close to genre conventions."
+  "evidence": "ART_DIRECTION rules are applied in code: only energy glows (unshaded HDR core vs lit matter), per-world obstacle families with a shared warm warning light, a ribbed shaft, a different craft per form. Consistent across the 10 world renders (lead/worlds_final).",
+  "note": "Consistent, but recognisability was never validated. The player is now a small craft with flames and the obstacles differ per world, which moves it away from the plain orb-and-blocks genre look; still a human judgement."
  },
  "REQ-127": {
   "status": "IMPLEMENTED",
@@ -1016,7 +1016,7 @@
  },
  "REQ-204": {
   "status": "IMPLEMENTED",
-  "evidence": "src/vfx/burst_pool.gd PRESETS: fixed amount + pool per effect, round-robin emit(); set_amount_scale caps at preset amount (minf 1.0); WorldTheme clamps atmosphere count 0-24; GameplayView._apply_atmosphere_quality scales it. Test: test_atmosphere_and_bursts_stay_within_budget.",
+  "evidence": "src/vfx/burst_pool.gd PRESETS: fixed amount + pool per effect, round-robin emit(); set_amount_scale caps at preset amount (minf 1.0); WorldTheme clamps atmosphere count 0-24; GameplayView._apply_atmosphere_quality scales it (x2 on High, by the preset's particle scale). Test: test_atmosphere_and_bursts_stay_within_budget.",
   "note": "Each effect has a hard cap and a fixed pool size, and counts scale down on lower presets."
  },
  "REQ-205": {
@@ -1531,8 +1531,8 @@
  },
  "REQ-307": {
   "status": "IMPLEMENTED",
-  "evidence": "core_view.gd _build_meshes: orb sphere, prism shard, comet capsule, surge sphere with visible ring; hazards one WARNING chamfered family; renders of all 10 worlds (scratch lead/worlds_a.png, worlds_b.png, worlds_final) show core and hazards separating from backgrounds.",
-  "note": "Verified on llvmpipe screenshots only; Desert Reactor posts/gate frame share the hazard hue, separation there rests on value contrast."
+  "evidence": "craft_shapes.gd: a different craft per form (Glider, Prism, Dart, Hauler in its ring); hazards per world shape family with a shared warm warning light; renders of all 10 worlds show the craft and hazards separating from the backgrounds (test_view_character.gd, test_view_hazards.gd).",
+  "note": "Verified on llvmpipe screenshots only."
  },
  "REQ-308": {
   "status": "IMPLEMENTED",
@@ -1561,7 +1561,7 @@
  },
  "REQ-313": {
   "status": "IMPLEMENTED",
-  "evidence": "gameplay_view.gd: floor and lane grooves (foreground), ribs MultiMesh every RIB_SPACING 7 u (midground), sky shader plus world silhouette with capped SILHOUETTE_PARALLAX approach and disable_fog (background); atmosphere CPUParticles3D clamped to 24.",
+  "evidence": "gameplay_view.gd: floor and lane grooves (foreground), ribs MultiMesh every RIB_SPACING 7 u (midground), sky shader (per-world skyline, nebula, clouds, aurora, body) plus world silhouette with capped SILHOUETTE_PARALLAX approach and disable_fog (background); atmosphere CPUParticles3D (count clamped to 24, x2 on High).",
   "note": "Balance judged on software renders only."
  },
  "REQ-314": {

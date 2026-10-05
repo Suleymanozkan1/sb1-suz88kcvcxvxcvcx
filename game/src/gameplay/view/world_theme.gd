@@ -13,6 +13,15 @@ const ROLE_SAFE_SATURATION: float = 0.18
 const RIB_PROFILES: PackedStringArray = [
 	"gate", "arch", "hex", "monolith", "lattice", "facet", "truss", "icicle", "ring", "candy"
 ]
+## Far scenery on the sky's horizon (sky.gdshader `skyline`, same order).
+const SKYLINES: PackedStringArray = [
+	"none", "city", "spires", "volcano", "stacks", "reef", "canopy", "ice", "dunes", "rocks", "candy"
+]
+## Celestial body in the sky (sky.gdshader `body_kind`, same order).
+const BODY_KINDS: PackedStringArray = ["none", "sun", "moon", "ringed"]
+## Lights in the scenery (windows, lava, glints, beacons, aurora) may be a
+## little more saturated than the environment, never more than this.
+const SKY_LIGHT_MAX_SATURATION: float = 0.6
 
 var id: String = "neon_core"
 var display_name: String = "Neon Core"
@@ -55,6 +64,27 @@ var bright: bool = false
 var hazard_style: String = "machined"
 var hazard_body: Color = Color("#39404d")
 var hazard_warn: Color = Palette.WARNING
+## Sky scenery (ART_DIRECTION §7), `art.sky`: skyline silhouette and its
+## lights, nebula, clouds, aurora, light rays, a sun / moon / ringed planet and
+## the star density. Angles are stored in radians (degrees in the data).
+var skyline: String = "none"
+var skyline_color: Color = Color("#0a0e16")
+var skyline_light: Color = Color("#8fb6c8")
+var nebula: float = 0.0
+var nebula_a: Color = Color("#2a2550")
+var nebula_b: Color = Color("#1b3a4a")
+var clouds: float = 0.0
+var cloud_color: Color = Color("#d8dde6")
+var cloud_shade: Color = Color("#7c8696")
+var aurora: float = 0.0
+var aurora_a: Color = Color("#5fd1a6")
+var aurora_b: Color = Color("#6a8de0")
+var rays: float = 0.0
+var ray_dir: Vector2 = Vector2(0.0, deg_to_rad(60.0))
+var body_kind: String = "none"
+var body: Vector3 = Vector3(0.0, deg_to_rad(18.0), deg_to_rad(3.0))
+var body_color: Color = Color("#e8ecf2")
+var stars: float = 0.0
 
 
 static func from_world(world: Dictionary) -> WorldTheme:
@@ -99,6 +129,9 @@ static func from_world(world: Dictionary) -> WorldTheme:
 	t.hazard_style = style if HazardShapes.STYLES.has(style) else "machined"
 	t.hazard_body = _c(hz, "body", t.hazard_body)
 	t.hazard_warn = _c(hz, "warn", t.hazard_warn)
+	t._read_sky(a.get("sky", {}) as Dictionary)
+	if t.atmosphere == "stars":
+		t.stars = maxf(t.stars, 1.0)
 	t.bpm = float((world.get("music", {}) as Dictionary).get("bpm", 120))
 	t.boss_name = str((world.get("boss", {}) as Dictionary).get("name", ""))
 	t.bright = t.sky_bottom.get_luminance() > 0.5
@@ -112,7 +145,45 @@ static func from_world(world: Dictionary) -> WorldTheme:
 	t.lane_color = WorldTheme.quiet(t.lane_color, t.bright)
 	# Structure (ribs, arches, posts, pads) never wears a gameplay role colour.
 	t.structure = WorldTheme.off_roles(t.structure)
+	t.skyline_color = WorldTheme.quiet(t.skyline_color, t.bright)
+	t.nebula_a = WorldTheme.quiet(t.nebula_a, t.bright)
+	t.nebula_b = WorldTheme.quiet(t.nebula_b, t.bright)
+	t.cloud_color = WorldTheme.quiet(t.cloud_color, true)
+	t.cloud_shade = WorldTheme.quiet(t.cloud_shade, true)
+	t.body_color = WorldTheme.quiet(t.body_color, true)
+	t.skyline_light = WorldTheme.sky_light(t.skyline_light)
+	t.aurora_a = WorldTheme.sky_light(t.aurora_a)
+	t.aurora_b = WorldTheme.sky_light(t.aurora_b)
 	return t
+
+
+func _read_sky(sky: Dictionary) -> void:
+	var line: String = str(sky.get("skyline", skyline))
+	skyline = line if SKYLINES.has(line) else "none"
+	skyline_color = _c(sky, "skyline_color", skyline_color)
+	skyline_light = _c(sky, "skyline_light", skyline_light)
+	nebula = clampf(float(sky.get("nebula", 0.0)), 0.0, 1.0)
+	nebula_a = _c(sky, "nebula_a", nebula_a)
+	nebula_b = _c(sky, "nebula_b", nebula_b)
+	clouds = clampf(float(sky.get("clouds", 0.0)), 0.0, 1.0)
+	cloud_color = _c(sky, "cloud_color", cloud_color)
+	cloud_shade = _c(sky, "cloud_shade", cloud_shade)
+	aurora = clampf(float(sky.get("aurora", 0.0)), 0.0, 1.0)
+	aurora_a = _c(sky, "aurora_a", aurora_a)
+	aurora_b = _c(sky, "aurora_b", aurora_b)
+	stars = clampf(float(sky.get("stars", 0.0)), 0.0, 1.0)
+	var ray: Dictionary = sky.get("rays", {}) as Dictionary
+	rays = clampf(float(ray.get("amount", 0.0)), 0.0, 1.0)
+	ray_dir = Vector2(deg_to_rad(float(ray.get("az", 0.0))), deg_to_rad(float(ray.get("el", 60.0))))
+	var b: Dictionary = sky.get("body", {}) as Dictionary
+	var kind: String = str(b.get("kind", "none"))
+	body_kind = kind if BODY_KINDS.has(kind) else "none"
+	body = Vector3(
+		deg_to_rad(float(b.get("az", 0.0))),
+		deg_to_rad(float(b.get("el", 18.0))),
+		deg_to_rad(clampf(float(b.get("size", 3.0)), 0.5, 12.0))
+	)
+	body_color = _c(b, "color", body_color)
 
 
 static func _c(dict: Dictionary, key: String, fallback: Color) -> Color:
@@ -133,6 +204,11 @@ static func off_roles(c: Color) -> Color:
 		if WorldTheme.hue_distance(c.h, role.h) < ROLE_HUE_GAP:
 			return Color.from_hsv(c.h, ROLE_SAFE_SATURATION, c.v, c.a)
 	return c
+
+
+## A light in the scenery: saturation held to SKY_LIGHT_MAX_SATURATION.
+static func sky_light(c: Color) -> Color:
+	return Color.from_hsv(c.h, minf(c.s, SKY_LIGHT_MAX_SATURATION), c.v, c.a)
 
 
 ## Shortest distance between two hues on the colour wheel (0..0.5).
