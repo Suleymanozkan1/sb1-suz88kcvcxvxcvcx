@@ -53,6 +53,8 @@ const DETAIL_KINDS: Array[String] = [
 ]
 ## Hazards use a bolder chamfer (same family) so blocks read as machined parts.
 const HAZARD_CHAMFER: float = 0.16
+## Form-gate icon: the target form's craft at this scale.
+const FORM_ICON_SCALE: float = 0.62
 ## Launch pad slab and mass plate dimensions (world units).
 const PAD_SIZE: Vector3 = Vector3(1.0, 0.08, 0.9)
 const PLATE_SIZE: Vector3 = Vector3(0.46, 0.07, 0.46)
@@ -460,28 +462,18 @@ func form_material(form: int) -> ShaderMaterial:
 	return _form_materials[form]
 
 
+## The form gate's icon: a small copy of the craft the gate turns you into
+## (one surface, so the icon's energy material covers all of it).
 func form_icon_mesh(form: int) -> Mesh:
 	if _form_icon_meshes.has(form):
 		return _form_icon_meshes[form]
-	var mesh: Mesh
-	match form:
-		SimConst.Form.PHASE:
-			mesh = MeshFactory.shard(0.2, 0.46)
-		SimConst.Form.DASH:
-			var c: CapsuleMesh = CapsuleMesh.new()
-			c.radius = 0.12
-			c.height = 0.5
-			mesh = c
-		SimConst.Form.SURGE:
-			var t: TorusMesh = TorusMesh.new()
-			t.inner_radius = 0.14
-			t.outer_radius = 0.2
-			mesh = t
-		_:
-			var s: SphereMesh = SphereMesh.new()
-			s.radius = 0.17
-			s.height = 0.34
-			mesh = s
+	var craft: ArrayMesh = CraftShapes.build(form)
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var xform: Transform3D = Transform3D(Basis.from_scale(Vector3.ONE * FORM_ICON_SCALE), Vector3.ZERO)
+	for surface: int in craft.get_surface_count():
+		st.append_from(craft, surface, xform)
+	var mesh: ArrayMesh = st.commit()
 	_form_icon_meshes[form] = mesh
 	return mesh
 

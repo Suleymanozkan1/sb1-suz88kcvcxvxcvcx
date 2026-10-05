@@ -13,10 +13,11 @@ config_version=5
 config/name="FLUX DROP"
 config/description="One tap. The core's form decides what the tap does."
 config/version="1.0.0"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/boot.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 boot_splash/bg_color=Color(0.016, 0.02, 0.047, 1)
-boot_splash/show_image=false
+boot_splash/show_image=true
+boot_splash/image="res://assets/splash/boot_splash.png"
 config/icon="res://assets/icons/app_icon.svg"
 config/quit_on_go_back=false
 

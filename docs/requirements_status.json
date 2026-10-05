@@ -1026,7 +1026,7 @@
  },
  "REQ-206": {
   "status": "IMPLEMENTED",
-  "evidence": "AsyncLoader (src/core/async_loader.gd, threaded ResourceLoader) prefetches the next world's music from the menu and level select (SoundBank.prefetch_music, AudioService.prefetch_music, GameFlow._show_main/_show_levels); test_prefetched_music_comes_from_the_background_loader.",
+  "evidence": "AsyncLoader (src/core/async_loader.gd, threaded ResourceLoader) prefetches the next world's music from the menu and level select (SoundBank.prefetch_music, AudioService.prefetch_music, GameFlow._show_main/_show_levels); test_prefetched_music_comes_from_the_background_loader. Start-up: BootLoader (src/app/boot_loader.gd) shows the LoadingScreen in the first frame, then boots the services, loads and builds the main scene and renders warm-up frames under it a step per frame, so the progress bar moves (test_boot_loader.gd); the boot splash image covers the engine start.",
   "note": ""
  },
  "REQ-207": {
@@ -1481,7 +1481,7 @@
  },
  "REQ-297": {
   "status": "PARTIAL",
-  "evidence": "Commits 25f2423 'UI polish from screen review', 96e004d UI fixes, 53e1a0f art rework; UiTokens motion timings; EN/TR screen captures reviewed (scratch lead/ui1-ui6, ui_tr).",
+  "evidence": "Commits 25f2423 'UI polish from screen review', 96e004d UI fixes, 53e1a0f art rework; UiTokens motion timings; EN/TR screen captures reviewed (scratch lead/ui1-ui6, ui_tr). Start-up: boot splash image and an animated loading screen with progress and tips (BootLoader, LoadingScreen; test_boot_loader.gd).",
   "note": "Polish pass done on captures (finish membrane, title band, reveal over fail, icon, touch sizes); sounds, haptics and loading were not reviewed on a device."
  },
  "REQ-298": {

@@ -55,7 +55,8 @@ var audio: AudioService
 var quality: QualityService
 var is_booted: bool = false
 ## Tests construct their own instance with auto_boot off and call [method boot]
-## with in-memory storage and a fixed clock.
+## with in-memory storage and a fixed clock. The game's [BootLoader] turns it
+## off too: it boots the graph itself once its loading screen is on screen.
 var auto_boot: bool = true
 ## True while a run is being played (set by the flow): the debounced autosave
 ## waits for the result screen or a menu, so a save never hitches gameplay.
@@ -74,7 +75,14 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Tools and the test runner run as SceneTree scripts: they build their own
 	# isolated services, so the global graph only boots for the real game.
-	if auto_boot and get_tree().get_script() == null:
+	# Deferred, so the main scene can take over first (the boot loader draws
+	# its loading screen before the graph is built).
+	if get_tree().get_script() == null:
+		_auto_boot.call_deferred()
+
+
+func _auto_boot() -> void:
+	if auto_boot and not is_booted:
 		boot()
 
 

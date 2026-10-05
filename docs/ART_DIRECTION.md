@@ -210,6 +210,13 @@ it to 20 %.
 
 * **Surfaces:** flat Graphite panels with a 1 px Slate hairline and a 4 px corner radius. No gradients,
   no glass blur, no glow.
+* **Start-up:** never a blank screen. The engine shows the boot splash image (splash colour, a soft
+  glow, the Glider emblem seen from above and the wordmark; `assets/splash/boot_splash.png`, rendered
+  from the loading screen by `tools/render_splash.gd`, square and fitted to the screen width). The
+  first scene (`BootLoader`) puts the `LoadingScreen` up at once, laid out in the same square so the
+  hand-over shows no jump; then speed streaks and the sink glow fade in, a thin PRIMARY progress bar,
+  a caption status and, once the language is known, one gameplay tip. It covers the boot, the main
+  scene build and the first frames' shader compilation (at least 1.2 s), then fades out in 0.4 s.
 * **Buttons:**
   * **Primary:** solid PRIMARY with Ink label, 96 px tall. One per screen.
   * **Secondary:** 2 px Bone-40 % outline.
