@@ -80,7 +80,7 @@ func _setup() -> void:
 		var cam: Camera3D = Camera3D.new()
 		cam.fov = 34.0
 		_view.core_view.add_child(cam)
-		var eye: Vector3 = Vector3(1.1, 0.8, 2.4)
+		var eye: Vector3 = Vector3(1.5, 1.0, 3.1)
 		cam.transform = Transform3D(Basis.looking_at(Vector3(0.0, 0.02, 0.0) - eye), eye)
 		cam.make_current()
 	if not _fail_on_purpose:
