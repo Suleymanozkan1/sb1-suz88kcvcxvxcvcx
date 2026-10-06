@@ -1,0 +1,28 @@
+{
+	"schema_version": 1,
+	"xp_curve": {
+		"formula": "xp_for_next(level) = max(step, round(base * level ^ exponent / step) * step), forced strictly increasing by at least one step",
+		"base": 120,
+		"exponent": 1.25,
+		"step": 5,
+		"notes": "Level 1->2 needs 120 XP, 10->11 needs 2135 XP, 99->100 needs 37475 XP (1,667,580 lifetime XP for level 100). A full campaign at ~80 XP per clear (41,600 XP) lands around player level 19 (level 20 at 42,590), dailies and replays carry players further."
+	},
+	"xp_caps": {
+		"max_player_level": 100,
+		"max_single_grant": 5000,
+		"max_total_xp": 50000000,
+		"notes": "max_single_grant rejects implausible single grants (clamped, logged). profile.xp is lifetime XP and keeps growing at max level so nothing earned is ever lost; lowering a cap in a data update never takes XP or player levels away."
+	},
+	"record_modes": ["classic"],
+	"stats": {
+		"fast_clear_ratio": 0.9,
+		"notes": "A completed run is a fast clear when its time is at most fast_clear_ratio x the level's design duration (level data 'duration'). Only dash and surge levels (from world 4 on) allow speeds above the design pace, so fast clears start there."
+	},
+	"unlock_rules": {
+		"first_level": "w01_l01 is always playable.",
+		"level": "Any other level unlocks when the previous level in campaign order is cleared (same world previous local level, or the last level of the previous world) and the level's world is unlocked.",
+		"world": "World N (N >= 2) unlocks when world N-1 is unlocked, its boss level (boss_level, local 52) is cleared AND total campaign stars >= unlock_stars of world N (data/worlds). Both conditions are required.",
+		"permanent": "Unlocks are stored in profile.unlocked_worlds and never revoked, even if a later data update raises unlock_stars.",
+		"recording": "Only campaign runs in record_modes on unlocked levels update level records. Failed runs only count attempts. Stars, best score, best combo and perfect only ever improve; best time is the shortest positive completed time."
+	}
+}

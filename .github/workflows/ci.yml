@@ -1,0 +1,209 @@
+# FLUX DROP continuous integration.
+# Lint + static scans, headless Godot import/tests, level validation and
+# regeneration diff, performance budgets under Xvfb, then Android debug and
+# iOS (unsigned project) exports.
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT_URL: https://github.com/godotengine/godot/releases/download/4.7.2-stable
+  GDTOOLKIT_VERSION: "4.5.0"
+
+jobs:
+  lint:
+    name: Lint and static scans
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install gdtoolkit
+        run: pip install "gdtoolkit==${GDTOOLKIT_VERSION}"
+      - name: gdlint
+        working-directory: game
+        run: gdlint src tests tools server
+      - name: gdformat (formatting is checked, never left to review)
+        working-directory: game
+        run: gdformat --line-length=120 --check src tests tools server
+      - name: Placeholder / mock scan
+        run: python3 tools/ci/placeholder_scan.py
+      - name: Asset license manifest
+        run: python3 tools/ci/license_check.py
+      - name: Asset gate register (every asset judged against the art direction)
+        run: python3 tools/report/asset_gate.py --check
+      - name: JSON data is well formed
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, sys
+          bad = []
+          for p in pathlib.Path("game/data").rglob("*.json"):
+              try:
+                  json.loads(p.read_text(encoding="utf-8"))
+              except Exception as exc:  # noqa: BLE001
+                  bad.append(f"{p}: {exc}")
+          print("\n".join(bad) or "all JSON files parse")
+          sys.exit(1 if bad else 0)
+          PY
+
+  test:
+    name: Import, tests and level validation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Godot
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ env.GODOT_VERSION }}-linux
+      - name: Download Godot
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot
+          curl -fsSL -o /tmp/godot.zip "${GODOT_URL}/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+      - name: Import project (fails on script or shader errors)
+        working-directory: game
+        run: |
+          ~/godot/godot --headless --path . --import 2>&1 | tee /tmp/import.log
+          if grep -E "SCRIPT ERROR|Parse Error|SHADER ERROR" /tmp/import.log; then exit 1; fi
+      - name: Unit, integration and gameplay tests
+        working-directory: game
+        run: ~/godot/godot --headless --path . -s res://tests/run_tests.gd
+      - name: Validate all 520 levels (schema, fairness, solvability)
+        working-directory: game
+        run: ~/godot/godot --headless --path . -s res://tools/validate_levels.gd -- --report=/tmp/validation.json
+      - name: Regenerate levels and diff against committed data
+        working-directory: game
+        run: ~/godot/godot --headless --path . -s res://tools/generate_levels.gd -- --check
+      - name: Install Xvfb and a software Vulkan driver (performance probe)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb mesa-vulkan-drivers
+      - name: Performance budgets per quality preset (draw calls, primitives, nodes, memory)
+        working-directory: game
+        # Mobile renderer on Mesa lavapipe: the counts are real, frame times are not.
+        run: |
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            ~/godot/godot --path . -s res://tools/perf_probe.gd -- --check --report=/tmp/perf.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: validation-report
+          path: /tmp/validation.json
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-report
+          path: /tmp/perf.json
+          if-no-files-found: ignore
+
+  android:
+    name: Android debug export
+    runs-on: ubuntu-24.04
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Download Godot and export templates
+        run: |
+          mkdir -p ~/godot ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          curl -fsSL -o /tmp/godot.zip "${GODOT_URL}/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          curl -fsSL -o /tmp/tpl.tpz "${GODOT_URL}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q /tmp/tpl.tpz -d /tmp/tpl
+          mv /tmp/tpl/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+      - name: Debug keystore and editor settings
+        run: |
+          keytool -genkeypair -v -keystore ~/debug.keystore -storepass android -alias androiddebugkey \
+            -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.7.tres <<TRES
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "${ANDROID_SDK_ROOT}"
+          export/android/java_sdk_path = "${JAVA_HOME}"
+          export/android/debug_keystore = "${HOME}/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          TRES
+      - name: Export debug APK
+        working-directory: game
+        run: |
+          mkdir -p build/android
+          ~/godot/godot --headless --path . --import
+          ~/godot/godot --headless --path . --export-debug "Android" build/android/fluxdrop-debug.apk
+          ls -la build/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fluxdrop-android-debug
+          path: game/build/android/fluxdrop-debug.apk
+
+  ios:
+    name: iOS project export (unsigned)
+    runs-on: macos-15
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26 (the 4.7 iOS template links against the iOS 26 SDK)
+        # With an older Xcode the link fails on CADynamicRange*, MTLTensorDomain and
+        # the Swift 6.2 runtime the engine library references.
+        run: |
+          set -euo pipefail
+          # Newest stable 26.x: betas and release candidates sort after the release they precede.
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -viE 'beta|_rc|release_candidate' | sort -V | tail -1 || true)
+          if [ -z "$XC" ]; then
+            echo "No stable Xcode 26 on this runner image:"; ls -d /Applications/Xcode*.app; exit 1
+          fi
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+      - name: Download Godot and export templates
+        run: |
+          curl -fsSL -o /tmp/godot.zip "${GODOT_URL}/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          TPL="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$TPL"
+          curl -fsSL -o /tmp/tpl.tpz "${GODOT_URL}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q /tmp/tpl.tpz -d /tmp/tpl
+          mv /tmp/tpl/templates/* "$TPL/"
+      - name: Export Xcode project (signing is configured by the release team)
+        working-directory: game
+        env:
+          # Godot refuses to export without a team ID. The release team ID comes
+          # from the IOS_TEAM_ID secret; without it a non-signing ID is used,
+          # which is enough for the unsigned device build below.
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          GODOT=/tmp/godot/Godot.app/Contents/MacOS/Godot
+          TEAM="${IOS_TEAM_ID:-ABCDE12345}"
+          sed -i '' "s/^application\/app_store_team_id=\"\"/application\/app_store_team_id=\"${TEAM}\"/" export_presets.cfg
+          mkdir -p build/ios
+          $GODOT --headless --path . --import
+          $GODOT --headless --path . --export-debug "iOS" build/ios/FluxDrop.ipa
+          ls -la build/ios
+      - name: Compile and link the device app without signing (arm64)
+        working-directory: game/build/ios
+        # Godot's simulator library ships x86_64 only, which an arm64 runner cannot link; the
+        # device build links the real arm64 engine. pipefail: a failed build fails the step
+        # (piping into tail used to hide it).
+        run: |
+          set -o pipefail
+          xcodebuild -project FluxDrop.xcodeproj -scheme FluxDrop -configuration Debug \
+            -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tail -40

@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "presets": {
+    "low": {
+      "render_scale": 0.7,
+      "msaa_3d": 0,
+      "post_fx": false,
+      "particle_scale": 0.4,
+      "trail_points": 12,
+      "dynamic_light": false,
+      "shadows": false,
+      "glow": false,
+      "fps_cap": 60,
+      "ambient_particles": false,
+      "reflections": false,
+      "fine_glass": false,
+      "cinematic": false,
+      "shadow_quality": 0
+    },
+    "medium": {
+      "render_scale": 0.85,
+      "msaa_3d": 0,
+      "post_fx": true,
+      "particle_scale": 0.7,
+      "trail_points": 20,
+      "dynamic_light": true,
+      "shadows": true,
+      "glow": true,
+      "fps_cap": 60,
+      "ambient_particles": true,
+      "reflections": false,
+      "fine_glass": false,
+      "cinematic": false,
+      "shadow_quality": 0
+    },
+    "high": {
+      "render_scale": 1.0,
+      "msaa_3d": 1,
+      "post_fx": true,
+      "particle_scale": 1.0,
+      "trail_points": 28,
+      "dynamic_light": true,
+      "shadows": true,
+      "glow": true,
+      "fps_cap": 60,
+      "ambient_particles": true,
+      "reflections": true,
+      "fine_glass": true,
+      "cinematic": false,
+      "shadow_quality": 1
+    },
+    "ultra": {
+      "render_scale": 1.0,
+      "msaa_3d": 2,
+      "post_fx": true,
+      "particle_scale": 1.25,
+      "trail_points": 40,
+      "dynamic_light": true,
+      "shadows": true,
+      "glow": true,
+      "fps_cap": 120,
+      "ambient_particles": true,
+      "reflections": true,
+      "fine_glass": true,
+      "cinematic": true,
+      "shadow_quality": 2
+    }
+  },
+  "battery_saver": {
+    "max_preset": "low",
+    "fps_cap": 30,
+    "overrides": {
+      "post_fx": false,
+      "dynamic_light": false,
+      "ambient_particles": false,
+      "reflections": false,
+      "fine_glass": false,
+      "cinematic": false,
+      "shadow_quality": 0
+    }
+  },
+  "auto_detect": {
+    "compatibility_preset": "low",
+    "mobile": [
+      {
+        "min_cores": 8,
+        "preset": "ultra"
+      },
+      {
+        "min_cores": 6,
+        "preset": "high"
+      },
+      {
+        "min_cores": 0,
+        "preset": "medium"
+      }
+    ],
+    "desktop": [
+      {
+        "min_cores": 8,
+        "preset": "ultra"
+      },
+      {
+        "min_cores": 4,
+        "preset": "high"
+      },
+      {
+        "min_cores": 0,
+        "preset": "medium"
+      }
+    ]
+  },
+  "auto_downgrade": {
+    "cooldown_s": 8.0,
+    "window_s": 3.0,
+    "slow_ratio": 1.25,
+    "ema_tau_s": 0.5,
+    "max_sample_s": 0.25
+  }
+}

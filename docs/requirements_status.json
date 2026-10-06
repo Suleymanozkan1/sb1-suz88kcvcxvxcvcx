@@ -1,0 +1,1667 @@
+{
+ "REQ-001": {
+  "status": "IMPLEMENTED",
+  "evidence": "git log: 27 Claude commits on 2026-10-03 (13:32 UTC to the final commit) with open choices settled as recorded decisions: docs/CODERABBIT_REPORT.md (substitute reviews), docs/ARCHITECTURE.md:6 (legacy web project left in place), game/assets/LICENSES.json.",
+  "note": "Judged from repo only; the conversation is not in the repo, so the absence of questions cannot be proven. No question artifacts found."
+ },
+ "REQ-002": {
+  "status": "IMPLEMENTED",
+  "evidence": "Every non-merge commit after the legacy web project carries Claude-Session: session_01NCJ2vt5E5MLemEUyuKwnNQ; the merges are by the same author; all work is dated 2026-10-03 (git log).",
+  "note": "Delivered in one long autonomous session; release signing and the compiled iOS app remain BLOCKED (report section 38)."
+ },
+ "REQ-003": {
+  "status": "IMPLEMENTED",
+  "evidence": "docs/REQUIREMENTS_CHECKLIST.md added in commit b9cbbd1 (13:32, REQ-001..301) before the first code commit b091251 (14:32); extended with REQ-302..333 (art direction) in 53e1a0f.",
+  "note": "The brief is not in the repo, so completeness against it cannot be checked; REQ-302..333 were added mid-development."
+ },
+ "REQ-004": {
+  "status": "PARTIAL",
+  "evidence": "git log order: checklist -> core+levels+difficulty (b091251) -> save (86431da) -> platform/analytics (933e677) -> daily (67d68b9) -> feel/VFX (3ebda43) -> economy -> cosmetics -> missions -> progression (412a3d1) -> UI (53e1a0f) -> reviews/fixes -> docs.",
+  "note": "Modules were built in parallel (save/analytics/daily came before progression/UI) and CodeRabbit was replaced by substitute reviews; optimization/export, the final review (R-FINAL) and this report were done at the end as ordered."
+ },
+ "REQ-005": {
+  "status": "IMPLEMENTED",
+  "evidence": "Original form system: FluxSim._apply_tap (game/src/gameplay/sim/flux_sim.gd) gives one tap 4 meanings (hop/phase/dash/surge), switched mid-run by form gates (_change_form; test_form_gate_switches_tap_meaning); own 12 entity types (SimConst.EntityType).",
+  "note": "Originality is a design judgement; no formal IP/trademark search. Phase colour gates resemble a common genre mechanic."
+ },
+ "REQ-006": {
+  "status": "IMPLEMENTED",
+  "evidence": "Assets are project-made: game/assets/LICENSES.json (audio from tools/audio/synth_bank.py, own SVG icon, OFL Outfit font), procedural meshes src/art/mesh_factory.gd, own UI kit src/ui/kit/; grep finds no Ketchapp/Voodoo game names in game code/data.",
+  "note": "Checked by inspection only; no external IP review."
+ },
+ "REQ-007": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/mechanics.json maps each mechanic to abstract family tags (timing, lane_switching, risk_reward, ...) used by LevelGenerator/LevelValidator; docs/GAME_DESIGN.md states principles, not reference titles.",
+  "note": "Judged by inspection; no competitor-specific content found."
+ },
+ "REQ-008": {
+  "status": "IMPLEMENTED",
+  "evidence": "game/project.godot config/name=\"FLUX DROP\"; game/export_presets.cfg package/name=\"FLUX DROP\", unique_name com.fluxdrop.game; data/i18n/en.json and tr.json app.title.",
+  "note": "Working name kept; no trademark search done."
+ },
+ "REQ-009": {
+  "status": "IMPLEMENTED",
+  "evidence": "Single input: GameFlow._unhandled_input (game/src/app/game_flow.gd:651) maps screen touch / Space to GameplaySession.request_tap(); FluxSim.step(tap: bool) is the only gameplay input.",
+  "note": "One tap only; its meaning depends on the visible form (by design)."
+ },
+ "REQ-010": {
+  "status": "PARTIAL",
+  "evidence": "Tutorial L1-3 (DifficultyModel._apply_tutorial: gentler, forgiving first hit on L1-2); HUD tap hint on stored solution taps (hud.gd TUTORIAL_HINT_LEAD); w01_l01 lasts 8.0 s with 4 taps; form hints 'TAP = ...'.",
+  "note": "No human playtest; '5 seconds to understand' is unmeasured."
+ },
+ "REQ-011": {
+  "status": "PARTIAL",
+  "evidence": "w01_l01 is 8.0 s with 4 taps; World 1 averages 0.71 required taps/s after the pacing pass (tests/unit/test_level_pacing.gd); probe of all 520 stored solutions shows combo steps and Overdrive in every level; attract run plays behind the main menu (test_main_scene_boots_headless).",
+  "note": "Fun within 15 s not verified by any human playtest."
+ },
+ "REQ-012": {
+  "status": "PARTIAL",
+  "evidence": "Fail card after RESULT_DELAY 0.55 s with progress %, best and a reason tip (FailOverlay.enter, TIP_KEYS); restart without scene reload (test_restart_is_stable_and_fast).",
+  "note": "Wanting to retry within 30 s is a player outcome; not playtested."
+ },
+ "REQ-013": {
+  "status": "IMPLEMENTED",
+  "evidence": "520 level JSONs: normal 8.5-59.7 s, challenge 80.1-115.6 s, boss 62.0-116.6 s (field 'duration'); LevelValidator 'duration' code enforces bands from data/difficulty/curve.json duration_bounds.",
+  "note": "Durations are design durations along the stored solution."
+ },
+ "REQ-014": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameFlow._restart -> GameplaySession.restart(READY_RESTART 0.35 s) + GameplayView.reset_for_run, no scene reload; test_restart_is_stable_and_fast: 100 restarts, worst <50 ms, <=2 node delta (tests/integration/test_app_flow.gd).",
+  "note": "Campaign restart timed headless only; endless/boss-rush restarts re-prepare via _start_run (untimed). Not measured on a device."
+ },
+ "REQ-015": {
+  "status": "IMPLEMENTED",
+  "evidence": "Fail card after GameFlow.RESULT_DELAY 0.55 s with PLAY AGAIN focused (FailOverlay.enter); reveals never scheduled on a fail (game/src/app/game_flow.gd _on_run_ended); test_fail_card_stays_clear_and_music_follows_the_run (tests/integration/test_app_flow.gd).",
+  "note": "Timed headless; not measured on a device."
+ },
+ "REQ-016": {
+  "status": "PARTIAL",
+  "evidence": "Juice code: CoreView springs/squash/morph (core_view.gd), GameplayView.hit_stop/slow_motion/shockwave, CameraRig.add_trauma/fov_punch, BurstPool debris (src/vfx/burst_pool.gd); reviewed via llvmpipe screenshots.",
+  "note": "Feel never tried on a device or by players; only static screenshots reviewed."
+ },
+ "REQ-017": {
+  "status": "IMPLEMENTED",
+  "evidence": "520 levels in 10 worlds (test_catalog_has_ten_worlds_and_520_levels); ProgressionService.is_level_unlocked / is_world_unlocked / stars_needed_for (src/systems/progression/progression_service.gd); tests/unit/test_progression_*.gd.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-018": {
+  "status": "IMPLEMENTED",
+  "evidence": "First use in shipped levels: barrier/spark L1, prism L5, slider L14, shield L27, pulse gate + magnet L40, phase L53, form gate L59, 3 lanes L105, current L118, dash+breakable L157, surge L209, portal L235, launch pad L430, gravity well L456, mass plate L469 (level JSON scan); test_difficulty_structure_tiers_and_specials, test_world1_moves_early.",
+  "note": "World 1 brings moving sliders at L14 (was L27) after player feedback that the start stayed simple too long."
+ },
+ "REQ-019": {
+  "status": "IMPLEMENTED",
+  "evidence": "SimConst.combo_multiplier (+x0.5 per 5, cap x4.0), FluxSim._combo_up/_combo_break; tests test_spark_collection_combo_and_multiplier, test_missed_spark_breaks_combo (tests/unit/test_sim_rules.gd).",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-020": {
+  "status": "IMPLEMENTED",
+  "evidence": "Spark/prism/shield/magnet collectibles in FluxSim._check_collect/_check_pickup; shipped data: 53751 sparks, 286 prisms, 64 shields, 176 magnets; plus 112 cosmetics to collect (data/cosmetics/cosmetics.json).",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-021": {
+  "status": "IMPLEMENTED",
+  "evidence": "CosmeticService + CosmeticCatalog: 112 items in 9 categories unlocked by coins/gems/stars/level/perfects/achievements; every category now has an in-game effect: GameplayView.apply_cosmetics/apply_effect_cosmetics, UiTheme.apply_accent, ProfileEmblem; test_particle_effect_and_background_cosmetics_change_the_view, test_theme_cosmetic_recolours_the_ui_and_default_restores_it.",
+  "note": ""
+ },
+ "REQ-022": {
+  "status": "IMPLEMENTED",
+  "evidence": "MissionService (src/systems/missions/mission_service.gd): 3 daily + 3 weekly picked from 15 + 13 templates (data/missions/missions.json), progress via EventBus combo_reached/stat_changed/run_started; tests/unit/test_meta_missions.gd (14), test_meta_missions_schedule.gd (17).",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-023": {
+  "status": "IMPLEMENTED",
+  "evidence": "DailyChallengeService (src/systems/daily/daily_challenge_service.gd): seed_for/level_for per UTC date, streak tier_after; Daily mode in data/modes/modes.json; tests test_online_daily_level.gd, test_online_daily_streak.gd, test_daily_rewards_only_first_completion.",
+  "note": "Daily content is generated locally; no hosted daily leaderboard."
+ },
+ "REQ-024": {
+  "status": "PARTIAL",
+  "evidence": "Replay drivers: 3 stars/perfect per level (RunResult.compute_stars), 8 modes incl. weekly-seeded Endless (data/modes/modes.json; test_endless_seed_is_weekly_and_deterministic), daily level, missions, 82 achievements, 112 cosmetics, local boards.",
+  "note": "Replay systems exist and are tested, but 'high' replayability is unmeasured: no retention data or human playtests."
+ },
+ "REQ-025": {
+  "status": "PARTIAL",
+  "evidence": "AudioService/SoundBank: 31 SFX + 33 music files from synth_bank.py, combo pitch steps; HapticsService via Input.vibrate_handheld with patterns (data/haptics/patterns.json); BurstPool particles; tests test_feel_audio*.gd, test_feel_haptics.gd.",
+  "note": "Haptics never run on a device; how satisfying audio/particles feel has not been judged by players."
+ },
+ "REQ-026": {
+  "status": "PARTIAL",
+  "evidence": "CoreView (src/gameplay/view/core_view.gd) draws the player as a flux craft per form (src/art/craft_shapes.gd: Glider, crystal Prism, needle Dart, ringed Hauler) with ceramic hull, metal trim, energy parts in core.gdshader (19 skins), engine flames (flame.gdshader), engine sparks, banking, hover and a phase barrel roll; ink shell, halo corona, charge shards; test_view_character.gd.",
+  "note": "The orb was replaced by a craft per form after player feedback ('change the character completely'); 'visually high-quality' remains a human/device judgement (llvmpipe captures only)."
+ },
+ "REQ-027": {
+  "status": "IMPLEMENTED",
+  "evidence": "FluxSim.step advances d += speed*DT every tick with no input; test_runs_to_completion_without_input (tests/unit/test_sim_basic.gd).",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-028": {
+  "status": "IMPLEMENTED",
+  "evidence": "FluxSim._apply_tap: HOP lane hop, PHASE colour toggle, DASH burst with cooldown, SURGE heavy/light; tests test_hop_moves_between_lanes_smoothly, test_phase_gate_requires_matching_phase, test_dash_cooldown_denies_spam, test_surge_changes_speed_with_momentum.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-029": {
+  "status": "IMPLEMENTED",
+  "evidence": "FluxSim._check_hazard collisions; LevelGenerator._measure_window measures real tap windows and LevelValidator 'unfair_window' enforces the tier minimum (lead: 520 levels, worst window 183 ms); test_barrier_kills_and_hop_avoids.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-030": {
+  "status": "IMPLEMENTED",
+  "evidence": "Sparks collected in FluxSim._check_collect (+10, combo, Overdrive charge); probe: stored solutions collect all 53751 sparks in 520 levels; test_spark_collection_combo_and_multiplier.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-031": {
+  "status": "IMPLEMENTED",
+  "evidence": "Phase gates pass only the matching colour (_hazard_clearance PHASE_GATE, FailReason.WRONG_PHASE); coloured sparks collect only in matching phase (_check_collect e_color); 4699 phase gates and 5302 coloured sparks shipped; test_phase_gate_requires_matching_phase.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-032": {
+  "status": "IMPLEMENTED",
+  "evidence": "Combo grows from sparks, gate passes, shatters and near misses (FluxSim._combo_up); level combo_target feeds the grade (RunResult.compute_grade); probe: COMBO_STEP events in all 520 solution runs.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-033": {
+  "status": "IMPLEMENTED",
+  "evidence": "FluxSim._collide/_fail end the run on hazard overlap unless a shield, invulnerability or Zen applies; tests test_barrier_kills_and_hop_avoids, test_shield_absorbs_one_hit; validator 'impossible_level' checks the stored path takes no damage.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-034": {
+  "status": "IMPLEMENTED",
+  "evidence": "Special gates: phase_gate (GATE_PASS +20, combo), form_gate (changes what the tap does), pulse_gate (beat-timed), portal; tests test_phase_gate_requires_matching_phase, test_form_gate_switches_tap_meaning, test_pulse_gate_open_closed_cycle.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-035": {
+  "status": "IMPLEMENTED",
+  "evidence": "Score with combo/Overdrive multipliers (FluxSim._add_score/_multiplier); per-level score_target for the 2nd star (RunResult.compute_stars); bests per level/mode and local boards (LeaderboardService, LocalLeaderboardBackend).",
+  "note": "Online boards need a hosted backend, which does not exist."
+ },
+ "REQ-036": {
+  "status": "IMPLEMENTED",
+  "evidence": "Objectives reach_end 338 / collect 116 / shatter 56 / survive 10 (DifficultyModel._choose_objective); FluxSim._complete fails unmet objective_met() with FailReason.OBJECTIVE; HUD _objective_label shows N / target; test_validator_detects_missing_objective.",
+  "note": "Boss 'survive' acts as reach_end. Collect-objective failure confirmed only by a scratch probe (status_probes/batch1v), no repo test."
+ },
+ "REQ-037": {
+  "status": "IMPLEMENTED",
+  "evidence": "FluxSim.is_perfect (no damage, every spark) gives 3 stars / PERFECT grade (test_run_result_stars_and_grades); Perfect Run mode fails on a miss (test_strict_rule_fails_on_missed_spark); probe: all 520 stored solutions are perfect.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-038": {
+  "status": "IMPLEMENTED",
+  "evidence": "2852 form gates in 285 levels change what the tap does mid-run (FluxSim._change_form, FORM_CHANGE); forms start: hop L1, phase L53, dash L157, surge L209; 2/3-lane ping-pong; test_form_gate_switches_tap_meaning, test_three_lane_ping_pong_direction.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-039": {
+  "status": "PARTIAL",
+  "evidence": "Designed deepening: curve.json tiers tighten min tap window 420->130 ms and speed 7->12 m/s on a front-loaded ramp (exponent 0.75; World 1 averages 0.71 taps/s, Worlds 2-3 0.82-0.87, test_level_pacing.gd); 13-level chapters go intro->mastery->combination->pressure (DifficultyModel); test_speed_rises_on_average_but_not_randomly.",
+  "note": "Easy-to-learn / hard-to-master not validated by human playtests."
+ },
+ "REQ-040": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/difficulty/curve.json duration_bounds (tutorial/early 5-15, core 10-30, advanced/expert 20-60, special_challenge and special_boss 60-120 s); LevelValidator code 'duration'; 520 regenerated levels validate (challenge levels 80-116 s).",
+  "note": ""
+ },
+ "REQ-041": {
+  "status": "IMPLEMENTED",
+  "evidence": "Every required tap has a measured window (LevelGenerator._measure_window) >= the tier minimum (curve.json min_window), rechecked by LevelValidator 'unfair_window'; lead: 520 levels validated, worst window 183 ms.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-042": {
+  "status": "IMPLEMENTED",
+  "evidence": "HOP form: FluxSim._tap_hop/_begin_hop with 2-lane toggle and 3-lane ping-pong (260 levels each); tests test_hop_moves_between_lanes_smoothly, test_three_lane_ping_pong_direction.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-043": {
+  "status": "IMPLEMENTED",
+  "evidence": "Tap is the only input (GameFlow._unhandled_input -> GameplaySession.request_tap, gap RunReplay.MIN_TAP_GAP_TICKS); stored solutions use 10741 hop, 2920 phase, 1783 dash, 3818 surge taps (probe of the shipped levels).",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-044": {
+  "status": "IMPLEMENTED",
+  "evidence": "28709 barriers, 5090 sliders and 6589 pulse gates are dodged by lane hops or surge timing (FluxSim._check_hazard); test_barrier_kills_and_hop_avoids.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-045": {
+  "status": "IMPLEMENTED",
+  "evidence": "FluxSim._check_collect/_check_pickup collect sparks, prisms, shields and magnets; probe: solutions collect all sparks plus 199 of 286 optional prisms; test_spark_collection_combo_and_multiplier, test_overdrive_after_charges.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-046": {
+  "status": "IMPLEMENTED",
+  "evidence": "Mass plates (EntityType.PLATE) stack on the core up to SimConst.MAX_PLATES=3 (FluxSim._check_plate, game/src/gameplay/sim/flux_sim.gd); the stack adds mass (SimConst.launch_speed), a full stack smashes glass (STACK_CRASH) and a hit knocks it off; shown as discs on the core (CoreView.stack_discs) and HUD pips (hud.gd _stack_pips). Shipped: 572 plates in 34 levels (w10_l01-13 chapter 'mass_stack', fused in w10_l27-39 and boss). Tests (run, 30/0): test_sim_mass_gravity.gd test_plates_stack_to_three, test_a_full_stack_smashes_glass_and_chains, test_a_dash_never_keeps_a_full_stack, test_a_shield_hit_drops_the_stack; test_level_mass_gravity.gd test_glass_rows_wait_for_a_full_stack, test_each_chapter_places_its_mechanic; test_view_regressions.gd test_plates_stack_on_the_core.",
+  "note": "Round-5 independent re-assessment: A real collect-and-stack mechanic now exists in sim, view, HUD and shipped content, with tests; not only charge accumulation."
+ },
+ "REQ-047": {
+  "status": "IMPLEMENTED",
+  "evidence": "PHASE form toggles cyan/magenta (FluxSim._apply_tap); phase gates and coloured sparks require the matching colour (_hazard_clearance, _check_collect); 4699 gates in 170 levels; test_phase_gate_requires_matching_phase.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-048": {
+  "status": "IMPLEMENTED",
+  "evidence": "Sliders move between adjacent lanes on a beat period (SimLevel.slider_x, SimConst.ping_pong01), 6060 in 273 levels; pulse gates open/close; tests test_slider_position_is_deterministic_polynomial, test_pulse_gate_open_closed_cycle.",
+  "note": "Moving obstacles only; no rideable moving platforms."
+ },
+ "REQ-049": {
+  "status": "IMPLEMENTED",
+  "evidence": "SURGE approaches heavy x1.4 / light x0.72 speed with slow SURGE_ACCEL 9 (vs DEFAULT_ACCEL 80) so speed carries over (FluxSim.step, _target_speed); dash boost; speed_ramp modifier (W8); test_surge_changes_speed_with_momentum.",
+  "note": "Momentum is felt mainly in SURGE form; other forms reach target speed almost instantly."
+ },
+ "REQ-050": {
+  "status": "IMPLEMENTED",
+  "evidence": "Ballistic flight after launch pads integrated with gravity (FluxSim._update_air: vy -= G0*grav*DT; y += vy*DT, semi-implicit Euler), launch impulse divided by mass from stacked plates (SimConst.launch_speed = LAUNCH_VY/(1+0.15*plates)), gravity factor from wells scales the arc, forward speed and hop time (sim_const.gd G0, MASS_PER_PLATE, gravity_speed_factor, gravity_hop_factor). Outcomes depend on it: test_sim_mass_gravity.gd test_a_full_stack_flies_only_in_low_gravity (3 plates fail to clear a wall at g=1, clear it at g=0.7), test_launch_vaults_a_wall_and_scores, test_landing_on_a_block_is_a_collision, test_mass_and_gravity_runs_are_deterministic; shipped in 59 levels with pads, 33 with wells.",
+  "note": "Round-5 independent re-assessment: The requirement names a mechanic family, not an engine: gameplay is now driven by a (deterministic, hand-integrated) gravity/mass/ballistics model whose results decide pass/fail. No rigid bodies or collision response, which the determinism/replay design rules out; I judge that acceptable for the family."
+ },
+ "REQ-051": {
+  "status": "IMPLEMENTED",
+  "evidence": "Prisms (+50) sit on the lane being left just before the hazard and need a later, riskier hop (LevelGenerator._maybe_place_prism), 286 in 75 levels; LevelValidator._check_prisms proves each reachable; near-miss bonus.",
+  "note": "Near misses now trigger for last-moment dodges (REQ-053)."
+ },
+ "REQ-052": {
+  "status": "IMPLEMENTED",
+  "evidence": "FluxSim._shatter/_chain_from: breakables within CHAIN_DISTANCE 2.6 shatter recursively (+15 per link); cluster chance in W4+; probe: 209 CHAIN events in 43 levels; test_dash_shatters_breakable_and_chains.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-053": {
+  "status": "IMPLEMENTED",
+  "evidence": "FluxSim._check_hazard: FLAG_CLOSE marks any tick of a hazard pass within SimConst.NEAR_MISS_MARGIN 0.6 -> NEAR_MISS event, +25 score, combo step (SIM_VERSION 2); test_late_dodge_is_a_near_miss_early_dodge_is_not (tests/unit/test_sim_rules.gd); shipped solutions now contain near misses.",
+  "note": "Rule fixed this round: before, a near miss was geometrically impossible for lane hops."
+ },
+ "REQ-054": {
+  "status": "IMPLEMENTED",
+  "evidence": "Min tap windows tighten 420->130 ms by tier (curve.json), enforced by validator 'unfair_window'; 3-lane ping-pong, portal capture half-width 0.55 m, phase timing; prisms need precise late hops.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-055": {
+  "status": "IMPLEMENTED",
+  "evidence": "Pulse gates and sliders cycle on multiples of the world music beat (DifficultyModel: beat_seconds = 60/bpm; LevelGenerator periods = 2-4 beats); 6589 pulse gates in 288 levels, sliders in 316; test_pulse_gate_open_closed_cycle.",
+  "note": "Pulse gates are taught from L40 (World 1 pulse chapter, test_pulse_chapters_place_pulse_gates); the music loop is locked to the run clock (REQ-224) and set pieces are built on the boss loop's tempo (boss_bpm)."
+ },
+ "REQ-056": {
+  "status": "IMPLEMENTED",
+  "evidence": "1455 breakables in 167 levels shatter under DASH (FluxSim._check_hazard -> _shatter) and collide otherwise; shatter objective in 56 levels; test_dash_shatters_breakable_and_chains.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-057": {
+  "status": "IMPLEMENTED",
+  "evidence": "Portal entity: FluxSim captures the core within PORTAL_CAPTURE_HALF_WIDTH 0.55 m and calls _teleport to the target lane; 666 portals in 83 levels; validator 'broken_trigger'/'dead_end'; test_portal_teleports_and_current_pushes.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-058": {
+  "status": "IMPLEMENTED",
+  "evidence": "Gravity wells (EntityType.GRAVITY, flux_sim.gd _process_entity) change gravity strength to 0.5-2.0 for a span (newest wins, restored on exit), changing flight arcs, forward speed and hop time; edge tint + feedback in GameplayView._handle_mass_event; shipped: 264 wells in 33 levels (w09_l40-51 'void_wells', w10_l27-39, w10 boss). Tests (run): test_gravity_well_scales_speed_and_restores_on_exit, test_newest_well_wins_and_sets_the_end, test_hop_time_is_fixed_when_the_hop_starts, test_a_full_stack_flies_only_in_low_gravity, test_well_order_in_the_file_does_not_matter, test_view_regressions (well kept active while inside).",
+  "note": "Round-5 independent re-assessment: Gravity strength now really changes mid-run with gameplay consequences; direction never flips, but the requirement does not ask for that."
+ },
+ "REQ-059": {
+  "status": "IMPLEMENTED",
+  "evidence": "Magnet pickup sets magnet_timer 4 s and widens collect radius to 2.0 and depth x2 (FluxSim._check_pickup/_check_collect); SparkField.apply_magnet animates the pull (gameplay_view.gd:381); Overdrive also magnetises; 176 magnets in 38 levels.",
+  "note": "No repo unit test; a scratch probe (status_probes/batch1v) confirmed a magnet makes a far-lane spark collectable."
+ },
+ "REQ-060": {
+  "status": "IMPLEMENTED",
+  "evidence": "FluxSim._teleport moves the core instantly to the portal's target lane (no hop interpolation); test_portal_teleports_and_current_pushes checks the lane and portals_used.",
+  "note": "Uses the same portal entity as REQ-057."
+ },
+ "REQ-061": {
+  "status": "IMPLEMENTED",
+  "evidence": "Timed states in FluxSim: shield + 0.6 s invulnerability, magnet 4 s, Overdrive 3 s at x2 score, dash 0.34 s; tests test_shield_absorbs_one_hit, test_overdrive_after_charges, test_dash_cooldown_denies_spam.",
+  "note": "Checked in code, shipped data and headless tests."
+ },
+ "REQ-062": {
+  "status": "IMPLEMENTED",
+  "evidence": "Cascading trigger: one dash shatter recursively triggers nearby breakables (FluxSim._chain_from depth_level, CHAIN events); 209 chain links in 43 levels (probe); test_dash_shatters_breakable_and_chains.",
+  "note": "Only breakables cascade; the W6 'reaction_chain' chapter has no breakables (misnamed)."
+ },
+ "REQ-063": {
+  "status": "IMPLEMENTED",
+  "evidence": "One FluxSim where a single tap is reinterpreted by form (hop/phase/dash/surge) and form gates mix families within a run; data/mechanics.json maps mechanics to several families each; chapters mix forms (e.g. w06 'four_forms').",
+  "note": "Originality of the fusion is a design judgement."
+ },
+ "REQ-064": {
+  "status": "PARTIAL",
+  "evidence": "40 chapter introductions every 13 levels (data/worlds/*.json 'intro'); pulse and reaction_chain chapters fixed this round (pulse gates from W1 L40; breakable clusters in W6 L14-25); test_new_main_idea_every_10_to_20_levels, test_pulse_chapters_place_pulse_gates.",
+  "note": "Improved (master_mix/sugar_rush/endgame_mix replaced by launch_pads, void_wells, mass_stack, mass_and_gravity), but test_new_main_idea_every_10_to_20_levels only checks chapter spacing. Of 40 chapters, 18 hints say 'New:'; most others are explicit new combinations (which the brief's own example allows), but combo_master ('Keep the combo alive'), final_gauntlet ('Everything you learned, at full speed'), risk_prisms, portal_maze and slider3 are emphasis/variations, so e.g. levels 469-495 bring no new trick besides a combo focus. No test checks novelty."
+ },
+ "REQ-065": {
+  "status": "IMPLEMENTED",
+  "evidence": "game/data/levels/w01..w10: 520 JSON files (52 per world, counted). test_level_pipeline.gd test_catalog_has_ten_worlds_and_520_levels, test_every_level_file_exists_and_loads pass (18/18 re-run). validate_levels.gd: 520 validated, 0 failed (lead).",
+  "note": "520 campaign levels (>500). Playability is shown by replaying stored solutions, not by human play. w01_l24 needs zero taps."
+ },
+ "REQ-066": {
+  "status": "IMPLEMENTED",
+  "evidence": "LevelRepository.load_level (res://data/levels JSON -> SimLevel.from_dict); WorldCatalog.load_default (data/worlds/index.json); DifficultyModel CURVE_PATH data/difficulty/curve.json; LevelValidator MECHANICS_PATH data/mechanics.json.",
+  "note": "Levels, worlds, the curve and the mechanics are all data. The only hard-coded level id is RunController.TUTORIAL_LAST_LEVEL = \"w01_l05\"."
+ },
+ "REQ-067": {
+  "status": "IMPLEMENTED",
+  "evidence": "One file per level: game/data/levels/wNN/wNN_lMM.json (520). LevelRepository.level_path/path_for; load_level returns {} on an id mismatch; LRU cache (_touch). test_every_level_file_exists_and_loads passes.",
+  "note": "Each level is its own JSON file, loaded on demand."
+ },
+ "REQ-068": {
+  "status": "IMPLEMENTED",
+  "evidence": "Scanned all 520 files: none is missing id, difficulty, mechanics, speed, spawn, entities, objective, score_target, perfect_target, combo_target, environment, music, visual_theme or unlock. Typed hazards and collectibles live in 'entities'; LevelValidator._check_schema enforces the schema.",
+  "note": "Hazards and collectibles are typed entries in one 'entities' array, not separate keys. Every other field is a named key."
+ },
+ "REQ-069": {
+  "status": "IMPLEMENTED",
+  "evidence": "LevelGenerator + DetRng + fixed-tick FluxSim. test_generator_is_deterministic and test_committed_data_matches_generator pass (re-run here). generate_levels.gd --check: 520 levels, 0 mismatches (lead, 16:42); 505-520 re-checked here on HEAD: 0 mismatches.",
+  "note": "Regenerating from data reproduces the committed level JSON."
+ },
+ "REQ-070": {
+  "status": "IMPLEMENTED",
+  "evidence": "DifficultyModel.build_spec stores 'seed' (DetRng hash) in every level; test_seed_changes_level; daily: test_online_daily_level.gd test_seed_is_stable_hash_of_date; endless: test_modes.gd test_endless_seed_is_weekly_and_deterministic.",
+  "note": "Campaign, daily and endless content all come from explicit seeds."
+ },
+ "REQ-071": {
+  "status": "IMPLEMENTED",
+  "evidence": "LevelValidator._check_solution replays each level's stored solution.taps on the same FluxSim that GameplaySession runs; validate_levels.gd: 520 validated, 0 failed (lead); test_every_level_file_exists_and_loads.",
+  "note": "Shown by automated simulation only; no human played the levels on a device. w01_l24 needs zero taps (trivial but playable)."
+ },
+ "REQ-072": {
+  "status": "IMPLEMENTED",
+  "evidence": "The validator requires the stored solution to COMPLETE the level (impossible_level/unreachable_state codes; test_validator_detects_impossible_level); 520/520 pass (lead). AutopilotSolver: test_autopilot_solver_solves_independently (4 levels).",
+  "note": "Every level has a re-verified solution path. The independent solver was run on only 4 levels."
+ },
+ "REQ-073": {
+  "status": "PARTIAL",
+  "evidence": "LevelValidator._check_windows, _check_forced_moves (dead_end), _check_prisms; LevelGenerator._reserve_reaction_room; 520 levels with 0 unfair_window errors, worst tap window 183 ms (lead).",
+  "note": "Measurable fairness is enforced. Whether losses feel self-inflicted was never tested with people. Endgame tiers allow 130-150 ms windows."
+ },
+ "REQ-074": {
+  "status": "IMPLEMENTED",
+  "evidence": "game/tools/validate_levels.gd (--from/--to/--solver/--report); test_level_pipeline.gd has a detection test per validator code; game/tools/capture_level.gd renders any level; GameplaySession.step_ticks and autopilot.",
+  "note": "Any single level can be validated, solved, replayed and screenshotted headlessly."
+ },
+ "REQ-075": {
+  "status": "IMPLEMENTED",
+  "evidence": "Seeded generation + deterministic FluxSim + RunReplay; test_determinism_identical_inputs_identical_state (test_sim_rules.gd); generate_levels --check 0 mismatches (lead; 505-520 re-run here); ReplayVerifier re-simulates replays (test_online_verifier.gd).",
+  "note": "The same seed gives the same level, and the same taps give the same outcome."
+ },
+ "REQ-076": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/difficulty/curve.json campaign_span 520 (DifficultyModel.build_spec: t from the fixed span, levels past it hold the curve end); LevelRepository.is_handmade + tools/generate_levels.gd keeps and skips 'handmade': true levels in --check. Tests: test_level_growth.gd (test_appending_a_world_never_retunes_shipped_levels, test_levels_past_the_span_hold_the_curve_end, test_handmade_levels_are_validated_and_flagged, test_campaign_span_is_the_shipped_campaign). My reproducible run in a scratch copy: appended a handmade w10_l53 (only data: JSON + world 'levels' 53) and hand-edited w05_l10 -> generate_levels --check 'mismatches=0 handmade=2', validate_levels 519-521 0 failed, LevelRepository.next_level_id('w10_l52') = w10_l53.",
+  "note": "Round-5 independent re-assessment: Both prior gaps (CI regen diff rejects handmade levels; adding a level retunes all) are fixed and shown by a tool run. Caveat: inserting a level into a non-final world shifts later global numbers, so their generated levels need a regeneration run (still data + tool, no code)."
+ },
+ "REQ-077": {
+  "status": "IMPLEMENTED",
+  "evidence": "Designed structure: 10 tiers with speed/spacing/window curves (data/difficulty/curve.json), 13-level chapters with introduction/mastery/combination/high-pressure phases, sawtooth waves (DifficultyModel); pulse chapters now place pulse gates; tests test_difficulty_structure_tiers_and_specials, test_speed_rises_on_average_but_not_randomly, test_pulse_chapters_place_pulse_gates.",
+  "note": "Tap density varies within a phase with the hazard mix (not separately bounded)."
+ },
+ "REQ-078": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/difficulty/curve.json tiers: tutorial 1-3, early 4-26, core_learning 27-52, mechanic_expansion 53-156, combination 157-260, advanced_timing 261-364, expert 365-416, master 417-468, challenge 469-494, endgame 495-520; DifficultyModel.tier_for; test_difficulty_structure_tiers_and_specials.",
+  "note": "All ten stages exist as data tiers, each with its own duration band and minimum tap window. They are stored on every level ('tier')."
+ },
+ "REQ-079": {
+  "status": "PARTIAL",
+  "evidence": "Introduction phase (2 levels per chapter): a shallow dip from chapter_phases.introduction (density x0.9, speed x0.97, lane changes x0.9, wave -0.5), tutorial forgiveness on L1-2, a HUD line naming the new idea on every introduction level, form gates with HUD hints, a chapter's intro pickup (shield, magnet) placed in each of its introduction levels; test_level_pacing.gd test_every_introduction_level_shows_its_idea.",
+  "note": "Every one of the 40 chapters has a HUD intro hint in en and tr (test_ui_regressions.gd test_intro_levels_name_their_new_mechanic), and every introduction level contains the entity it names (w01_l27 named the shield without one until review R-7). Still not 'taught safely': the dip is deliberately shallow after the pacing pass, forgiveness exists only in W1 L1-2, and the first instance of a new mechanic is not isolated (w09_l14's first pad has a full-width wall 3.2 m after it; w10_l01's first plate sits beside a barrier); no test of first-encounter safety."
+ },
+ "REQ-080": {
+  "status": "IMPLEMENTED",
+  "evidence": "curve.json chapter_phases (introduction 2 / mastery 4 / combination 4 with blend_previous 0.3 / high_pressure 3, the rest of the chapter); DifficultyModel.chapter_phase, _blend_previous, _previous_chapter (game/src/levels/difficulty_model.gd). Tests: test_level_content.gd test_combination_phase_brings_back_the_previous_chapter (all 39 combination phases get the previous chapter's hazards and forms), test_level_pipeline.gd test_difficulty_structure_tiers_and_specials, test_speed_rises_on_average_but_not_randomly. My check of the shipped JSON: in all 29 chapters whose previous chapter has elements the current one lacks, the combination levels actually place them (108 of 116 individual levels after the pacing pass; every chapter group at least once).",
+  "note": "Round-5 independent re-assessment: The combination phase now explicitly brings back the previous idea in the generated content, closing the stated gap; all four phases are data-driven and tested."
+ },
+ "REQ-081": {
+  "status": "IMPLEMENTED",
+  "evidence": "Entity types per chapter in level data: W1 A barrier, C +slider; W2 A phase_gate, C barrier+form_gate+phase_gate+slider; W3 D current+phase_gate+slider+form_gate; W6 C breakable+phase_gate+pulse_gate+form_gate; W9 D and W10 C/D use 7 hazard types.",
+  "note": "Consistent with the REQ-080 upgrade: combination phases bring back the previous chapter in every chapter group (my check of the shipped JSON), and W10 L27-39 fuses pads, wells and plates (test_each_chapter_places_its_mechanic)."
+ },
+ "REQ-082": {
+  "status": "IMPLEMENTED",
+  "evidence": "Level data per world (computed here after the pacing pass): avg speed 7.65 m/s -> 12.05 (rising every world); avg min tap window 0.445 s -> 0.144 s (never widening); required taps/s after the tutorial 0.71 in W1, 0.82-0.87 in W2-W3, 1.07-1.32 from W5. W1 is hop-only with 2 lanes and the widest windows; phase arrives in W2, 3 lanes in W3, dash in W4, surge in W5, all four forms from W6.",
+  "note": "W1 stays the easiest world on every measure, but it is no longer slack: the first player report said the start stayed too simple for too long, so it now asks for a lane change every 1.2-1.8 s (was 3-5 s). 'Very easy' versus 'engaging' is a balance to settle with playtests."
+ },
+ "REQ-083": {
+  "status": "PARTIAL",
+  "evidence": "Tutorial L1-3 (forgiving L1-2, HUD._update_tap_hint on solution ticks); L1-52 are hop-only with sliders from L14, the shield chapter at L27 and pulse gates at L40; tier minimum windows 420/340 ms (curve.json).",
+  "note": "The structure supports learning hop by L20-30, but nobody checked that players actually learn it (no playtests)."
+ },
+ "REQ-084": {
+  "status": "PARTIAL",
+  "evidence": "Tier minimum windows go from 420 to 130 ms (curve.json); world unlocks need about 60% of stars; Zen mode never fails (test_zen_never_fails); forgiving tutorial.",
+  "note": "Hardest worlds ask for about 1.3 taps/s (W7-W8) with 133-183 ms minimum windows in W8-W10. Overall difficulty was never tested with players or on a device."
+ },
+ "REQ-085": {
+  "status": "PARTIAL",
+  "evidence": "GameplayView._handle_event: each TAP_HOP/PHASE/DASH/SURGE moves the core (CoreView.hop_motion/phase_motion/squash), adds a camera impulse or FOV punch, and emits feedback -> GameFlow._on_feedback -> AudioService + HapticsService.",
+  "note": "Wired for every input type. The quality of sound, haptics and motion was never judged on a device."
+ },
+ "REQ-086": {
+  "status": "IMPLEMENTED",
+  "evidence": "CoreView.hop_motion: a 40 ms ANTICIPATION squash, then _pending_stretch is released in update_visuals; morph() uses a 60 ms pre-squash; GameFlow READY_FIRST 0.8 s beat (GameplaySession Phase.READY); CameraRig.start_reveal.",
+  "note": "Anticipation is applied to player motion and at level start."
+ },
+ "REQ-087": {
+  "status": "IMPLEMENTED",
+  "evidence": "CoreView.hop_motion (squash, then stretch along the hop), CoreView.squash(axis) on dash and surge, morph() shrink then pop; the spring scale (_integrate_spring) is clamped to 0.45-1.7.",
+  "note": "Squash and stretch on the core for every tap verb."
+ },
+ "REQ-088": {
+  "status": "IMPLEMENTED",
+  "evidence": "CoreView.punch on spark, prism and pickup (GameplayView._handle_event); HUD._punch_score (1.06) and _punch_combo (1.18 then TRANS_BACK); CompleteOverlay._play_sequence star 1.25 pop; RewardOverlay cell pop 1.06.",
+  "note": "Scale punches on the core, the HUD and the result cards."
+ },
+ "REQ-089": {
+  "status": "IMPLEMENTED",
+  "evidence": "CoreView.update_visuals spins the body per form (rate scales with speed, x0.3 under reduce_motion), wobbles the ring and orbits the charge shards (_update_shards); CameraRig.follow rolls the camera on impulse; the W1 turbine silhouette rotates.",
+  "note": "Rotation on the core, the camera and the backdrop."
+ },
+ "REQ-090": {
+  "status": "IMPLEMENTED",
+  "evidence": "CoreView SPRING_K 300 / SPRING_D 18 (critical damping is about 34.6, so it overshoots); CameraRig impulse spring 140 / 18 (critical about 23.7); HUD combo and CompleteOverlay stars use TRANS_BACK; UiToggle uses TRANS_BACK.",
+  "note": "Underdamped springs and back-easing tweens."
+ },
+ "REQ-091": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/vfx/burst_pool.gd: pooled CPUParticles3D presets (collect 6, prism 10, streak, shatter 12, shield 10, fail 28, perfect 30) scaled by quality (set_amount_scale); per-world atmosphere particles (GameplayView._setup_atmosphere).",
+  "note": "Pooled, budgeted particle effects. On the Low preset the amounts are 40% and there are no ambient motes."
+ },
+ "REQ-092": {
+  "status": "IMPLEMENTED",
+  "evidence": "assets/shaders/glow_sprite.gdshader halo on the core (CoreView.halo, intensity rises with combo and pulse); core.gdshader unshaded HDR; spark and membrane energy shaders; Environment glow in GameplayView._apply_environment.",
+  "note": "Only energy glows, per ART_DIRECTION."
+ },
+ "REQ-093": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView._apply_environment: glow_hdr_threshold 1.0, intensity 0.55, AgX tonemap; glow follows the quality preset (GameplayView.set_quality glow flag from GameFlow._apply_quality, off on Low); test_quality_flags_survive_world_changes.",
+  "note": "HDR bloom only above threshold 1.0 (only energy glows)."
+ },
+ "REQ-094": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/vfx/trail_ribbon.gd + assets/shaders/trail.gdshader (8 styles, set_style); width grows with combo and overdrive (GameplayView._update_frame); length per quality preset (trail_points 12-40).",
+  "note": "An energy trail ribbon that cosmetics can skin."
+ },
+ "REQ-095": {
+  "status": "IMPLEMENTED",
+  "evidence": "CameraRig.add_trauma (shake = trauma^2 * MAX_SHAKE 0.16 * shake_scale, TRAUMA_DECAY 2.4); used on FAIL 0.6, HIT_SHIELDED 0.35, SHATTER 0.12, ZEN_BUMP 0.15; shake_scale is 0.2 under reduce_motion.",
+  "note": "Capped, trauma-based screen shake that respects accessibility settings."
+ },
+ "REQ-096": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView.edge_tint (FAILURE on FAIL, ACCENT on a perfect COMPLETE) via the tint in post_fx.gdshader; EntityView.flash on GATE_PASS, FORM_CHANGE and PORTAL (_flash_entity); CoreView flash/_pulse on morph and phase.",
+  "note": "Impact and event flashes are present. The edge tint needs post_fx, which is off on Low."
+ },
+ "REQ-097": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplaySession._process returns early while hit_stop > 0 (ticks pause); GameplayView.hit_stop: SHATTER 30 ms, CHAIN 15 ms, HIT_SHIELDED 60 ms, FAIL 90 ms (halved under reduce_motion).",
+  "note": "Hit stop pauses the simulation clock only; it never changes the tick-level outcome."
+ },
+ "REQ-098": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView.slow_motion(0.75, 0.08) on NEAR_MISS at combo >= 10 (skipped under reduce_motion); COMPLETE sets session.time_scale 0.4; GameplaySession scales _accum by time_scale.",
+  "note": "A micro slow-motion effect."
+ },
+ "REQ-099": {
+  "status": "IMPLEMENTED",
+  "evidence": "COMBO_STEP -> BurstPool 'ring' burst + 'combo' feedback; HUD._punch_combo; OVERDRIVE_START shockwave + chroma; test_feel_audio_service.gd test_combo_shimmer_layer_only_at_high_combo.",
+  "note": "Combo bursts appear visually, in the HUD and in the audio."
+ },
+ "REQ-100": {
+  "status": "IMPLEMENTED",
+  "evidence": "CameraRig.impulse with spring return in follow(); TAP_HOP leans by HOP_LEAN 0.15 toward the hop, CURRENT pushes; CameraRig.fov_punch on TAP_DASH (4) and heavy TAP_SURGE (3).",
+  "note": "Directional camera impulses and FOV kicks."
+ },
+ "REQ-101": {
+  "status": "IMPLEMENTED",
+  "evidence": "CoreView OmniLight3D (light_energy rises with combo) follows the core and lights nearby hazards; per-world DirectionalLight3D key (GameplayView.apply_world); CoreView.set_light_enabled from the quality flag dynamic_light.",
+  "note": "A dynamic core light. It is off on Low, which auto-detect picks for phones with fewer than 8 cores, and in battery saver."
+ },
+ "REQ-102": {
+  "status": "IMPLEMENTED",
+  "evidence": "post_fx.gdshader 'chroma' RGB split; GameplayView sets _chroma only on FAIL (0.8) and OVERDRIVE_START (0.35) and decays it in _update_juice; post_rect is shown only while an effect is active and post_fx is enabled.",
+  "note": "A controlled chromatic split, reserved for fail and overdrive. Off on Low."
+ },
+ "REQ-103": {
+  "status": "IMPLEMENTED",
+  "evidence": "post_fx.gdshader shock-ring UV distortion; GameplayView.shockwave on FORM_CHANGE (0.35), OVERDRIVE_START (0.45) and perfect COMPLETE (0.6); halved under reduce_motion.",
+  "note": "Distortion is used only on state changes. Off on Low."
+ },
+ "REQ-104": {
+  "status": "PARTIAL",
+  "evidence": "Budgets in code: fixed BurstPool amounts and pool sizes, CameraRig MAX_SHAKE, chroma only on fail and overdrive; haptics throttling (test_burst_of_events_is_throttled, test_global_floor_across_kinds); audio polyphony cap (test_polyphony_limit_and_voice_stealing).",
+  "note": "Anti-spam limits are enforced. Readability was judged only from static Xvfb screenshots, never in motion, on a device, or with players."
+ },
+ "REQ-105": {
+  "status": "PARTIAL",
+  "evidence": "Tap -> GameplaySession.request_tap -> FluxSim TAP_* event -> GameplayView._handle_event (core motion, camera) -> feedback -> GameFlow._on_feedback -> audio.on_feedback + haptics.on_feedback; HUD._punch_score when the score rises; test_on_feedback_connects_to_gameplay_view_signal.",
+  "note": "Code chain now complete: TAP_* event -> core motion + camera (GameplayView._handle_tap) -> feedback signal -> AudioService/HapticsService.on_feedback -> TapRipple floor ripple (test_every_tap_ripples_the_floor) -> HUD._nudge_score on every accepted tap. Remains PARTIAL: the haptic step was never felt on a device and the chain's timing/feel was never judged on hardware."
+ },
+ "REQ-106": {
+  "status": "PARTIAL",
+  "evidence": "A coherent stylised 3D look: custom shaders (game/assets/shaders), PBR presets (ViewKit.STRUCTURE_PRESETS), HDR glow, AgX, a light contrast/saturation grade and runway lamps (gameplay_view.gd, floor.gdshader). Obstacles are built per world from ten shape families (HazardShapes: machined/laser fence, crystal, lava rock, industrial, sea mine, pods, ice, rust barrels, monolith, candy) with hazard.gdshader materials; test_view_hazards.gd.",
+  "note": "Obstacles are no longer identical orange blocks (two shapes per world, own body material, shared warm warning light), but ribs stay simple and 'premium' is a human judgement made only on llvmpipe captures, never on a phone."
+ },
+ "REQ-107": {
+  "status": "PARTIAL",
+  "evidence": "Real-time 3D (Node3D, Camera3D, DirectionalLight3D) with stylised procedural meshes (MeshFactory, HazardShapes, CraftShapes) and stylised shaders, including a per-world sky with skyline, nebula, clouds, aurora, rays and celestial bodies (sky.gdshader).",
+  "note": "Stylised real-time 3D confirmed; 'high-end' remains a human judgement made on llvmpipe captures only."
+ },
+ "REQ-108": {
+  "status": "PARTIAL",
+  "evidence": "ViewKit.STRUCTURE_PRESETS gives structure its roughness, metallic, specular and clearcoat (anodised, steel, stone, ice, lacquer, crystal...); glass.gdshader with fresnel; sky radiance for metals; hazards use hazard.gdshader with per-family roughness/metallic/clearcoat (HazardShapes.SURFACES) and procedural patterns (lava cracks, glyphs, stripes, inner glow, veins).",
+  "note": "Structure has procedural relief normals per preset (structure.gdshader) and hazards a per-world PBR shader; no texture maps; material quality judged only on llvmpipe."
+ },
+ "REQ-109": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView.apply_world/_apply_environment: a per-world DirectionalLight3D key (colour, energy and angle from world art data), a flat ambient colour, the core OmniLight3D as a local light, sky radiance reflections, AgX tonemap; the result is visible in the lead/worlds_final renders.",
+  "note": "Physically based lighting with a per-world style. There is no GI or SSAO; ambient light is a flat colour. Never checked on a device display."
+ },
+ "REQ-110": {
+  "status": "IMPLEMENTED",
+  "evidence": "11 custom shaders in game/assets/shaders: core (10 animated styles, noise), trail (8 styles), glass (cell fracture + fresnel), floor (seams, caustics), sky (gradient, sink, stars), membrane, spark, post_fx, glow_sprite, ink_shell, chevron; plus noise.gdshaderinc.",
+  "note": "Purpose-built shaders. GPU cost was never profiled on a mobile device."
+ },
+ "REQ-111": {
+  "status": "PARTIAL",
+  "evidence": "Only soft additive halos (glow_sprite.gdshader, ring pulses), the sky 'flux sink' glow and depth fog (FOG_MODE_DEPTH). ART_DIRECTION.md section 6 explicitly rules out volumetric fog.",
+  "note": "Light shafts added (light_shaft.gdshader: additive quads at 6 % opacity, 6 beams, only in 4 of 10 worlds and only with ambient particles on), plus motes, halos, depth fog; test_every_world_has_side_detail_and_shafts_where_light_is_open. Whether this reads as 'volumetric-looking' is a visual judgement not made on a device; 6 worlds have no shaft effect."
+ },
+ "REQ-112": {
+  "status": "IMPLEMENTED",
+  "evidence": "core.gdshader unshaded HDR core; spark.gdshader and membrane.gdshader energy; ViewKit lamp_on_material emission; floor.gdshader caustic emission. Matter is never emissive (ART_DIRECTION rule).",
+  "note": "Emissive energy materials."
+ },
+ "REQ-113": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/quality/presets.json: shadows true on medium/high/ultra; auto_detect.mobile now starts at ultra for >= 8 cores, high for >= 6, medium below (shadows on in all three); Ultra adds two-split shadows with the high soft filter and a 2048 map (shadow_quality 2). GameplayView.set_quality sets key_light.shadow_enabled; the core body, hazards (EntityView._part shadows=true for blocks, shutters, glass, arches, pads, plates) cast; ribs deliberately do not (ART_DIRECTION 13.10). Test: tests/integration/test_view_world_art.gd test_quality_presets_drive_reflections_shadows_and_relief (Medium has shadows; Low turns them off). Hazard and core shadows are visible in the round-5 captures (scratch lead/review24, e.g. w07_l20_t017.5.png).",
+  "note": "Round-5 independent re-assessment: The stated gap (off on every phone by default) is closed: the phone auto preset now has dynamic shadows. Caveat: phones under 8 cores and battery saver fall to Low (no shadows); never rendered on a phone GPU."
+ },
+ "REQ-114": {
+  "status": "PARTIAL",
+  "evidence": "Environment.reflected_light_source = SKY with radiance_size 32 (GameplayView._apply_environment) gives metals a sky reflection; glass and the core use fresnel terms only.",
+  "note": "ReflectionProbe (UPDATE_ONCE, environment layer only, moved per cell) on High/Ultra and per-world floor_gloss in floor.gdshader; test_quality_presets_drive_reflections_shadows_and_relief, test_the_probe_mirrors_only_the_environment. Still PARTIAL: the phone auto preset (Medium) has reflections=false, so phones by default get only the 32 px sky radiance on glossy floors; appearance judged only on llvmpipe."
+ },
+ "REQ-115": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView._setup_atmosphere: per-world motes (embers, bubbles, snow, sand, stars, puffs, sprinkles, dust); floor caustics; the sky sink and per-world sky scenery (skyline, nebula, clouds, aurora, rays, sun / moon / planet); depth fog; the turbine silhouette; per-world music loops (assets/audio/music/<world>.wav, plus _hi and _boss versions).",
+  "note": "Each world has its own visual and audio ambience. Ambient motes are off on Low."
+ },
+ "REQ-116": {
+  "status": "PARTIAL",
+  "evidence": "UiScreen.transition_in/out (24 px slide + fade, cubic); UiButton press 0.96 and release overshoot; CompleteOverlay._play_sequence (star pop + count-up); RewardOverlay pops; HUD punches; UiToggle TRANS_BACK; reduce_motion is respected.",
+  "note": "The animations are implemented, but nobody saw them in motion (only static Xvfb screenshots, no device and no video). Their polish is unverified."
+ },
+ "REQ-117": {
+  "status": "IMPLEMENTED",
+  "evidence": "Outfit (OFL) at weights 400/600/800, latin + latin-ext for Turkish (game/assets/fonts; UiFonts); type scale in UiTokens (H1 64/800 ... CAPTION 18/600, tracking); rendered in the lead/ui6 (EN) and lead/ui_tr (TR) screenshots.",
+  "note": "One quality geometric sans family with a defined type scale."
+ },
+ "REQ-118": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView: far silhouette at SILHOUETTE_DISTANCE 150 with SILHOUETTE_PARALLAX 0.03; ribs every 7 m (RIB_SPACING); scrolling floor seams; depth fog 28-115 m; sky gradient with a per-world skyline and celestial body at infinity; CameraRig lateral lerp (_lateral) adds parallax.",
+  "note": "Layered depth with parallax."
+ },
+ "REQ-119": {
+  "status": "IMPLEMENTED",
+  "evidence": "CameraRig.follow: lateral follow, LOOK_AHEAD, start_reveal sweep (offset + FOV), spring impulses, fov_punch, trauma shake, impulse roll.",
+  "note": "A dynamic follow camera."
+ },
+ "REQ-120": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView._apply_environment: AgX tonemap, HDR glow (threshold 1.0), depth fog; MSAA and render scale per preset (data/quality/presets.json); event post FX in post_fx.gdshader (edge tint, distortion ring, chroma), hidden when idle (post_rect).",
+  "note": "Event effects only on fail/overdrive/perfect; glow honours the quality preset."
+ },
+ "REQ-121": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/art/palette.gd fixes the gameplay colour roles across all worlds. World sky and floor colours are dark (value <= 0.35 except high-key W4 Cloud Factory), so cyan energy and orange hazards dominate (lead/worlds_final renders).",
+  "note": "ART_DIRECTION's saturation <= 0.45 rule is exceeded numerically by very dark colours (e.g. Deep Ocean s 0.72 at v 0.21), and W4 exceeds the value cap. No test enforces the rule."
+ },
+ "REQ-122": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/worlds/w01..w10 'art' blocks: each world has its own rib_profile (gate, facet, truss, arch, hex, lattice, icicle, monolith, ring, candy; MeshFactory.rib), silhouette, sky, fog, floor, key light, atmosphere and music; renders in lead/worlds_final and lead/ribs.",
+  "note": "Committed in d107839. Hazard blocks look the same in every world, by design."
+ },
+ "REQ-123": {
+  "status": "IMPLEMENTED",
+  "evidence": "Audio comes from tools/audio/synth_bank.py (64 wav: 33 music + 31 sfx; --verify --only sfx re-run here: 31 files, 0 mismatches); meshes from src/art/mesh_factory.gd; icons from IconGlyph code + app_icon.svg; shaders in-repo. The only third-party binaries are the Outfit .woff2 files.",
+  "note": "Everything is original or procedural except the OFL Outfit font. Legacy web files (php/tsx) in the repo root are not game assets."
+ },
+ "REQ-124": {
+  "status": "IMPLEMENTED",
+  "evidence": "game/assets/LICENSES.json manifest; tools/ci/license_check.py run here: '0 problem(s), 14 manifest entries' (fonts, audio, icons, splash, backdrops); game/assets/fonts/OFL.txt present; CI runs it (.github/workflows/ci.yml:37).",
+  "note": "The only open-source asset (Outfit, OFL-1.1) is recorded and license-checked; every other asset is generated in the repo (audio, icons, splash, backdrops)."
+ },
+ "REQ-125": {
+  "status": "IMPLEMENTED",
+  "evidence": "MeshFactory builds chamfered boxes, rib profiles, silhouettes and shards; IconGlyph draws vector icons in code; procedural shaders (noise.gdshaderinc); synth_bank.py makes all the audio. No image textures on surfaces (ViewKit soft_dot is a GradientTexture2D).",
+  "note": "Procedural and original art throughout."
+ },
+ "REQ-126": {
+  "status": "PARTIAL",
+  "evidence": "ART_DIRECTION rules are applied in code: only energy glows (unshaded HDR core vs lit matter), per-world obstacle families with a shared warm warning light, a ribbed shaft, a different craft per form. Consistent across the 10 world renders (lead/worlds_final).",
+  "note": "Consistent, but recognisability was never validated. The player is now a small craft with flames and the obstacles differ per world, which moves it away from the plain orb-and-blocks genre look; still a human judgement."
+ },
+ "REQ-127": {
+  "status": "IMPLEMENTED",
+  "evidence": "Core shader skins (core_view.gd), trail ribbon (src/vfx/trail_ribbon.gd), level reveal camera (CameraRig.start_reveal), combo ring burst, world-transition ink veil (GameFlow._world_transition), collectible bursts, fail implode + burst, perfect burst + shockwave (GameplayView._on_frame_events).",
+  "note": "Judged from code and screenshots; motion not reviewed on a device."
+ },
+ "REQ-128": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameFlow._unhandled_input accepts only InputEventScreenTouch presses (mouse is emulated as touch) or Space, and calls GameplaySession.request_tap; FluxSim.step(tap) takes a single boolean per tick.",
+  "note": "One-touch tap control."
+ },
+ "REQ-129": {
+  "status": "IMPLEMENTED",
+  "evidence": "No hold, swipe or drag input exists in gameplay (GameFlow._unhandled_input handles presses only); later depth comes from the forms (hop/phase/dash/surge, data/mechanics.json), not from new gestures.",
+  "note": "Tap-only for the whole game, so the start is never complicated."
+ },
+ "REQ-130": {
+  "status": "IMPLEMENTED",
+  "evidence": "UiTokens.MIN_TOUCH / BUTTON_HEIGHT / ICON_BUTTON 88 canvas px (about 48 pt on a 390 pt phone, 720-wide canvas), primary buttons 96 px; toggles/sliders/segments/rows use MIN_TOUCH; test_volume_sliders_meet_touch_target; gameplay tap is full-screen (GameFlow._unhandled_input).",
+  "note": "Not measured on a device."
+ },
+ "REQ-131": {
+  "status": "IMPLEMENTED",
+  "evidence": "UiToggle takes one pointer source; CompleteOverlay._set_actions_live keeps hidden actions inert; UiScreen.transition_out disables input at once; 64 px targets; tests test_toggle_flips_once_per_physical_tap, test_result_actions_take_no_taps_during_the_sequence, test_leaving_overlay_releases_input_immediately.",
+  "note": "No device test."
+ },
+ "REQ-132": {
+  "status": "PARTIAL",
+  "evidence": "project.godot input_devices/buffering/agile_event_flushing=true; taps are queued in _unhandled_input and consumed on the next 60 Hz tick (GameplaySession._next_tap, at most 16.7 ms of quantisation); no input smoothing.",
+  "note": "No latency was measured on a device. The view interpolates between the previous and current tick, which adds up to one tick of display lag."
+ },
+ "REQ-133": {
+  "status": "IMPLEMENTED",
+  "evidence": "SimConst.combo_multiplier (+x0.5 per 5, cap x4) scales spark/prism/gate score in FluxSim._add_score; CoreView halo/light + trail width scale with sim.combo; COMBO_STEP ring burst; AudioService.play_sfx shimmer at combo>=10; 'combo' haptic strength scales. test_spark_collection_combo_and_multiplier",
+  "note": "Collectible bonus = multiplier on spark score. Music stem (set_combo) only updates on combo steps, so it lags after a break. Feel not checked on a device."
+ },
+ "REQ-134": {
+  "status": "IMPLEMENTED",
+  "evidence": "Combo = consecutive clean actions; one rule SimConst.combo_multiplier (step 5, +0.5, cap 4.0); FluxSim._combo_break on hit or missed spark; one Overdrive meter; HUD shows only 'xmult · count' (hud.gd).",
+  "note": "Simplicity judged from code/design only; no player testing."
+ },
+ "REQ-135": {
+  "status": "IMPLEMENTED",
+  "evidence": "RunResult.Grade NORMAL/GOOD/GREAT/PERFECT + RunResult.compute_grade; shown on complete_overlay.gd (GRADE_KEYS, en/tr strings); test_sim_rules.gd::test_run_result_stars_and_grades.",
+  "note": "Grade is per run on the result card; a best grade per level is not stored or shown in level select."
+ },
+ "REQ-136": {
+  "status": "PARTIAL",
+  "evidence": "Perfect = no damage + every spark (FluxSim.is_perfect). LevelValidator._check_solution errors unless each level's stored solution is perfect (520 validated, 0 failed per lead); levels are deterministic, so they are learnable.",
+  "note": "'Very hard' is unmeasured: no human playtests or perfect-rate data; only achievability is proven."
+ },
+ "REQ-137": {
+  "status": "IMPLEMENTED",
+  "evidence": "Perfect -> 3rd star (RunResult.compute_stars); RewardEngine.compute_level_reward adds perfect_first_gems + badge_perfect_<tier>; unique_perfects stat feeds CosmeticService.check_auto_unlocks (17 'perfects' items). test_first_perfect_gives_gems_and_badge_only_once, test_auto_unlock_by_perfects",
+  "note": "Gems only on a level's first perfect; badge once per difficulty tier, not on every perfect run."
+ },
+ "REQ-138": {
+  "status": "IMPLEMENTED",
+  "evidence": "RunResult.compute_stars: 1 for clear, +1 if score>=score_target, +1 if perfect; score_target is 55-72% of the perfect solution score and LevelValidator._check_solution requires solution perfect and >= target; test_run_result_stars_and_grades.",
+  "note": "Stars are additive: a perfect run under the score target would get 2 stars."
+ },
+ "REQ-139": {
+  "status": "IMPLEMENTED",
+  "evidence": "Worlds unlock by stars (ProgressionService.is_world_unlocked), cosmetics with unlock type 'stars' (data/cosmetics/cosmetics.json), the Time Attack challenge by 60 stars (data/modes/modes.json, ModeCatalog.is_unlocked 'stars'); test_star_total_unlocks_the_time_attack_challenge.",
+  "note": ""
+ },
+ "REQ-140": {
+  "status": "IMPLEMENTED",
+  "evidence": "Search of game/ for crypto/blockchain/web3/nft finds only Godot's Crypto class for random ids (player_profile.gd, analytics_service.gd); EconomyService.CURRENCIES = [coins, gems]; no addons/plugins in project.godot.",
+  "note": "The game has none. The unrelated legacy web site at the repo root (src/components/Hero.tsx, About.tsx) still mentions blockchain/Ethereum."
+ },
+ "REQ-141": {
+  "status": "IMPLEMENTED",
+  "evidence": "EconomyService.CURRENCIES [coins, gems] with ledger and caps (data/economy/economy.json); coins from play (reward_tables.json level/daily/missions); gems rare (perfect_first_gems 1, achievements, streak tier 3+). test_economy_service.gd, test_rewards_level.gd",
+  "note": ""
+ },
+ "REQ-142": {
+  "status": "IMPLEMENTED",
+  "evidence": "Store packs cosmetic-only (data/store/products.json; test_bundled_products_are_cosmetic_only, test_product_validation_rejects_currency_and_consumables); currency buys only cosmetics; world/mode unlocks are skill-based; FluxSim takes no paid/cosmetic input.",
+  "note": "Revive comes from an optional rewarded ad (not sold); revived runs are not ranked."
+ },
+ "REQ-143": {
+  "status": "IMPLEMENTED",
+  "evidence": "AdProvider/NullAdProvider + AdsService + AdsPolicy (data/config/ads_policy.json); StoreProvider/NullStoreProvider + StoreService (purchase/restore/reconcile); wired in src/core/services.gd; test_platform_ads.gd, test_platform_store.gd use scripted providers.",
+  "note": "Architecture only: no ad/IAP SDK or store accounts, so null providers report unavailable."
+ },
+ "REQ-144": {
+  "status": "IMPLEMENTED",
+  "evidence": "AdsService.interstitial_block_reason: policy placements only (level_end, world_end), min 6 clears, every 3 levels, 180 s cooldown, never in tutorial or after a purchase; GameFlow requests 'level_end' only after the complete overlay. test_interstitial_only_at_natural_breakpoints",
+  "note": "No ad SDK, so no interstitial is ever really shown."
+ },
+ "REQ-145": {
+  "status": "IMPLEMENTED",
+  "evidence": "AdsService.show_rewarded for revive (GameFlow._revive), double reward (CompleteOverlay double button) and the once-a-day bonus chest on the Daily screen (GameFlow._open_bonus_chest, Presenters.bonus_chest_offered); all optional; test_bonus_chest_is_optional_and_once_a_day (fake provider).",
+  "note": "No ad SDK linked: NullAdProvider hides every offer in this build."
+ },
+ "REQ-146": {
+  "status": "IMPLEMENTED",
+  "evidence": "Rewarded ads start only from player buttons (GameFlow._revive/_double_reward); no unlock or progress needs an ad; interstitials gated by AdsService (test_policy_data_cannot_loosen_hard_rules, test_no_interstitial_after_any_purchase).",
+  "note": "Interstitials (allowed by REQ-144) would auto-show at level end once an SDK exists; none ships."
+ },
+ "REQ-147": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/store/products.json: 3 cosmetic packs, 2 theme packs, starter_cosmetic_bundle, items are cosmetic ids only; StoreService validation rejects currency/consumables (test_product_validation_rejects_currency_and_consumables, test_bundled_products_are_cosmetic_only).",
+  "note": "Cannot be bought in this build (null store provider). Theme-pack items (theme_*, bg_*) do not render in game (see REQ-153)."
+ },
+ "REQ-148": {
+  "status": "IMPLEMENTED",
+  "evidence": "RewardBundle TYPE_COINS/GEMS/XP/STARS/SKIN/TRAIL/BADGE (+generic cosmetic); RewardEngine SPEC_KEYS include stars/skin/trail, _grant_stars_item -> PlayerProfile.bonus_stars (counts toward unlocks), skin/trail checked against catalog category; data/achievements/achievements.json pays stars, a skin (core_shadow), a trail (trail_ghost) and badges. Tests (run, 70/0 for 'reward'): test_rewards_types.gd test_engine_grants_every_type, test_typed_cosmetics_must_match_their_category, test_bonus_stars_count_toward_unlocks_not_campaign_totals, test_achievement_data_pays_the_new_types; test_reward_types_flow.gd test_star_reward_unlocks_a_world_right_away, test_achievement_skin_is_named_in_its_reveal.",
+  "note": "Round-5 independent re-assessment: Both prior gaps (stars never granted; skin/trail not distinct types) are fixed, used by data and tested end to end."
+ },
+ "REQ-149": {
+  "status": "IMPLEMENTED",
+  "evidence": "RewardEngine.grant returns exactly what was credited; complete/reward overlays animate that bundle; test_app_flow.gd::test_first_clear_records_progress_and_grants_real_rewards asserts the balance moved by exactly the bundles shown; test_daily_rewards_only_first_completion.",
+  "note": ""
+ },
+ "REQ-150": {
+  "status": "IMPLEMENTED",
+  "evidence": "Shop shows price, currency and shortfall before purchase and what each item changes (CosmeticsScreen._update_detail, shop.affects.*); every sold category has an effect; ads optional; real countdowns; no fake close buttons; tests test_shop_shows_price_and_shortfall_before_purchase, test_shop_says_what_an_item_changes.",
+  "note": "No human UX audit."
+ },
+ "REQ-151": {
+  "status": "IMPLEMENTED",
+  "evidence": "Retention comes from short levels (curve.json), stars/perfect, local bests/boards, cosmetics collection, daily + streak, missions, 82 achievements and world unlocks; no energy/lives timers, loot boxes or gacha in code or data.",
+  "note": "Leaderboards are local-only (no backend)."
+ },
+ "REQ-152": {
+  "status": "IMPLEMENTED",
+  "evidence": "No energy/lives, gacha or paid continues; cosmetics-only economy with disclosed effects; streak never resets to zero (DailyChallengeService.tier_after); notifications opt-in neutral copy; nothing covers PLAY AGAIN; tests in test_economy_*, test_online_daily_streak, test_ui_regressions.",
+  "note": ""
+ },
+ "REQ-153": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/cosmetics/cosmetics.json: 19 core skins, 12 trails, 9 particle styles, 10 backgrounds, 8 themes, 9 effects, 21 badges, 10 frames, 14 avatars, each applied in game (GameplayView, UiTheme.apply_accent, ProfileEmblem); test_cosmetics_* suites.",
+  "note": ""
+ },
+ "REQ-154": {
+  "status": "IMPLEMENTED",
+  "evidence": "FluxSim, SimLevel, GameplaySession, modes and ReplayVerifier take no cosmetic input (no cosmetic/skin/trail references in src/gameplay/sim, gameplay_session.gd, src/gameplay/modes or src/server_shared); cosmetics only reach GameplayView.apply_cosmetics (visual).",
+  "note": ""
+ },
+ "REQ-155": {
+  "status": "PARTIAL",
+  "evidence": "assets/shaders/core.gdshader has 10 animated styles (plasma, fire, ice, void, crystal, electric, molten, aurora, candy, nebula), picked by the cosmetics.json 'style'; CoreView.apply_skin sets style, colours and anim_speed.",
+  "note": "Recolour gap closed: 19 core skins use 19 distinct animated shader styles (core_styles.gdshaderinc styles 0-18), test_every_core_skin_and_trail_has_its_own_style, test_shop_swatch_plays_each_core_skin_live. 'Quality animation' is a human/device judgement not made (llvmpipe only)."
+ },
+ "REQ-156": {
+  "status": "IMPLEMENTED",
+  "evidence": "ProgressionService (XP table, player_level, stars), EconomyService (coins/gems), AchievementService (82), DailyChallengeService, MissionService and CosmeticService (collection, owned_count); test_progression_xp.gd, test_meta_achievements.gd, test_online_daily_streak.gd.",
+  "note": ""
+ },
+ "REQ-157": {
+  "status": "IMPLEMENTED",
+  "evidence": "ProgressionService.next_unlock_hint (next level, world star goal, player level), shown as the main-menu meter via Presenters (menu.hint.*); CosmeticService.unlock_status shows per-item progress; test_progression_hints.gd (7 tests).",
+  "note": "The next unlock is visible, but there is no full unlock-tree screen."
+ },
+ "REQ-158": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/worlds/w01..w10 (10 world JSON files) + index.json; ProgressionService covers 10 worlds (test_progress_summary_covers_ten_worlds); 520 levels validated (lead fact).",
+  "note": ""
+ },
+ "REQ-159": {
+  "status": "IMPLEMENTED",
+  "evidence": "Each world JSON has levels: 52; data/levels/w01..w10 hold 52 JSON files each (520 total); validate_levels: 520 validated, 0 failed (lead fact).",
+  "note": ""
+ },
+ "REQ-160": {
+  "status": "PARTIAL",
+  "evidence": "World JSON art per world (key_light, ambient, rib_material, atmosphere particles: dust, glitter, embers, snow…, silhouette), own music + boss + hi stems (assets/audio/music), boss/challenge spec; read by WorldTheme.",
+  "note": "Lighting, materials, music, atmosphere and set pieces differ per world (data/worlds/*.json); hazard types themselves are shared across worlds."
+ },
+ "REQ-161": {
+  "status": "IMPLEMENTED",
+  "evidence": "Boss (L52) and challenge (L26) set pieces shape generation: rotor_gauntlet (all sliders share one sweep period), rhythm_gauntlet (pulse gates in unison), pattern_memory (4-row hazard motif, LevelGenerator._pick_hazard), color_cascade and chain_smasher (DifficultyModel._apply_special), escape (speed ramp), survival (survive objective), fast_field (speed bonus); test_boss_set_pieces_shape_their_levels (tests/unit/test_level_content.gd).",
+  "note": "The rotating machine is expressed by synchronised slider blades, not by rotating geometry."
+ },
+ "REQ-162": {
+  "status": "IMPLEMENTED",
+  "evidence": "World JSON drives palette/sky/fog/floor/lights/atmosphere/silhouette (WorldTheme), music bpm (WorldTheme.bpm) and track synthesis (tools/audio/synth_bank.py reads root_midi/scale), and chapters (intro mechanic, forms, hazards) plus boss/challenge specs used by DifficultyModel.",
+  "note": "Runtime music files are mapped by world id in data/audio/sound_bank.json."
+ },
+ "REQ-163": {
+  "status": "IMPLEMENTED",
+  "evidence": "Main menu PLAY -> GameFlow._play_campaign(next level, classic) -> RunController.prepare; test_first_clear_records_progress_and_grants_real_rewards plays w01_l01 end to end; classic unlock type 'none' (modes.json).",
+  "note": "Played only in headless/Xvfb runs; no human device playtest."
+ },
+ "REQ-164": {
+  "status": "IMPLEMENTED",
+  "evidence": "modes.json endless (seeded weekly stream); EndlessStreamer; RunController.prepare 'endless' source; test_endless_stream_is_deterministic_and_ordered, test_endless_streams_and_records_best_distance.",
+  "note": ""
+ },
+ "REQ-165": {
+  "status": "IMPLEMENTED",
+  "evidence": "modes.json time_attack (time_limit 60, no shields, weekly board); FluxSim ends the run at level.time_limit; test_time_limit_completes_the_run, test_time_attack_replay_verifies_on_rebuilt_course.",
+  "note": "The mode text 'Clear it as fast as you can' does not match the 60 s highest-score rule."
+ },
+ "REQ-166": {
+  "status": "IMPLEMENTED",
+  "evidence": "modes.json daily; DailyChallengeService.level_for/record_result; RunController 'daily' source; test_daily_rewards_only_first_completion, test_online_daily_level.gd.",
+  "note": ""
+ },
+ "REQ-167": {
+  "status": "IMPLEMENTED",
+  "evidence": "modes.json perfect_run (strict, no shields, unlock 5 perfects); FluxSim 'strict' fails the run on a missed spark or a hit; test_strict_rule_fails_on_missed_spark.",
+  "note": ""
+ },
+ "REQ-168": {
+  "status": "IMPLEMENTED",
+  "evidence": "modes.json zen (zen true, speed_scale 0.85, no board, no rewards); FluxSim zen bumps instead of failing; test_zen_never_fails, test_modifiers_carry_mode_and_rules.",
+  "note": ""
+ },
+ "REQ-169": {
+  "status": "IMPLEMENTED",
+  "evidence": "modes.json hard (speed_scale 1.12, no shields, unlock after 2 worlds); FluxSim speed_scale/shields_allowed; test_catalog_has_all_modes_and_validates, test_unlock_rules_are_honest_thresholds.",
+  "note": "No dedicated hard-mode run test beyond modifiers."
+ },
+ "REQ-170": {
+  "status": "IMPLEMENTED",
+  "evidence": "modes.json boss_rush; RunController.boss_rush_queue/prepare/advance_rush chain beaten bosses with one life and banked score; ReplayVerifier rules from ModeCatalog; test_boss_rush_needs_beaten_bosses.",
+  "note": "Only the gating is tested (no bosses -> no rush); a full rush run is not."
+ },
+ "REQ-171": {
+  "status": "IMPLEMENTED",
+  "evidence": "DailyChallengeService.seed_for = DetRng.hash_string(salt:date); level_for builds and validates one level per UTC date, also used by the server verifier; test_seed_is_stable_hash_of_date, test_same_date_gives_identical_level_json, test_daily_levels_pass_validator.",
+  "note": ""
+ },
+ "REQ-172": {
+  "status": "IMPLEMENTED",
+  "evidence": "Daily result card shows score, stars, reward bundle and the rank line (GameFlow._daily_rank_text -> CompleteOverlay rank label, DailyChallengeService.rank_text_local); Daily screen shows best and rank; test_daily_result_card_shows_the_rank, test_daily_rank_uses_the_service_total.",
+  "note": "Rank is among the player's own daily scores (no hosted global board)."
+ },
+ "REQ-173": {
+  "status": "IMPLEMENTED",
+  "evidence": "reward_tables.json daily_streak tiers 1-7 with rising coins/gems/xp; DailyChallengeService._advance_streak/_current_tier lose one tier per missed day, min 1; test_missed_day_decays_tier_gently, test_several_missed_days_never_go_below_one.",
+  "note": "A missed day still costs one tier (gentle decay, never a reset)."
+ },
+ "REQ-174": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/missions/missions.json: 15 daily templates incl. play_levels(5), get_perfects(2-4), collect_energy(100+), reach_combo(10+), no_damage; MissionService picks 3/day deterministically, explicit claim; test_required_templates_present, test_meta_missions.gd.",
+  "note": ""
+ },
+ "REQ-175": {
+  "status": "IMPLEMENTED",
+  "evidence": "13 weekly templates (20-40 clears, 10-20 perfects, bosses, combos, dailies), 3 per ISO week, targets capped to the days left; test_weekly_resets_on_monday (test_meta_missions_schedule.gd), test_meta_missions.gd.",
+  "note": ""
+ },
+ "REQ-176": {
+  "status": "IMPLEMENTED",
+  "evidence": "achievements.json: 82 in 8 categories incl. first_perfect, sparks_100, combo_10, levels_50/100, no_miss_first, perfect_world, fast_clear_first, combo_50, daily_30, boss_10; test_shipped_definitions_have_at_least_55_entries, test_required_examples_present",
+  "note": ""
+ },
+ "REQ-177": {
+  "status": "PARTIAL",
+  "evidence": "LeaderboardService boards daily/weekly/alltime/level (board_ids_for), LocalLeaderboardBackend + HttpLeaderboardBackend, offline queue; HTTP contract in game/server/README.md; test_online_leaderboard_service.gd, test_online_leaderboard_backends.gd.",
+  "note": "No hosted server stores or ranks global scores; the HTTP backend is off (empty base_url), so boards are local-only."
+ },
+ "REQ-178": {
+  "status": "PARTIAL",
+  "evidence": "ReplayVerifier (src/server_shared) re-simulates the replay and ignores the claimed score; CLI game/server/verify_replay.gd with fail-safe exit codes; test_rejects_tampered_score, test_rejects_impossible_tap_rate, test_cli_campaign_valid_and_tampered.",
+  "note": "Verification logic only: no deployed server runs it, so no score is validated server-side in this build."
+ },
+ "REQ-179": {
+  "status": "PARTIAL",
+  "evidence": "ReplayVerifier.verify covers leaderboard and daily scores (daily date window); verify_reward_claim rejects duplicate/unverified daily claims and impossible currency deltas (test_online_reward_claims.gd); IntegrityMonitor flags ledger anomalies.",
+  "note": "Not server-backed (no hosted backend); suspicious-progression checks are client-side only."
+ },
+ "REQ-180": {
+  "status": "IMPLEMENTED",
+  "evidence": "Gameplay, bundled level JSON, daily (local seed), progression and saves are all local; HttpLeaderboardBackend off by default (empty leaderboard.base_url); integration tests boot and play with no network (test_boot_builds_every_service, test_first_clear_records_progress_and_grants_real_rewards).",
+  "note": "No airplane-mode test on a device."
+ },
+ "REQ-181": {
+  "status": "IMPLEMENTED",
+  "evidence": "Each named feature has an offline-path test: leaderboard test_offline_queues_then_flushes_when_transport_recovers, analytics test_http_sink_queues_offline_then_flushes, remote config test_fetch_offline_keeps_cached_values, cloud save test_offline_keeps_dirty_and_syncs_on_reconnect (+ test_fresh_install_that_played_offline_adds_only_its_earnings), transport test_http_transport_unreachable_host_is_offline_not_crash; daily challenge is generated locally. AppServices re-syncs on network-back-online (core/services.gd).",
+  "note": "Round-5 independent re-assessment: The only gap (cloud save did not exist) is closed; offline degradation is testable without a backend and is tested for all five features."
+ },
+ "REQ-182": {
+  "status": "PARTIAL",
+  "evidence": "game/src/systems/cloud/: CloudSaveProvider interface, NullCloudSaveProvider (off), HttpCloudSaveProvider (GET/PUT /v1/saves/{install_id}, revision compare-and-swap, 409 merge), CloudSaveService (sync, dirty flag, retries, refuses corrupt/newer copies), ProfileMerge, three-way WalletMerge; wired in AppServices (core/services.gd CLOUD_URL_KEY from remote config) with a Settings row; server contract in game/server/README.md 'Cloud save'. Tests (run, 46/0): test_online_cloud_save.gd, test_online_cloud_merge.gd, test_online_cloud_regressions.gd, tests/integration/test_cloud_boot.gd.",
+  "note": "No hosted backend (cloud_save.base_url is empty, feature off in the shipped build); no account binding/platform sign-in, so a second device only sees the save if a future backend links install ids (README says it is out of repo); never exercised against a real server. Round-5 independent re-assessment: The client-side architecture, protocol and merge are complete and tested; the server and identity parts need infrastructure this environment cannot provide."
+ },
+ "REQ-183": {
+  "status": "IMPLEMENTED",
+  "evidence": "PlayerProfile.to_dict holds coins/gems/xp, levels (stars, best, perfect), unlocked_worlds, cosmetics, achievements, missions, daily, settings and purchases; SaveService writes it via FileSaveStorage (services.gd); test_round_trip_preserves_every_profile_field, test_settings_survive_save_roundtrip.",
+  "note": ""
+ },
+ "REQ-184": {
+  "status": "IMPLEMENTED",
+  "evidence": "SaveService loads main -> backup -> new profile with SHA-256 checksum, quarantines a damaged main, atomic temp+rename writes; test_save_recovery.gd (garbage, truncated, wrong checksum, tampered coins, both corrupted), test_file_storage_recovers_from_truncated_main_on_disk.",
+  "note": ""
+ },
+ "REQ-185": {
+  "status": "IMPLEMENTED",
+  "evidence": "Envelope {format, version, saved_at, checksum, payload}; SaveMigrations v0->v1; newer-version files kept aside; test_v0_to_v1_shape, test_unsupported_version_returns_empty, test_migrates_enveloped_v0_save, test_future_main_is_preserved_and_backup_used.",
+  "note": "Only one migration step (v0->v1) exists so far."
+ },
+ "REQ-186": {
+  "status": "IMPLEMENTED",
+  "evidence": "settings_screen.gd 'sound' toggle + sfx_volume slider -> SettingsService; AudioService.play_sfx/_apply_bus honour 'sound'; test_settings_apply_live_to_buses, test_settings_survive_save_roundtrip.",
+  "note": ""
+ },
+ "REQ-187": {
+  "status": "IMPLEMENTED",
+  "evidence": "settings_screen.gd 'music' toggle + music_volume slider; AudioService music bus and play_music check 'music'; test_settings_apply_live_to_buses.",
+  "note": ""
+ },
+ "REQ-188": {
+  "status": "IMPLEMENTED",
+  "evidence": "settings_screen.gd 'haptics' toggle (Vibration); HapticsService.play returns early when it is off; test_opt_out_setting.",
+  "note": "Vibration itself not checked on a device."
+ },
+ "REQ-189": {
+  "status": "IMPLEMENTED",
+  "evidence": "settings_screen.gd 'notifications' toggle (Privacy); AppServices._on_setting -> NotificationService.refresh (schedule/cancel); test_opt_in_is_required, test_disabling_cancels_everything.",
+  "note": "The setting works, but with NullNotificationProvider no OS notification is delivered (no push plugin)."
+ },
+ "REQ-190": {
+  "status": "IMPLEMENTED",
+  "evidence": "Settings segmented Auto/Low/Medium/High/Ultra -> QualityService.set_preset + apply_to_viewport, GameFlow._apply_quality -> GameplayView.set_quality; data/quality/presets.json; test_manual_setting_selects_preset, test_presets_scale_up_monotonically, test_apply_to_viewport.",
+  "note": "Performance effect not measured on a device."
+ },
+ "REQ-191": {
+  "status": "IMPLEMENTED",
+  "evidence": "settings_screen.gd 'battery_saver' toggle; QualityService caps FPS/preset, HapticsService halves amplitude; test_battery_saver_caps_fps_and_preset, test_battery_saver_halves_amplitude.",
+  "note": "Battery savings not measured (no device)."
+ },
+ "REQ-192": {
+  "status": "IMPLEMENTED",
+  "evidence": "Language control Device/English/Türkçe -> SettingsService 'language' (auto/en/tr) -> Localization._on_settings_changed; test_language_values, test_every_key_exists_in_both_languages; TR screens reviewed (lead ui_tr captures).",
+  "note": ""
+ },
+ "REQ-193": {
+  "status": "PARTIAL",
+  "evidence": "Settings 'Restore purchases' button -> GameFlow._restore_purchases -> StoreService.restore_purchases with a status line; test_restore_with_scripted_provider, test_restore_with_null_provider_returns_error.",
+  "note": "Real restore BLOCKED: no IAP SDK or store accounts; the null provider always reports the store unavailable."
+ },
+ "REQ-194": {
+  "status": "PARTIAL",
+  "evidence": "game/export_presets.cfg has Android (com.fluxdrop.game) and iOS presets, portrait orientation; lead: signed debug APK exported and apksigner-verified; iOS export job defined in .github/workflows/ci.yml.",
+  "note": "Android: debug/test APK built in CI and here (arm64, apksigner-verified, 520 levels). iOS: the unsigned arm64 device app compiles and links in CI (run 37188419595, Xcode 26.3). Neither is installed on a real device here; release signing for both BLOCKED."
+ },
+ "REQ-195": {
+  "status": "IMPLEMENTED",
+  "evidence": "SafeAreaContainer.current_insets maps DisplayServer.get_display_safe_area into canvas margins; all 13 screens use it via UiScreen.make_safe_root (+toast); Android edge_to_edge; re-run probe status_probes/batch3/safe_probe.gd applies simulated Dynamic Island/punch-hole insets.",
+  "note": "Not checked on a real device; no unit test covers it (probe only)."
+ },
+ "REQ-196": {
+  "status": "IMPLEMENTED",
+  "evidence": "project.godot: 720x1280 base, canvas_items/expand stretch; full-rect screens + SafeAreaContainer. Xvfb captures at 540x960 (lead ui6), 444x960 (~9:19.5) and 768x1024 (3:4) in status_probes/batch3/{tall,tablet} keep layouts intact.",
+  "note": "Desktop renders only; on 3:4 some grids leave empty side space; fixed vertical FOV slightly crops the near outer lane on 9:19.5."
+ },
+ "REQ-197": {
+  "status": "PARTIAL",
+  "evidence": "Notch, Dynamic Island and punch-hole are handled through SafeAreaContainer (simulated insets in safe_probe.gd); tablet 3:4 and tall 9:19.5 captures render correctly (status_probes/batch3).",
+  "note": "Notch, punch-hole, 16:9 and 4:3 tablet layouts tested with simulated devices (test_safe_area.gd); no physical device."
+ },
+ "REQ-198": {
+  "status": "IMPLEMENTED",
+  "evidence": "Touch targets ≥ UiTokens.MIN_TOUCH 88 canvas px ≈ 48 pt / dp on 390-412-wide phones (iOS 44 pt, Android 48 dp guidance); test_volume_sliders_meet_touch_target; screens re-captured at the new size with no overflow.",
+  "note": "Not measured on a device."
+ },
+ "REQ-199": {
+  "status": "PARTIAL",
+  "evidence": "data/quality/presets.json fps_cap 60 (ultra 120); QualityService.auto_detect/detect_for starts at the best preset the device class can carry (ultra on 8+ cores) and the frame monitor steps it down after 3 s of slow frames, at most once per 8 s; low on the compat renderer; Mobile renderer (opengl3 fallback default); test_feel_quality.gd test_auto_starts_at_the_top_the_device_can_carry, test_the_top_preset_turns_everything_on.",
+  "note": "Targets are configured only. No FPS was measured on any device class (no hardware); screenshots used llvmpipe. Starting on Ultra relies on the automatic downgrade on weaker phones; never measured on a device."
+ },
+ "REQ-200": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/core/node_pool.gd NodePool (prewarm/acquire/release) used by GameplayView._pool (24 EntityViews); src/vfx/burst_pool.gd fixed CPUParticles3D pools + ring pool; AudioService 12-voice pool (_pick_voice); test_app_flow.gd test_restart_is_stable_and_fast (100 restarts, <=2 node growth).",
+  "note": "Hazards, bursts, rings and SFX voices are pooled. Restarts reuse nodes with no scene reload."
+ },
+ "REQ-201": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/gameplay/view/spark_field.gd: all sparks and prisms in one MultiMesh each; GameplayView._ribs MultiMeshInstance3D (RIB_COUNT 16, _place_ribs); TrailRibbon is one ImmediateMesh; ViewKit shares meshes/materials per world.",
+  "note": "The most numerous objects are instanced. Hazards are pooled single MeshInstances that share meshes and materials."
+ },
+ "REQ-202": {
+  "status": "NOT_IMPLEMENTED",
+  "evidence": "No atlas anywhere: case-insensitive grep 'atlas' over game/src, data, assets finds nothing. Textures are runtime GradientTextures (ViewKit soft dot, BurstPool glow), icons are code-drawn (IconGlyph), and the only image is assets/icons/app_icon.svg.",
+  "note": "No texture atlas is built. Documented decision (docs/ARCHITECTURE.md §9): no bitmap sprites ship; the only textures are five tiny generated gradients plus the engine's font glyph cache, so an atlas would add UV bookkeeping for no saving. Revisit if bitmap art is added."
+ },
+ "REQ-203": {
+  "status": "PARTIAL",
+  "evidence": "11 short shaders in game/assets/shaders (<=72 lines); energy shaders are unshaded/blend_add with shadows disabled; post_fx ColorRect only while an effect is active; sky radiance pass is gradient only; post_fx is off on the low preset.",
+  "note": "Per-preset variants now exist (glass_lite.gdshader on Low/Medium vs Voronoi glass.gdshader on High/Ultra; structure relief and post_fx off on Low; sky re-bake per frame removed in 69f3f09; test_quality_presets_drive_reflections_shadows_and_relief). Still no GPU profiling of any shader on a phone (asset gate notes 'not profiled on a phone GPU' for core, floor, structure, swatch); needs a device."
+ },
+ "REQ-204": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/vfx/burst_pool.gd PRESETS: fixed amount + pool per effect, round-robin emit(); set_amount_scale caps at preset amount (minf 1.0); WorldTheme clamps atmosphere count 0-24; GameplayView._apply_atmosphere_quality scales it (x2 on High, by the preset's particle scale). Test: test_atmosphere_and_bursts_stay_within_budget.",
+  "note": "Each effect has a hard cap and a fixed pool size, and counts scale down on lower presets."
+ },
+ "REQ-205": {
+  "status": "PARTIAL",
+  "evidence": "Pooled nodes (NodePool, BurstPool), restart without scene reload (test_restart_is_stable_and_fast), LevelRepository LRU (CACHE_SIZE 8), EndlessStreamer compaction, bounded ErrorReporter (MAX_REPORTS 20) and GameLog ring (200).",
+  "note": "Static/video memory budgets per preset (data/quality/budgets.json, PerfBudgets, tools/perf_probe.gd), headless test test_busy_boss_level_fits_the_low_node_and_memory_budgets, CI step green on GitHub; my probe run (xvfb + lavapipe, Mobile renderer) passed: max static 76.6 MB, video 34-81 MB, all under budget. Remaining: memory only measured on desktop lavapipe; phone RAM/GPU-driver memory and OS limits never measured (device). The probe also reported 7 leaked Texture RIDs and 3 ObjectDB instances at exit."
+ },
+ "REQ-206": {
+  "status": "IMPLEMENTED",
+  "evidence": "AsyncLoader (src/core/async_loader.gd, threaded ResourceLoader) prefetches the next world's music from the menu and level select (SoundBank.prefetch_music, AudioService.prefetch_music, GameFlow._show_main/_show_levels); test_prefetched_music_comes_from_the_background_loader. Start-up: BootLoader (src/app/boot_loader.gd) shows the LoadingScreen in the first frame, then boots the services, loads and builds the main scene and renders warm-up frames under it a step per frame, so the progress bar moves (test_boot_loader.gd); the boot splash image covers the engine start.",
+  "note": ""
+ },
+ "REQ-207": {
+  "status": "PARTIAL",
+  "evidence": "GameplayView._spawn_entities spawns pooled entities within VIEW_AHEAD 75 and releases them behind VIEW_BEHIND; EndlessStreamer.pump builds 1 slot per frame (RunController.pump) with compaction; test_endless_streams_and_records_best_distance.",
+  "note": "Course content streams within a level (EndlessStreamer) and music loads in the background (AsyncLoader); there is no multi-scene world streaming (single persistent scene by design)."
+ },
+ "REQ-208": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/ui/kit/ui_theme.gd: one cached Theme of StyleBoxFlat ('no gradients, no glow, no blur'); IconGlyph draws icons in code (no textures); ScreenRouter._ensure_built builds screens lazily and reuses them; screenshots lead/ui6/*.png.",
+  "note": "UI cost was not measured on a device. The main menu renders a live 3D attract run behind the UI."
+ },
+ "REQ-209": {
+  "status": "IMPLEMENTED",
+  "evidence": "LevelRepository LRU (_cache/_order, CACHE_SIZE 8); SoundBank.stream_at caches streams, preload_sfx warms them; ViewKit caches arch/membrane/track/chevron/form meshes and materials; UiTheme/UiFonts static caches; RemoteConfig.save_cache/load_cache.",
+  "note": ""
+ },
+ "REQ-210": {
+  "status": "IMPLEMENTED",
+  "evidence": "Control: MultiMesh sparks/ribs/details, VIEW_AHEAD windowing, pooled EntityViews, shared materials. Budget: data/quality/budgets.json draw_calls per preset (Mobile renderer), PerfBudgets + tools/perf_probe.gd --check (refuses a different renderer), tests/unit/test_perf_budgets.gd, CI step 'Performance budgets per quality preset' green in GitHub run 37185275246. My run of `xvfb-run godot --path . -s res://tools/perf_probe.gd -- --check` (24 runs, worlds 5/8/10, l20/l52, all presets): exit 0, max draw calls low 167/210, medium 209/265, high 206/265, ultra 206/265.",
+  "note": "Round-5 independent re-assessment: Draw-call counts are a property of the renderer and scene, so counting them on the Mobile renderer under lavapipe is valid off-device; a budget exists, is measured and is enforced in CI. Caveats: reflection-probe re-captures are not in the counter (R6-VIEW-6, accepted), and the Compatibility-renderer fallback is not budgeted."
+ },
+ "REQ-211": {
+  "status": "PARTIAL",
+  "evidence": "FluxSim.step avoids allocation (packed arrays, reused flat events buffer); FrameMonitor packed ring; pooled nodes. GameplayView._update_frame still calls _active.keys() every frame (gameplay_view.gd ~443).",
+  "note": "Sim event buffer is reused (FluxSim.events/event_len/clear_events; test_sim_basic.gd test_event_buffer_is_reused_between_frames) and GameplayView no longer copies _active.keys(). Remaining per-frame allocations: SparkField.advance_pops copies _popping.keys() every frame while any collect pop runs (spark_field.gd:60), TrailRibbon.rebuild clears and rebuilds an ImmediateMesh surface every frame; no allocation measurement or device profiling. Follow-up 86fbae3: SparkField.advance_pops iterates the map and reuses a buffer (no per-frame keys() copy). Still no on-device allocation profiling."
+ },
+ "REQ-212": {
+  "status": "IMPLEMENTED",
+  "evidence": "QualityService presets low/medium/high/ultra (data/quality/presets.json) applied to viewport and view: GameplayView.set_quality (post FX, glow, ambient particles, particle scale, trail, light, shadows); tests test_feel_quality.gd, test_quality_flags_survive_world_changes.",
+  "note": "Not run on a device."
+ },
+ "REQ-213": {
+  "status": "IMPLEMENTED",
+  "evidence": "FrameMonitor + QualityService.feed_frame step the preset down; every quality_changed re-applies render scale/MSAA/fps cap (services.gd) and view params (GameFlow._apply_quality); test_auto_quality_step_reaches_the_viewport, test_feel_quality.gd.",
+  "note": "Not run on a device."
+ },
+ "REQ-214": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/ui/kit/ui_button.gd _on_pressed -> UiKit.play_feedback(ui_click/ui_back) -> UiKit.feedback_hook = AppServices.ui_feedback -> AudioService.play_sfx; ui_toggle, level/world/mode/cosmetic tiles also call play_feedback; ui_click/ui_back in data/audio/sound_bank.json.",
+  "note": ""
+ },
+ "REQ-215": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView._handle_event emits feedback tap/phase/dash/surge/denied for TAP_* events -> GameFlow._on_feedback -> AudioService.on_feedback; WAVs in assets/audio/sfx; test_feel_audio.gd test_every_gameplay_feedback_kind_has_a_sound.",
+  "note": ""
+ },
+ "REQ-216": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView._handle_event: FAIL->'fail', HIT_SHIELDED->'shield_break', ZEN_BUMP->'bump', SHATTER/CHAIN->'shatter'/'chain', all in sound_bank.json sfx; test_every_gameplay_feedback_kind_has_a_sound.",
+  "note": ""
+ },
+ "REQ-217": {
+  "status": "IMPLEMENTED",
+  "evidence": "Combo pitch steps (SoundBank shimmer) and the intensity stem following the live combo, reset per run (AudioService.set_combo from GameFlow._on_feedback/_restart/_play_level_music); test_fail_card_stays_clear_and_music_follows_the_run.",
+  "note": ""
+ },
+ "REQ-218": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView._handle_event COMPLETE emits 'perfect' when damage==0 and all sparks were collected -> AudioService plays sfx perfect (sound_bank.json 'perfect'); covered by test_every_gameplay_feedback_kind_has_a_sound.",
+  "note": "The perfect SFX plays. The 'perfect_fanfare' stinger never plays (see REQ-221)."
+ },
+ "REQ-219": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView._handle_event FAIL emits feedback 'fail' (strength 1.0) -> AudioService.on_feedback; 'fail' is in SoundBank.REQUIRED_KINDS and sound_bank.json; test_every_gameplay_feedback_kind_has_a_sound.",
+  "note": ""
+ },
+ "REQ-220": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameFlow._build_ui: RewardOverlay.item_landed -> audio.play_sfx('coin') for every reveal (level-up, mission, achievement); CompleteOverlay.star_landed -> play_sfx('star'); in-run pickups emit 'pickup'.",
+  "note": "The bank's 'reward', 'level_up' and 'unlock' SFX are never triggered. With Reduce Motion on, RewardOverlay skips item_landed, so reveals are silent."
+ },
+ "REQ-221": {
+  "status": "IMPLEMENTED",
+  "evidence": "Level-complete and perfect stingers play on the music bus (GameFlow: play_stinger(&\"level_complete\"/&\"perfect_fanfare\"), bank names in data/audio/sound_bank.json); test asserts both stingers exist.",
+  "note": "The stinger names were wrong before this round."
+ },
+ "REQ-222": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameFlow._start_run -> audio.play_music(world id); sound_bank.json music for menu + 10 worlds (base + hi stem); AudioService two-deck crossfade; test_feel_audio.gd test_music_covers_every_world_and_matches_tempo.",
+  "note": ""
+ },
+ "REQ-223": {
+  "status": "IMPLEMENTED",
+  "evidence": "World boss loops for bosses and mid-world challenges; every boss-rush boss restarts its world's boss loop (GameFlow._play_level_music); data/audio/sound_bank.json boss tracks for all 10 worlds.",
+  "note": "Boss/challenge music exists and plays (game_flow.gd:282, *_boss.wav); its tempo mismatch with the level beat grid is recorded under REQ-224, not here."
+ },
+ "REQ-224": {
+  "status": "IMPLEMENTED",
+  "evidence": "MusicClock (game/src/systems/audio/music_clock.gd) + AudioService.sync_run driven from GameFlow._process: held through READY and pause, rate nudge <= 3 % beyond 40 ms drift, seek after restart/revive, output latency compensated; set pieces built on the boss loop tempo (worlds carry boss_bpm). Tests: test_feel_music_clock.gd (10, incl. test_set_pieces_are_built_on_the_boss_loop_tempo), test_app_flow.gd::test_music_is_locked_to_the_run.",
+  "note": "The re-assessment kept this PARTIAL for one defect (boss/challenge loops played faster than their levels' beat grid); fixed in 86fbae3 with a test and the 20 set pieces regenerated and validated. Audio latency on a real device not measured."
+ },
+ "REQ-225": {
+  "status": "IMPLEMENTED",
+  "evidence": "HapticsService patterns tap/collect/perfect/hit/combo/complete/reward with global and per-kind rate limits (data/haptics/patterns.json); reward haptics on star and reward landings (GameFlow); tests test_feel_haptics.gd.",
+  "note": "New feedback kinds (launch, land, gravity, plate, stack_crash) are aliased in data/haptics/patterns.json and go through the same per-kind and global (40 ms) rate limits; never felt on a device (as before)."
+ },
+ "REQ-226": {
+  "status": "PARTIAL",
+  "evidence": "w01_l01.json: duration 8.0 s, 4 solution taps, forgiving true, tutorial true; Hud._update_tap_hint pulses a TAP ring on solution ticks; one-line form hints (Hud._show_form_hint).",
+  "note": "Tutorial levels sit in an 8-14 s band (8.0-8.9 s shipped) with hints on L1-3 (docs match); whether it teaches within 20 s was not confirmed by players."
+ },
+ "REQ-227": {
+  "status": "PARTIAL",
+  "evidence": "UiKit/UiTokens design system (flat theme, 64 px touch targets, token type scale); UiButton press tweens; UiScreen.transition_in; EN/TR screenshots in lead/ui6 and lead/ui_tr look clean and minimal.",
+  "note": "Minimal/clean is judged from llvmpipe screenshots only. Speed and responsiveness were not measured on a device, and no human reviewed the UI."
+ },
+ "REQ-228": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/ui/screens/main_menu.gd: primary PLAY, Daily/Worlds/Modes row, TABS [progress, shop, collection, settings]; GameFlow._on_tab routes each tab to its screen and state; screenshot lead/ui6/01_main_menu.png.",
+  "note": ""
+ },
+ "REQ-229": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/ui/screens/hud.gd: score label, combo multiplier, objective 'n / target' (collect/shatter objectives), progress bar, shield icon, pause icon_button -> pause_requested; screenshot lead/ui6/10_gameplay_hud.png.",
+  "note": "For reach-end levels the objective is shown by the progress bar, not a text label."
+ },
+ "REQ-230": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameplayView.reset_for_run(true) -> CameraRig.start_reveal(1.0) (height/FOV ease) + CoreView.spawn_in(); EntityView.appear scales course pieces in as they spawn; GameplaySession.begin(READY_FIRST 0.8 s) anticipation beat.",
+  "note": "Environment motion is ambient plus the course scaling in. There is no dedicated per-level intro sequence."
+ },
+ "REQ-231": {
+  "status": "IMPLEMENTED",
+  "evidence": "Level end: 0.4x slowdown (GameplayView COMPLETE), perfect burst + shockwave, CompleteOverlay star landing (back-eased), coin/gem/XP count-up of the exact bundle, level-complete / perfect stinger (bank names fixed), reveal sequence, finish membrane cleared; test_result_actions_take_no_taps_during_the_sequence.",
+  "note": "Premium feel judged from captures, not on a device."
+ },
+ "REQ-232": {
+  "status": "IMPLEMENTED",
+  "evidence": "GameStateMachine has all listed states; streamed runs enter through ENDLESS (GameFlow._start_run); tests/unit/test_state_machine.gd (all states, real paths, rejected shortcuts).",
+  "note": ""
+ },
+ "REQ-233": {
+  "status": "IMPLEMENTED",
+  "evidence": "Reduce Motion scales camera shake/lean/FOV (GameplayView.reduce_motion -> CameraRig.shake_scale), halves hit-stop, no slow motion; Colour-blind shape markers on phase gates and phase-B sparks (ViewKit.phase_marker_mesh, SparkField); high-contrast tokens; tests test_reduce_motion_scales_camera_motion, test_colorblind_marks_phase_gates_by_shape.",
+  "note": "No device or user accessibility check."
+ },
+ "REQ-234": {
+  "status": "IMPLEMENTED",
+  "evidence": "Constructor-injected RefCounted systems (e.g. QualityService._init(settings, bus, presets)); only src/app and services.gd use the Services autoload (grep); 83 test files / 893 passing tests; untyped declarations are errors in project.godot.",
+  "note": "Specific gaps are tracked separately: broad coordinators (REQ-235), inline literals (REQ-237) and untyped Dictionary containers (REQ-239)."
+ },
+ "REQ-235": {
+  "status": "PARTIAL",
+  "evidence": "Domain modules are focused: largest are level_generator.gd 829, flux_sim.gd 682, progression_service.gd 693 lines. Run logic is in RunController, payloads in Presenters, navigation in ScreenRouter.",
+  "note": "GameFlow split (805 -> 472 lines, 47 -> 23 funcs; RevealQueue, MetaActions, MenuNavigator, ViewSync; test_flow_collaborators.gd). But GameplayView grew 786 -> 935 lines (41 funcs, 63 vars) and owns environment build (sky, floor, ribs, silhouette, probe, shafts, details, atmosphere), cosmetics, quality, entity spawn/release and the event-to-feedback mapping; AppServices grew 442 -> 530 lines (34 service fields plus autosave, cloud refresh, remote tuning, level-up reveal state); LevelGenerator is 1072 lines."
+ },
+ "REQ-236": {
+  "status": "IMPLEMENTED",
+  "evidence": "grep: src/systems, src/levels, src/gameplay/sim, src/save and src/server_shared reference no app/UI class (only two doc comments naming GameplayView.feedback); the only core->ui link is the composition root services.gd (UiKit.feedback_hook). Modules get collaborators via _init.",
+  "note": ""
+ },
+ "REQ-237": {
+  "status": "PARTIAL",
+  "evidence": "Systems use named consts and data: QualityService, HapticsService and SoundBank const blocks, SimConst, data/*.json tunables.",
+  "note": "Big reduction: FeelTuning table and camera constants (inline float literals gameplay_view 115 -> 39, core_view 69 -> 26, camera_rig 16 -> 3; test_feel_tuning.gd). Unnamed tuning values remain in gameplay code: GameplayView._update_frame (turbine 0.06 rad/s, finish-open rate 3.0, 0.3/1.2 pass window, atmosphere offsets 1.6/-14.0), EntityView placement factors (0.41, 0.6, bob 0.7), LevelGenerator (duration fit 1.08/0.95, retry growth 0.25, fallback gap 1.6, density*0.6)."
+ },
+ "REQ-238": {
+  "status": "IMPLEMENTED",
+  "evidence": "game/data: 520 level JSON, worlds, difficulty curve, mechanics, modes, economy, rewards, cosmetics, store, achievements, missions, daily, analytics schema, remote defaults, ads policy, audio bank, quality presets, haptic patterns, i18n; validated on load.",
+  "note": ""
+ },
+ "REQ-239": {
+  "status": "PARTIAL",
+  "evidence": "project.godot [debug] untyped_declaration=2 (error) and unsafe_* warnings=1; every var/param/return is typed; 247 typed Array[T] uses; gdlint in CI.",
+  "note": "154 typed Dictionary[K,V] uses now (was ~1), the three named maps are typed (GameplayView._active, ScreenRouter._screens, LevelRepository._cache), test_typed_maps.gd. Not 'wherever possible': PlayerProfile's documented homogeneous maps stay plain Dictionary (stats: name -> int, achievements: id -> unix time, cosmetics_equipped: category -> id, levels: id -> record), as do ~895 other Dictionary declarations."
+ },
+ "REQ-240": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/ui/kit (UiButton, UiToggle, UiSegmented, IconGlyph, UiKit factory, UiTokens, UiTheme, UiFonts), src/ui/components (UiScreen, ScreenHeader, SafeAreaContainer, ToastView, CosmeticSwatch), NodePool, BurstPool, JsonIO, DetRng; FluxSim shared by game, generator, validator, solver and ReplayVerifier.",
+  "note": ""
+ },
+ "REQ-241": {
+  "status": "IMPLEMENTED",
+  "evidence": "Descriptive class/function names across src (e.g. QualityService.feed_frame, FrameMonitor.is_struggling, RunController.prepare/finish/advance_rush, ReplayVerifier, LevelValidator); consistent snake_case files, one class per file.",
+  "note": "This is a subjective judgement from reading the code."
+ },
+ "REQ-242": {
+  "status": "IMPLEMENTED",
+  "evidence": "SaveService load main->backup->new with atomic writes (test_save_recovery.gd: garbage/truncated/checksum/both-corrupt cases); PlayerProfile.from_dict sanitising (test_profile_hostile.gd); sanitising loaders (test_bank_survives_bad_data, test_broken_presets_fall_back_safely); ErrorReporter.",
+  "note": ""
+ },
+ "REQ-243": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/core/game_log.gd GameLog: DEBUG..ERROR levels, channels, 200-line ring buffer (recent_lines) attached to error reports via ErrorReporter.build_report log_tail; 206 GameLog.debug/info/warn/error call sites in src.",
+  "note": ""
+ },
+ "REQ-244": {
+  "status": "IMPLEMENTED",
+  "evidence": "LevelValidator + tools/validate_levels.gd (520 levels, 0 failed, per the lead); QualityService/HapticsService.validate_document; SettingsService rejects bad values; RemoteConfig typed/clamped schema; AnalyticsSchema whitelist; ReplayVerifier field type checks.",
+  "note": ""
+ },
+ "REQ-245": {
+  "status": "PARTIAL",
+  "evidence": "RemoteConfig (typed, clamped, cached) drives economy.coin_multiplier, economy.daily_reward_multiplier, events.weekend_coin_bonus (RewardEngine.coin_scale/daily_scale via AppServices._apply_remote_tuning; level, daily and score-mode coins via RewardEngine.with_coin_scale), mirrored on the server by ReplayVerifier.apply_remote_tuning; daily.enabled, ads.*, URLs; tests/integration/test_remote_tuning.gd (7 tests).",
+  "note": "difficulty.* keys are not applied live (validated levels must not change speed under the player); difficulty is tuned via curve.json + regeneration."
+ },
+ "REQ-246": {
+  "status": "IMPLEMENTED",
+  "evidence": "LeaderboardBackend + HttpLeaderboardBackend, HttpAnalyticsSink, HttpTransport/NetworkMonitor, RemoteConfig.fetch, SaveStorage abstraction, Store/Ad/Notification provider interfaces, game/server/verify_replay.gd + ReplayVerifier; test_online_leaderboard_backends.gd, test_online_cli.gd.",
+  "note": "No hosted backend exists, and the requirement does not demand one. The HTTP paths were exercised only with test transports."
+ },
+ "REQ-247": {
+  "status": "PARTIAL",
+  "evidence": "game/ is cleanly split: src/{core,gameplay,levels,systems/<module>,save,server_shared,app,ui/{kit,components,screens},vfx,art}, data/, assets/, tests/{unit,integration}, tools/, server/. Repo-level docs/, tools/ci, .github/workflows.",
+  "note": "The repo root still holds an unrelated legacy WordPress/Vite project (index.php, src/, package.json). Its deletion was denied, as README notes."
+ },
+ "REQ-248": {
+  "status": "IMPLEMENTED",
+  "evidence": "game/project.godot (features 4.7 + Mobile, rendering_method mobile, portrait); export_presets.cfg Android + iOS presets (com.fluxdrop.game); signed debug APK exported (lead); CI iOS export job in .github/workflows/ci.yml.",
+  "note": "The iOS export was never run here (no macOS/Xcode; BLOCKED), and release signing is BLOCKED (no keystore)."
+ },
+ "REQ-249": {
+  "status": "IMPLEMENTED",
+  "evidence": "docs/REPOSITORIES.md lists 5 repos with inspected commit, version, license, files read and patterns borrowed. /home/user/refs/godot-demo-projects is on disk; git ls-remote confirms tag 4.7.2-stable = ed1daf0 as documented.",
+  "note": "Only the demo-projects clone is still on disk. For pixijs, phaser and zustand the evidence is the doc alone (inspected before first feature commit per git log)."
+ },
+ "REQ-250": {
+  "status": "IMPLEMENTED",
+  "evidence": "Only Godot is a runtime dependency: game/ has no addons/ and no third-party code; dev tools are pinned (gdtoolkit 4.5.0 in CI, numpy==2.4.6 in tools/audio/requirements.txt); PixiJS/Phaser/Zustand are not used.",
+  "note": ""
+ },
+ "REQ-251": {
+  "status": "IMPLEMENTED",
+  "evidence": "Audio from tools/audio/synth_bank.py, meshes from MeshFactory/ViewKit/CraftShapes, icons from IconGlyph code, all ten painted backdrops baked by game/tools/bake_backdrop.gd from the project's own scene shaders; Outfit OFL-1.1 with assets/fonts/OFL.txt; assets/LICENSES.json; tools/ci/license_check.py -> 0 problems, placeholder_scan.py -> 0 hits (re-run here).",
+  "note": "The two AI-generated backdrops of an earlier pass were replaced by baked ones, so no generated asset of unchecked terms ships. Separately: only a one-line 'Godot Engine - MIT License' ships (Presenters.licenses_text); the full Godot/third-party notice text is not shipped."
+ },
+ "REQ-252": {
+  "status": "IMPLEMENTED",
+  "evidence": "CI downloads Godot 4.7.2 from github.com/godotengine releases; gdtoolkit via pip; numpy via PyPI requirements; Outfit via npm @fontsource/outfit; adb/JDK via apt (lead/apt_adb.log). No vendored binaries in git.",
+  "note": ""
+ },
+ "REQ-253": {
+  "status": "IMPLEMENTED",
+  "evidence": "docs/REPOSITORIES.md: each repo with reason, module, version, licence and affected features; paths corrected; licence notices shipped via Presenters.licenses_text (Engine.get_license_text, Engine.get_copyright_info).",
+  "note": ""
+ },
+ "REQ-254": {
+  "status": "IMPLEMENTED",
+  "evidence": "No PixiJS/Phaser/Zustand anywhere in game/ (pure GDScript; grep finds none); docs/REPOSITORIES.md explains why each was not used, and only patterns were adapted (NodePool, GameStateMachine, SaveService). Rendering, state and persistence are each solved once in Godot.",
+  "note": "The root package.json (React/WordPress) belongs to the legacy web project, not the game."
+ },
+ "REQ-255": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/analytics/events.json declares all 14 events. Tracked in services.gd (session_started, reward_claimed, daily_completed), game_flow.gd, run_controller.gd, StoreService and AdsService; tests test_bundled_schema_declares_required_events_without_pii, test_unknown_event_rejected.",
+  "note": "daily_started fires when the Daily screen opens, not when a daily run starts. Ad and purchase events never fire in practice (null providers)."
+ },
+ "REQ-256": {
+  "status": "IMPLEMENTED",
+  "evidence": "Analytics consent is off by default (PlayerProfile settings analytics=false); forbidden_param_patterns (email, name, phone, device_id, ip, lat, ...) are dropped; random install/session ids, no device ids; tests test_forbidden_params_dropped, test_events_are_enriched_without_device_identifiers.",
+  "note": ""
+ },
+ "REQ-257": {
+  "status": "IMPLEMENTED",
+  "evidence": "ErrorReporter installs a CaptureLogger (OS.add_logger) and stamps context in enqueue(). The GameFlow context_provider adds state + level, AppInfo.context adds app_version/platform, and build_report adds log_tail. The assessor's probe_audio_err.gd confirmed a report.",
+  "note": "No unit test covers the Logger capture path, and native crashes are not captured. context_provider is called inside the Logger callback, which may run off the main thread."
+ },
+ "REQ-258": {
+  "status": "IMPLEMENTED",
+  "evidence": "game/tests/unit: 72 suites of test_* methods (plus 11 integration suites) (sim, levels, save, economy, rewards, cosmetics, progression, stats, meta, online, platform, feel) run by game/tests/run_tests.gd, which also fails tests that hit script errors; full run: 893 tests, 0 failed.",
+  "note": "893 tests, 0 failed in the final full run (83 test files incl. integration); the runner also fails any test file that cannot load."
+ },
+ "REQ-259": {
+  "status": "IMPLEMENTED",
+  "evidence": "game/tests/integration: test_app_flow.gd (11: boot, first clear, failed run, daily once-only, endless, boss-rush gating, 100 restarts, main scene boot, commit on leave, fail card/music, bonus chest), test_stream_verification.gd (3), test_ui_regressions.gd, test_view_regressions.gd, test_remote_tuning.gd; all pass.",
+  "note": "Uses the real AppServices graph with MemorySaveStorage and a fixed GameClock."
+ },
+ "REQ-260": {
+  "status": "IMPLEMENTED",
+  "evidence": "test_sim_rules.gd (18: hop, phase gate, dash/shatter, surge, combo, shield, zen, slider, pulse gate, portal/current, form gate, overdrive, determinism), test_sim_basic.gd, test_modes.gd (12); test_app_flow.gd plays stored solutions through GameplaySession.",
+  "note": "run_tests.gd lists res://tests/gameplay, which does not exist; gameplay tests live in unit/ and integration/."
+ },
+ "REQ-261": {
+  "status": "IMPLEMENTED",
+  "evidence": "test_save_service/storage/persistence/recovery/migrations.gd: 66 tests (19+16+6+16+9), e.g. test_garbage_main_falls_back_to_backup, test_migrates_enveloped_v0_save, test_file_storage_end_to_end_leaves_no_temp_files; test_profile_hostile.gd.",
+  "note": "Covers envelope, checksum, atomic write, backup, migration and future-version handling."
+ },
+ "REQ-262": {
+  "status": "IMPLEMENTED",
+  "evidence": "test_economy_service.gd (16), test_economy_integrity.gd (14), test_economy_config.gd (8), test_rewards_grant/level/tables.gd (49, e.g. test_replay_pays_small_but_nonzero_coins); test_app_flow.gd asserts the balance moves by exactly the shown bundles.",
+  "note": "Economy invariants (no negatives, caps, ledger) are unit-tested."
+ },
+ "REQ-263": {
+  "status": "IMPLEMENTED",
+  "evidence": "LevelValidator (13 codes) exercised per code: test_level_pipeline.gd validator tests (missing objective, invalid mechanic, spawn collision, broken trigger, impossible level, invalid sequence, missing asset, dead_end with a surviving solution), test_level_content.gd (unreachable_state targets, hazard keys, set pieces); full validation of 520 levels in CI.",
+  "note": ""
+ },
+ "REQ-264": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/levels/level_validator.gd LevelValidator.validate(): missing_objective, invalid_mechanic, missing_asset, spawn_collision, broken_trigger, invalid_sequence, impossible_level, unreachable_state (_check_solution/_check_prisms), dead_end (_check_forced_moves); run by validate_levels.gd and CI.",
+  "note": "unreachable_state and dead_end (barrier d=22.0, tap 134) reproduced by scratch probes, not by dedicated tests (see REQ-263)."
+ },
+ "REQ-265": {
+  "status": "IMPLEMENTED",
+  "evidence": ".github/workflows/ci.yml: gdlint, gdformat --check, placeholder/licence/asset-gate scans, JSON parse, --import failing on script/shader errors, run_tests.gd, validate_levels.gd (520), generate_levels --check, perf budgets, Android debug APK export, iOS Xcode export + unsigned arm64 device build (pipefail, Xcode 26).",
+  "note": "Observed green in all four jobs: GitHub Actions run 37188419595 (f7cfff3), including an iOS device build that really links ('** BUILD SUCCEEDED **', Xcode 26.3). The earlier masked simulator failure (no pipefail, macos-14 SDK) is fixed: the step now fails on a failed build, and it failed honestly on the old image before the Xcode 26 change."
+ },
+ "REQ-266": {
+  "status": "PARTIAL",
+  "evidence": "Autopilot runs through the real view were captured for 10 distinct levels (w01_l30 to w10_l20, scratch shots3/worlds_final); UI capture plays w01_l01/w01_l12; all 520 levels sim-validated by tools/validate_levels.gd.",
+  "note": "No human manual play on a device; only 10 distinct levels visually reviewed (report section 32 claims 20+)."
+ },
+ "REQ-267": {
+  "status": "IMPLEMENTED",
+  "evidence": "tools/validate_levels.gd with LevelValidator: lead run 'validated 520 levels: 0 failed, 0 with warnings, worst tap window 183 ms'; CI step 'Validate all 520 levels'; test_level_pipeline.gd 18/18.",
+  "note": "Now also observed: CI step 'Validate all 520 levels' ran green on GitHub (run 37185275246); lead run 520/0, worst tap window 150 ms."
+ },
+ "REQ-268": {
+  "status": "IMPLEMENTED",
+  "evidence": "test_save_persistence.gd (test_file_storage_end_to_end_leaves_no_temp_files, test_migrated_save_is_rewritten_and_legacy_kept_as_backup), test_save_service.gd (19), test_save_storage.gd (16); 66 save tests pass.",
+  "note": "Exercised on Linux user:// only, not on a device file system."
+ },
+ "REQ-269": {
+  "status": "IMPLEMENTED",
+  "evidence": "tests/unit/test_state_machine.gd (transition table, signals), router transitions in tests/integration/test_ui_regressions.gd (overlay input release, rebuild on language change), test_main_scene_boots_headless.",
+  "note": ""
+ },
+ "REQ-270": {
+  "status": "IMPLEMENTED",
+  "evidence": "tests/unit/test_safe_area.gd: SafeAreaContainer on simulated devices (notch 19.5:9, punch-hole 20:9, 16:9, 4:3 tablet) via debug_screen_size/debug_safe_rect.",
+  "note": "No physical device."
+ },
+ "REQ-271": {
+  "status": "PARTIAL",
+  "evidence": "test_app_flow.gd::test_restart_is_stable_and_fast (100 restarts, node count stable, each under 50 ms headless); test_feel_quality.gd frame monitor and auto-downgrade tests; pooled nodes and MultiMesh in gameplay_view.gd.",
+  "note": "Perf probe and budget test add automated performance checks (draw calls, primitives, nodes, memory) and CI enforcement; frame time is recorded but deliberately not budgeted (software renderer). No FPS, frame-time, memory or thermal measurement on a phone (device)."
+ },
+ "REQ-272": {
+  "status": "IMPLEMENTED",
+  "evidence": "test_quality_flags_survive_world_changes (low preset: no post FX/glow/ambient particles, small particle scale), test_feel_quality.gd preset/battery-saver tests, test_auto_quality_step_reaches_the_viewport.",
+  "note": ""
+ },
+ "REQ-273": {
+  "status": "IMPLEMENTED",
+  "evidence": "test_online_leaderboard_service.gd::test_offline_queues_then_flushes_when_transport_recovers, test_fetch_prefers_remote_and_falls_back_offline; test_platform_remote_config.gd::test_fetch_offline_keeps_cached_values; test_platform_network.gd::test_http_transport_unreachable_host_is_offline_not_crash.",
+  "note": "Offline behaviour verified with scripted transports and no backend, not by toggling a real device network."
+ },
+ "REQ-274": {
+  "status": "IMPLEMENTED",
+  "evidence": "test_save_recovery.gd (16: garbage, truncated, wrong checksum, tampered coins, both corrupted), test_profile_hostile.gd, test_platform_remote_config.gd::test_corrupt_or_tampered_cache_falls_back_to_defaults, test_meta_missions.gd::test_corrupted_state_recovers.",
+  "note": "Corruption handled by fallback to backup or a new profile without crashing."
+ },
+ "REQ-275": {
+  "status": "IMPLEMENTED",
+  "evidence": "test_app_flow.gd::test_restart_is_stable_and_fast: 100 x GameplaySession.restart + GameplayView.reset_for_run, node delta at most 2, worst restart under 50 ms (passes in verifier full run).",
+  "note": "Headless timing; device restart latency not measured."
+ },
+ "REQ-276": {
+  "status": "IMPLEMENTED",
+  "evidence": "test_app_flow.gd::test_daily_rewards_only_first_completion (same daily cleared twice), test_restart_is_stable_and_fast (100 restarts), test_rewards_level.gd::test_replay_pays_small_but_nonzero_coins, test_new_stars_on_replay_add_star_bonus.",
+  "note": "Automated repeated play only (restarts run 30 ticks each); no long human sessions."
+ },
+ "REQ-277": {
+  "status": "BLOCKED",
+  "evidence": "docs/CODERABBIT_REPORT.md status table; re-checked by verifier: no coderabbit binary on PATH, curl https://cli.coderabbit.ai/install.sh -> 'CONNECT tunnel failed, response 403'.",
+  "note": "Blocked by the environment network policy (no npm distribution either). Substitute: 8 module reviews plus integrated review R-INT round 1 (d107839)."
+ },
+ "REQ-278": {
+  "status": "BLOCKED",
+  "evidence": "No CodeRabbit output exists. Substitute module reviews in docs/CODERABBIT_REPORT.md covered bugs, security (R-PLAT URL guard), performance (R-FEEL per-frame copies), validation and missing tests.",
+  "note": "Blocked with REQ-277; analysing substitute reviews is not an analysis of CodeRabbit output."
+ },
+ "REQ-279": {
+  "status": "PARTIAL",
+  "evidence": "docs/CODERABBIT_REPORT.md: each substitute finding reproduced by probe or failing test, fixed (ce24494, aa87d85, 22bc293, e8ef6f8, f3fab46, d88e85e, 908b4fe, 7e0e9df) and suites re-run; R-INT fixes in d107839.",
+  "note": "docs/REVIEW_FINDINGS.md (updated in 61e7db5) lists all 93 critical/major findings, critical first, with fix commit, regression test, verification and status (91 fixed, 1 refuted, 1 accepted), including R-6 (M11: 3 critical, 10 major). Gaps: CodeRabbit re-run impossible (BLOCKED); the tracker itself lists 9-12 fixed rows with no dedicated regression test; ordering is by severity in the document, while fixes were committed per round; it still says the CI iOS job was never observed (it runs, and its compile step silently fails)."
+ },
+ "REQ-280": {
+  "status": "IMPLEMENTED",
+  "evidence": "git log: one review/fix round per module (e.g. 86431da -> ce24494, 4a6029d -> aa87d85, 67d68b9 -> 908b4fe) plus integrated review R-INT round 1 (d107839); no repeated review loops.",
+  "note": "Bound respected by the substitute reviews only; CodeRabbit itself never ran (REQ-277 BLOCKED)."
+ },
+ "REQ-281": {
+  "status": "BLOCKED",
+  "evidence": "No CodeRabbit result can be produced (REQ-277). No release build or store upload was made, only a signed debug APK; FINAL_IMPLEMENTATION_REPORT.md section 39 states the product is not yet shippable.",
+  "note": "Gate cannot be evaluated: no CodeRabbit result exists (CLI unreachable); substitute reviews show 0 open critical/major findings."
+ },
+ "REQ-282": {
+  "status": "BLOCKED",
+  "evidence": "docs/CODERABBIT_REPORT.md table: curl install 403, npm @coderabbitai/cli 404, squatted npm 'coderabbit' not installed, 'which coderabbit' empty; re-verified (no binary, 403).",
+  "note": "Installation status was checked and documented; the auth flow is impossible without the CLI and an account."
+ },
+ "REQ-283": {
+  "status": "PARTIAL",
+  "evidence": "docs/CODERABBIT_REPORT.md: per-milestone table with Date, Milestone, Commit, Scope, Critical, Major, Minor, Fixed, Remaining, Final status; module and R-INT review logs.",
+  "note": "docs/CODERABBIT_REPORT.md has the per-milestone table with all ten columns, now including M11 (R-6, added in 61e7db5 right after the round). M1-M10 rows were written retroactively at integration, and no real CodeRabbit output exists (BLOCKED); the 'Remaining 0' for M11 does not know of the REQ-224 boss-tempo and REQ-265 masked-iOS-build defects found here."
+ },
+ "REQ-284": {
+  "status": "IMPLEMENTED",
+  "evidence": "README.md: Quick start (setup, run, tests, level validation, lint, screenshots), Mobile builds (build/export), Architecture in one paragraph, Directories, Dependencies table, Known issues and limits, Documentation, Licences.",
+  "note": "README claims CI exports and compiles the iOS Xcode project; with the committed preset that export fails (empty team ID, see REQ-295)."
+ },
+ "REQ-285": {
+  "status": "IMPLEMENTED",
+  "evidence": "docs/ARCHITECTURE.md: principles, runtime composition (AppServices), app flow (GameFlow, ScreenRouter, GameStateMachine), gameplay layers, persistence, online/anti-cheat, error handling, testing and CI; class_names exist in game/src.",
+  "note": "Up to date with the module structure as of d107839."
+ },
+ "REQ-286": {
+  "status": "IMPLEMENTED",
+  "evidence": "docs/GAME_DESIGN.md: core loop, controls and forms, 12 elements, scoring/combo/stars, 10 x 52 structure, modes, progression and economy, daily/missions/achievements, leaderboards, feel budget, tutorial, ethics.",
+  "note": "Design document only; claims in it are verified by other requirements."
+ },
+ "REQ-287": {
+  "status": "IMPLEMENTED",
+  "evidence": "docs/LEVEL_DESIGN.md: difficulty model (difficulty_model.gd, curve.json), generator (level_generator.gd), validator code table (level_validator.gd), level file format, designer workflow and tools.",
+  "note": "Matches the validator codes and tools in the repo."
+ },
+ "REQ-288": {
+  "status": "IMPLEMENTED",
+  "evidence": "docs/FINAL_IMPLEMENTATION_REPORT.md section 4: per-requirement matrix (ID, Description, Status, Implementation Location, Relevant Files, Relevant Functions/Classes, Tests, Runtime Verification, Notes) rendered by tools/report/completion.py from docs/requirements_status.json.",
+  "note": ""
+ },
+ "REQ-289": {
+  "status": "IMPLEMENTED",
+  "evidence": "docs/FINAL_IMPLEMENTATION_REPORT.md contains sections 1-40 plus the ANTI-AI-SLOP VISUAL AUDIT; matrix, completion and summary blocks are generated by tools/report/completion.py --write.",
+  "note": ""
+ },
+ "REQ-290": {
+  "status": "IMPLEMENTED",
+  "evidence": "tools/report/completion.py computes completion = IMPLEMENTED / TOTAL × 100 and reports PARTIAL, NOT_IMPLEMENTED and BLOCKED separately (sections 1 and 40); it fails on unknown, missing or unevidenced IDs.",
+  "note": ""
+ },
+ "REQ-291": {
+  "status": "IMPLEMENTED",
+  "evidence": "tools/ci/placeholder_scan.py over game/src, data, scenes, shaders, server, tools -> 'placeholder scan: 0 hit(s)' (re-run by verifier); run in the CI lint job; grep of production code finds no TODO/FIXME/TEMP/MOCK/FAKE.",
+  "note": "MemorySaveStorage (src/save) is a real fallback storage that also carries test hooks (corrupt, fail_writes); null ad/IAP/push providers are disclosed."
+ },
+ "REQ-292": {
+  "status": "IMPLEMENTED",
+  "evidence": "Asset inventory of game/assets: 64 WAVs synthesised by tools/audio/synth_bank.py, Outfit OFL fonts, shaders, one SVG app icon; no raster textures or models; game/assets/LICENSES.json; tools/ci/license_check.py -> 0 problems.",
+  "note": "No demo/template assets remain; the app icon predates the art rework (b091251) and was never revised (see REQ-305)."
+ },
+ "REQ-293": {
+  "status": "IMPLEMENTED",
+  "evidence": "Statuses come from independent assessors checked by downgrade-only verifiers (docs/requirements_status.json); report claims corrected (simulated-device tests now exist: test_safe_area.gd; levels reviewed; iOS project export); unfinished items are listed in sections 36-38.",
+  "note": ""
+ },
+ "REQ-294": {
+  "status": "IMPLEMENTED",
+  "evidence": "game/export_presets.cfg preset 'Android' (APK, arm64-v8a + armeabi-v7a); lead: signed debug APK 59 MB, apksigner OK; assessor probe: --export-release with a throwaway keystore gave a 59 MB APK that apksigner verifies.",
+  "note": "APK path only: AAB (Play upload) not configured (use_gradle_build=false); the real release keystore is missing (BLOCKED, REQ-296)."
+ },
+ "REQ-295": {
+  "status": "IMPLEMENTED",
+  "evidence": "export_presets.cfg iOS preset (arm64, iOS 14); CI job 'iOS project export (unsigned)' exports the Xcode project, selects Xcode 26 (the 4.7.2 template links against the iOS 26 SDK) and compiles and links the unsigned arm64 device app with pipefail: GitHub Actions run 37188419595 (f7cfff3), Xcode 26.3, '** BUILD SUCCEEDED **'.",
+  "note": "Signing, provisioning and a device install need the Apple developer account, which this environment does not have (see REQ-194)."
+ },
+ "REQ-296": {
+  "status": "IMPLEMENTED",
+  "evidence": "README Known issues 'Release signing: no release keystore'; FINAL_IMPLEMENTATION_REPORT.md section 33 'Release AAB/APK: BLOCKED (no release keystore)'; game/.gitignore ignores *.keystore, *.jks, export_credentials.cfg; no signing data in the repo.",
+  "note": "The missing iOS team ID is reported only as 'no macOS', not as the reason the iOS export fails."
+ },
+ "REQ-297": {
+  "status": "PARTIAL",
+  "evidence": "Commits 25f2423 'UI polish from screen review', 96e004d UI fixes, 53e1a0f art rework; UiTokens motion timings; EN/TR screen captures reviewed (scratch lead/ui1-ui6, ui_tr). Start-up: boot splash image and an animated loading screen with progress and tips (BootLoader, LoadingScreen; test_boot_loader.gd).",
+  "note": "Polish pass done on captures (finish membrane, title band, reveal over fail, icon, touch sizes); sounds, haptics and loading were not reviewed on a device."
+ },
+ "REQ-298": {
+  "status": "PARTIAL",
+  "evidence": "Report audits give evidence for some questions: section 5 (responsive tap queue), 18 (mobile comfort), 19 (performance, no device FPS), 26 (code quality); GAME_DESIGN.md section 11 tutorial under 20 s.",
+  "note": "Self-evaluation answered in the report from automated evidence; player-facing answers (fun, understood in 10 s, wish to replay) remain unverified without playtests."
+ },
+ "REQ-299": {
+  "status": "PARTIAL",
+  "evidence": "Final steps run at the end on the final tree: git status, Android test APK export (33 MB arm64, v2+v3 verified), iOS Xcode project export (and the unsigned device build in CI), 893 tests, full level validation (520/520) and regeneration check (0 mismatches), licence check, placeholder scan, dead-code probe (20 unused functions removed), gdlint, and a final independent review of the last fix round (R-FINAL: 0 critical / 0 major / 5 minor, 4 fixed, 1 by design); results in report sections 29 and 32-35.",
+  "note": "CodeRabbit runs are BLOCKED (CLI unreachable); substitute reviews used."
+ },
+ "REQ-300": {
+  "status": "IMPLEMENTED",
+  "evidence": "Verified with ls: README.md, docs/ARCHITECTURE.md, GAME_DESIGN.md, LEVEL_DESIGN.md, ART_DIRECTION.md, REPOSITORIES.md, REQUIREMENTS_CHECKLIST.md, CODERABBIT_REPORT.md, FINAL_IMPLEMENTATION_REPORT.md all exist and are tracked.",
+  "note": "Existence only; completeness of the final and CodeRabbit reports is covered by REQ-283/288/289."
+ },
+ "REQ-301": {
+  "status": "IMPLEMENTED",
+  "evidence": "The final answer is produced at the end of the session in the mandated PROJECT / STATUS / COMPLETION / ... / FINAL REPORT format from the numbers printed by tools/report/completion.py.",
+  "note": "Delivered in the session, not stored in the repository."
+ },
+ "REQ-302": {
+  "status": "PARTIAL",
+  "evidence": "Art rework 53e1a0f and docs/ART_DIRECTION.md; renders (scratch lead/worlds_a.png, worlds_b.png, ribs_b.png) show a coherent, restrained look: matte chamfered WARNING blocks, one glowing core, per-world ribs and silhouettes.",
+  "note": "Human-judged ('studio polished for months'); no art-director review; captures still show primitive blocks and repeated ribs; recolour skins fixed but other cosmetic categories are recolours (see REQ-323)."
+ },
+ "REQ-303": {
+  "status": "PARTIAL",
+  "evidence": "Code guards: glow_hdr_threshold 1.0 and glow_bloom 0, depth fog only, chroma split only on fail (gameplay_view.gd), atmosphere clamped to 24 (world_theme.gd), no raster textures, emission on energy, the shutter lamp and Deep Ocean floor caustics.",
+  "note": "Skin recolours fixed and the overdrive chromatic split removed (test_only_the_fail_splits_colour). Remaining listed traits: 'repeating decals/objects' (9 of 10 worlds repeat one identical rib + side-detail mesh every 7 u; only 'monolith' varies height, gameplay_view.gd _place_ribs) and recoloured cosmetics; overall slop judgement is human."
+ },
+ "REQ-304": {
+  "status": "IMPLEMENTED",
+  "evidence": "docs/ART_DIRECTION.md sections 1-12 (priority, colour roles, shape, materials, lighting, layering, motion, VFX, UI, audio, asset gate) implemented in src/art/palette.gd, src/art/mesh_factory.gd, src/ui/kit/ui_tokens.gd, src/gameplay/view/view_kit.gd, world_theme.gd (WorldTheme.quiet environment caps), spark_field.gd (collect pop 1 -> 1.25 -> 0 in 120 ms, idle bob 0.06 u), floor.gdshader (caustics in albedo, no emission), flat-palette app icon; tests test_environment_colours_stay_quiet_in_every_world, test_collected_sparks_pop_then_vanish.",
+  "note": "Doc aligned with the shipped chamfer (hazards 16 %, structure 8 %) and the four impact shakes. Judged from software-rendered captures, not a phone."
+ },
+ "REQ-305": {
+  "status": "PARTIAL",
+  "evidence": "docs/ART_DIRECTION.md section 12 asset-gate checklist; world and UI renders reviewed (scratch lead/worlds_final, ui6, ui_tr); review-driven fixes in 25f2423 and d107839 (distinct rib profiles per world).",
+  "note": "Per-asset register game/data/art/asset_gate.json (150 entries, 118 pass / 32 pass_with_note), docs/ASSET_GATE.md, CI coverage check (asset_gate.py --check, 0 problems). Gaps: written retroactively, not 'before inclusion'; the check enforces coverage, not fit; data-defined cosmetics other than core skins/trails (81 items: particle, background, theme, badge, frame, avatar, effect) are covered only by one 'icon.cosmetic_swatches' entry; register content is stale (shader.post_fx still records the overdrive chromatic split and shader.spark the missing prism ring, both fixed in 3a49794), which --check cannot detect. Follow-up 86fbae3: stale register notes refreshed."
+ },
+ "REQ-306": {
+  "status": "IMPLEMENTED",
+  "evidence": "sim_const.gd LANE_WIDTH 1.6, CORE_RADIUS 0.3, BLOCK_HALF_WIDTH 0.58; view_kit.gd BLOCK_HEIGHT 0.9 and one HAZARD_CHAMFER for barrier/slider/glass/shutter; spark and prism share MeshFactory.shard (spark_field.gd); _place_ribs fixed 7 u rhythm + RIB_HEIGHT_PATTERN.",
+  "note": "Chamfer ratio in code (16 %) differs from the doc (8 %); ribs use 8 %."
+ },
+ "REQ-307": {
+  "status": "IMPLEMENTED",
+  "evidence": "craft_shapes.gd: a different craft per form (Glider, Prism, Dart, Hauler in its ring); hazards per world shape family with a shared warm warning light; renders of all 10 worlds show the craft and hazards separating from the backgrounds (test_view_character.gd, test_view_hazards.gd).",
+  "note": "Verified on llvmpipe screenshots only."
+ },
+ "REQ-308": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/art/palette.gd roles PRIMARY, SECONDARY, ACCENT, WARNING, SUCCESS, FAILURE plus Ink/Graphite/Slate/Fog/Bone, used by view_kit.gd, the HUD and UiTokens; gameplay roles are identical in every world; environment colours (sky, fog, floor, lanes) are clamped to S <= 0.45 / V <= 0.55 by WorldTheme.quiet, so no world colour competes with a role colour; test_environment_colours_stay_quiet_in_every_world.",
+  "note": "The high-key world (Cloud Factory) is exempt from the value cap only, as the doc allows."
+ },
+ "REQ-309": {
+  "status": "IMPLEMENTED",
+  "evidence": "data/worlds/w01-w10 JSON: own sky, fog, floor, key light, rib_profile, rib_material, silhouette, atmosphere; shared Palette roles, core, hazards, floor and UI; 10 renders (scratch lead/worlds_a.png, worlds_b.png) read as one visual universe.",
+  "note": "Judged from software-rendered screenshots."
+ },
+ "REQ-310": {
+  "status": "PARTIAL",
+  "evidence": "view_kit.gd STRUCTURE_PRESETS (anodised, steel, stone, ceramic, coated, ice, sandstone, obsidian, lacquer, crystal: roughness, metallic, specular, clearcoat), hazard satin 0.55/0.0/0.5, glass.gdshader; matter emission only on the lamp and Deep Ocean caustics.",
+  "note": "Normal component now present (procedural relief per material preset in structure.gdshader, off on Low); emission only on energy. Whether metal/stone/ceramic 'read as such' is a visual judgement made only on llvmpipe; relief bump_depth 0.01 u reads weakly in captures; hazards use one satin material."
+ },
+ "REQ-311": {
+  "status": "IMPLEMENTED",
+  "evidence": "No raster textures in game/ (inventory: WAV, WOFF2, one SVG); surfaces procedural: floor.gdshader seams in world units (seam_spacing), MeshFactory geometry; noise only in energy shaders (core, spark, trail); Deep Ocean caustics are a sin pattern.",
+  "note": "Repetition is limited to the intentional 7 u rib rhythm (MultiMesh); judged on software renders."
+ },
+ "REQ-312": {
+  "status": "PARTIAL",
+  "evidence": "Hazard variants come from one chamfered family via scale, material and animation (view_kit.gd block/slider/glass/shutter meshes; entity_view.gd shutter drop); ribs via MeshFactory.rib(profile) per world.",
+  "note": "Core skins and trails now each have their own style (tested). Still copy-paste repetition: ribs and side details are the same mesh at the same scale every 7 u in 9 of 10 worlds (_place_ribs, vary only for 'monolith'); cosmetic categories reuse objects by recolour (see REQ-323)."
+ },
+ "REQ-313": {
+  "status": "IMPLEMENTED",
+  "evidence": "gameplay_view.gd: floor and lane grooves (foreground), ribs MultiMesh every RIB_SPACING 7 u (midground), sky shader (per-world skyline, nebula, clouds, aurora, body) plus world silhouette with capped SILHOUETTE_PARALLAX approach and disable_fog (background); atmosphere CPUParticles3D (count clamped to 24, x2 on High).",
+  "note": "Balance judged on software renders only."
+ },
+ "REQ-314": {
+  "status": "IMPLEMENTED",
+  "evidence": "Each data/worlds/*.json art block has its own silhouette (turbine, ridge, chimneys, towers, pylons, canopy, glacier, dome, ring, reactor), story text and story_accent; the w01 turbine is the World 1 boss rotor and turns slowly (gameplay_view.gd).",
+  "note": "Story is told through one far silhouette and one line of copy per world."
+ },
+ "REQ-315": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/ui/kit: UiTokens (8 px unit, 32 px margins, 16 px gutters, 4 px radius), UiButton roles (primary, secondary, tertiary, icon, destructive), flat UiTheme panels; all 13 src/ui/screens use the kit; EN/TR, 450x975 and 600x800 captures lay out correctly.",
+  "note": "Responsiveness checked only in Xvfb captures, not on devices."
+ },
+ "REQ-316": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/ui/kit/ui_tokens.gd H1 64/800, H2 40/800, H3 28/600, BODY 24/400, CAPTION 18/600, SCORE 72/800, BUTTON 26/800, REWARD 44/800 plus tracking; applied only via ui_kit.gd; ui_fonts.gd: one family (Outfit, OFL) in 400/600/800 with latin-ext fallback.",
+  "note": "Minor drift: doc button tracking +1.5, code TRACK_BUTTON 2."
+ },
+ "REQ-317": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/ui/kit/icon_glyph.gd IconGlyph: 41 code-drawn stroke glyphs on one grid (play, pause, coin, gem, star, lock, settings, forms, ...); HUD pause uses UiKit.icon_button; no emoji, Unicode-symbol, raster or 3D icons in game/src or data.",
+  "note": "The launcher app_icon.svg is a separate gradient illustration outside this system (see REQ-305)."
+ },
+ "REQ-318": {
+  "status": "IMPLEMENTED",
+  "evidence": "core_view.gd hop_motion (40 ms anticipation, stretch, spring settle); entity_view.gd mechanical ease without overshoot plus pickup bob; spark.gdshader idle bob; ui_button.gd press/release overshoot; complete_overlay.gd stars TRANS_BACK; ui_screen.gd slide and fade.",
+  "note": "The documented collectible pop (scale 1 to 1.25 to 0) is an instant hide plus a 6-mote burst; motion not reviewed on a device."
+ },
+ "REQ-319": {
+  "status": "IMPLEMENTED",
+  "evidence": "src/vfx/burst_pool.gd PRESETS with budgets (collect 6, prism 10, shatter 12, shield 10, fail 28, perfect 30) scaled by quality; gameplay_view.gd _handle_event maps each sim event to one effect; chroma only on fail.",
+  "note": "Budgets and scaling are in code; visual weight not reviewed on a device."
+ },
+ "REQ-320": {
+  "status": "IMPLEMENTED",
+  "evidence": "camera_rig.gd trauma shake (MAX_SHAKE 0.16, decay) scaled by shake_scale for reduce motion; gameplay_view.gd add_trauma only on SHATTER/CHAIN, HIT_SHIELDED, ZEN_BUMP and FAIL; hop lean, dash/surge FOV punch.",
+  "note": "Doc says shake only on fail, shield and boss; code also shakes lightly on shatter/chain and zen bump."
+ },
+ "REQ-321": {
+  "status": "IMPLEMENTED",
+  "evidence": "gameplay_view.gd: one DirectionalLight3D key light (colour, energy, angle from art.key_light per world), ambient colour fill, AgX tonemap, glow threshold 1.0, depth fog; core_view.gd OmniLight3D as local light; sky sink glow per world.",
+  "note": "Brightness/eye fatigue not assessed on a device; Cloud Factory is a deliberately high-key near-white world."
+ },
+ "REQ-322": {
+  "status": "PARTIAL",
+  "evidence": "ART_DIRECTION.md section 2; Palette.ENERGY_CORE 2.4 (only strong bloom), hazards marked by a warm warning light kept in the red to orange-red band and >= 25 deg from every role hue (test_the_warning_light_is_always_a_danger_colour), quiet top-centre HUD score; environment colours (sky, fog, floor, lanes) clamped to S <= 0.45 / V <= 0.55 by WorldTheme.quiet (test_environment_colours_stay_quiet_in_every_world); renders show core above hazards above environment.",
+  "note": "Structure hue now kept off gameplay-role hues (WorldTheme.off_roles; test_structure_never_wears_a_gameplay_role_colour) and environment S/V capped (test_environment_colours_stay_quiet_in_every_world). Structure value/brightness is not bounded: Candy Reactor and Frozen Pulse ribs are among the brightest large areas on screen in review24 captures; priority never checked with players or a human reviewer."
+ },
+ "REQ-323": {
+  "status": "PARTIAL",
+  "evidence": "Hazards differ by geometry and behaviour (slider track, shutter drop, glass fracture, phase membrane); worlds by rib profile (10), silhouette (10), material preset and atmosphere type (data/worlds/*.json).",
+  "note": "Core skins (19) and trails (12) no longer recolours (test_every_core_skin_and_trail_has_its_own_style). But data/cosmetics/cosmetics.json still ships recolour variants: 8 UI themes differ only in 3 colours; 9 particle packs ('bubbles', 'confetti', 'glitch'...) are colour lists with size/count multipliers; 10 backgrounds are sky-gradient colours plus star density; 10 perfect-tier badges share the 'star' icon and differ only in colour; several are premium items."
+ },
+ "REQ-324": {
+  "status": "PARTIAL",
+  "evidence": "Shared systems give consistency: Palette, UiTokens/UiFonts, IconGlyph, one synth palette (tools/audio/synth_bank.py), MeshFactory chamfer family; screens and worlds reviewed in captures.",
+  "note": "Per-category consistency check recorded in the ANTI-AI-SLOP VISUAL AUDIT (10 PASS / 5 PARTIAL); sounds not reviewed on device speakers."
+ },
+ "REQ-325": {
+  "status": "PARTIAL",
+  "evidence": "ART_DIRECTION.md section 2 item 7 rule; code comments justify details (ribs cast no shadows, functional shutter lamp, turbine = World 1 boss story, atmosphere capped with a reason).",
+  "note": "ART_DIRECTION 13 now has a per-element audit with removals (13.10) and closed open points tested in test_view_detail_audit.gd (9 tests). Not every element is listed: the round's light shafts, side details between ribs (MeshFactory.detail), structure surface relief and floor gloss/reflection probe are absent from 13.5, and 13.5 still says key-light shadows are High/Ultra only (now Medium too). Follow-up 86fbae3: ART_DIRECTION 13 now lists light shafts, side details, surface relief, floor gloss and the reflection probe, and states shadows from Medium. Completeness of \"every detail\" remains a human judgement."
+ },
+ "REQ-326": {
+  "status": "PARTIAL",
+  "evidence": "LevelValidator fairness (unfair_window minimum tap window, first-hazard reaction distance, spawn_collision); colour-blind option (gameplay_view.gd set_colorblind); WorldTheme.bright high-key adaptation; hazards visible in all 10 world renders.",
+  "note": "No playtest or device check for player/input confusion or unclear objectives; readability judged from software-rendered screenshots only."
+ },
+ "REQ-327": {
+  "status": "IMPLEMENTED",
+  "evidence": "Form-dependent single tap (hop/phase/dash/surge) in src/gameplay/sim/flux_sim.gd _apply_tap; all assets generated in-repo (MeshFactory, shaders, IconGlyph, synth_bank.py); docs/REPOSITORIES.md: no code or assets copied.",
+  "note": "The lane-runner tunnel framing is a genre convention, not a copy; name/trademark clearance still pending (report section 38)."
+ },
+ "REQ-328": {
+  "status": "PARTIAL",
+  "evidence": "ART_DIRECTION.md section 12 checklist (style, scale, perspective, material, lighting, topology, repetition, artefacts, meaning, mobile cost); fixes after review (d107839 distinct rib profiles, 25f2423 UI defects).",
+  "note": "Register columns map to the checklist, but: 32 deviations ship as pass_with_note rather than 'fix on any failure'; mobile_cost is static estimation, never measured on a device; recolour cosmetics (REQ-323) and repeated ribs (REQ-312) pass; two notes are stale versus the code. Follow-up 86fbae3: the stale post_fx, sky, spark and swatch notes were refreshed."
+ },
+ "REQ-329": {
+  "status": "IMPLEMENTED",
+  "evidence": "No generative-model images, textures, models or audio: WAVs rendered by deterministic tools/audio/synth_bank.py, procedural meshes (mesh_factory.gd), shader materials, code-drawn icons, OFL font, hand-written SVG (game/assets/LICENSES.json).",
+  "note": "All code and procedural content was authored by AI agents and reviewed; judged as 'no unedited generative assets'."
+ },
+ "REQ-330": {
+  "status": "IMPLEMENTED",
+  "evidence": "LevelGenerator spacing/speed/windows from data/difficulty/curve.json and SimConst proportions; MeshFactory shared chamfer family; gameplay_view.gd _place_ribs fixed 7 u rhythm with fixed RIB_HEIGHT_PATTERN (no RNG in view code); test_generator_is_deterministic.",
+  "note": "World palettes are authored data and break the doc's S/V limits (REQ-308); generation does not check palettes."
+ },
+ "REQ-331": {
+  "status": "IMPLEMENTED",
+  "evidence": "All 12 named screens (plus modes and progress) re-captured after the last fixes with tools/capture_ui.gd (EN/TR) and reviewed against docs/ART_DIRECTION.md; findings fixed (finish membrane behind results, title band, reveal over fail, app icon); review recorded in the report's ANTI-AI-SLOP VISUAL AUDIT.",
+  "note": "Software-rendered captures, not a phone."
+ },
+ "REQ-332": {
+  "status": "IMPLEMENTED",
+  "evidence": "docs/FINAL_IMPLEMENTATION_REPORT.md 'ANTI-AI-SLOP VISUAL AUDIT': 15 categories graded PASS/PARTIAL/FAIL with evidence (10 PASS, 5 PARTIAL, 0 FAIL); no FAIL left unfixed.",
+  "note": ""
+ },
+ "REQ-333": {
+  "status": "PARTIAL",
+  "evidence": "Art rework and UI design system exist (53e1a0f, src/ui/kit, ART_DIRECTION.md); FINAL_IMPLEMENTATION_REPORT.md section 39 says 'not yet shippable'; no COMPLETED claim in the repo.",
+  "note": "Commercial-release visual quality is neither reached nor verified (see REQ-302/331); the final STATUS must not be COMPLETED."
+ }
+}

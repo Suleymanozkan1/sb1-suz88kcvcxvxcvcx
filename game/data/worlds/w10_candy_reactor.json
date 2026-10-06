@@ -1,0 +1,178 @@
+{
+  "art": {
+    "ambient": {
+      "color": "#4a2c42",
+      "energy": 0.6
+    },
+    "atmosphere": {
+      "count": 10,
+      "type": "sprinkles"
+    },
+    "detail": "pipes",
+    "floor": "#24171f",
+    "fog": "#3a2234",
+    "hazard": {
+      "body": "#f6f1ec",
+      "style": "candy",
+      "warn": "#e8302a"
+    },
+    "key_light": {
+      "color": "#ffe6f2",
+      "energy": 1.1,
+      "pitch": -50,
+      "yaw": 20
+    },
+    "lane": "#2c1c26",
+    "rib_material": "lacquer",
+    "rib_profile": "candy",
+    "silhouette": "reactor",
+    "sink": "#ffd27a",
+    "sky": {
+      "backdrop": {
+        "az_half": 31.5,
+        "el_bottom": -12,
+        "el_top": 28,
+        "gain": 0.9,
+        "image": "res://assets/backdrops/candy_reactor.jpg",
+        "saturation": 0.9
+      },
+      "cloud_color": "#e6a3c6",
+      "cloud_shade": "#6e3f63",
+      "clouds": 0.65,
+      "skyline": "candy",
+      "skyline_color": "#2e1a2b",
+      "skyline_light": "#f2b3d0",
+      "stars": 0.4
+    },
+    "sky_bottom": "#4a2c42",
+    "sky_top": "#2a1a26",
+    "story": "The finale: a lacquered pastel reactor, playful but precise.",
+    "story_accent": "#b05a86",
+    "structure": "#e9c9da"
+  },
+  "boss": {
+    "duration": 110,
+    "forms": {
+      "dash": 0.2,
+      "hop": 0.4,
+      "phase": 0.2,
+      "surge": 0.2
+    },
+    "hazards": {
+      "barrier": 0.3,
+      "breakable": 0.15,
+      "phase_gate": 0.15,
+      "pulse_gate": 0.15,
+      "slider": 0.25
+    },
+    "name": "Sugar Singularity",
+    "pattern": "survival"
+  },
+  "boss_level": 52,
+  "challenge": {
+    "hazards": {
+      "barrier": 0.5,
+      "slider": 0.5
+    },
+    "name": "Sugar High",
+    "pattern": "fast_field",
+    "speed_bonus": 0.15
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "cluster": 0.4,
+      "end": 13,
+      "forms": {
+        "hop": 0.5,
+        "phase": 0.25,
+        "surge": 0.25
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "phase_gate": 0.15,
+        "pulse_gate": 0.15,
+        "slider": 0.3
+      },
+      "intro": "mass_stack",
+      "launch": 0.1,
+      "plate": 0.3,
+      "start": 1
+    },
+    {
+      "end": 25,
+      "forms": {
+        "dash": 0.4,
+        "hop": 0.6
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "breakable": 0.3,
+        "slider": 0.3
+      },
+      "intro": "combo_master",
+      "magnet": 0.1,
+      "spark_bonus": 0.4,
+      "start": 14
+    },
+    {
+      "current": 0.1,
+      "end": 39,
+      "forms": {
+        "dash": 0.2,
+        "hop": 0.4,
+        "phase": 0.2,
+        "surge": 0.2
+      },
+      "gravity": 0.15,
+      "hazards": {
+        "barrier": 0.3,
+        "breakable": 0.15,
+        "phase_gate": 0.2,
+        "pulse_gate": 0.15,
+        "slider": 0.2
+      },
+      "intro": "mass_and_gravity",
+      "launch": 0.15,
+      "plate": 0.2,
+      "portal": 0.1,
+      "start": 27
+    },
+    {
+      "current": 0.1,
+      "end": 51,
+      "forms": {
+        "dash": 0.2,
+        "hop": 0.4,
+        "phase": 0.2,
+        "surge": 0.2
+      },
+      "hazards": {
+        "barrier": 0.3,
+        "breakable": 0.15,
+        "phase_gate": 0.15,
+        "pulse_gate": 0.15,
+        "slider": 0.25
+      },
+      "intro": "final_gauntlet",
+      "portal": 0.1,
+      "speed_ramp": 0.15,
+      "start": 40
+    }
+  ],
+  "id": "candy_reactor",
+  "index": 10,
+  "lanes": 3,
+  "levels": 52,
+  "music": {
+    "boss_bpm": 164,
+    "boss_track": "candy_reactor_boss",
+    "bpm": 146,
+    "root_midi": 60,
+    "scale": "major",
+    "track": "candy_reactor"
+  },
+  "name": "Candy Reactor",
+  "schema_version": 1,
+  "unlock_stars": 1030
+}

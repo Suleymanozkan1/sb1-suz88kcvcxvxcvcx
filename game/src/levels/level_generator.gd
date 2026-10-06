@@ -1,0 +1,1091 @@
+class_name LevelGenerator
+extends RefCounted
+## Deterministic, seed-driven level generator.
+##
+## Levels are built slot by slot around a *planned* tap sequence. For every slot
+## the generator places hazards for the desired core state, then measures the
+## real tap window by simulating every candidate tap tick with [FluxSim]. A slot
+## is only accepted when its window is at least the tier's fairness minimum, so
+## every generated level is solvable by construction. The planned taps are stored
+## in the level as `solution`; the validator replays and re-checks them
+## independently.
+
+const LEAD_IN: float = 10.0
+const TAIL: float = 8.0
+const MAX_ATTEMPTS: int = 8
+const SLOT_RETRIES: int = 3
+const CLEAR_AFTER: float = 0.9
+const SPARK_STEP: float = 1.15
+const HAZARD_SPARK_GAP: float = 1.1
+## Hazard types a chapter's "hazards" weights can name (world data is checked
+## against this list: an unknown key would silently place nothing).
+const HAZARD_KINDS: PackedStringArray = ["barrier", "slider", "pulse_gate", "phase_gate", "breakable"]
+## Set-piece patterns of bosses and challenges that shape hazard choice here
+## (escape, survival, fast_field, color_cascade and chain_smasher are shaped
+## by DifficultyModel parameters instead).
+const PATTERN_ROTOR: String = "rotor_gauntlet"
+const PATTERN_RHYTHM: String = "rhythm_gauntlet"
+const PATTERN_MEMORY: String = "pattern_memory"
+## Hazard-type motif length of a pattern_memory level.
+const MOTIF_LENGTH: int = 4
+## Chapter intros that are pickups rather than hazards.
+const INTRO_PICKUPS: PackedStringArray = ["shield", "magnet"]
+const MIN_DASH_GAP_FACTOR: float = 1.3
+## Shortest stretch (m) a launched core must stay above block height for a wall
+## row to be placed under it: the wall's depth on both sides plus a margin.
+const MIN_AIR_STRETCH: float = 2.0 * (SimConst.HAZARD_HALF_DEPTH + SimConst.CORE_RADIUS) + 0.6
+## Ticks a launch flight is followed at most while planning.
+const FLIGHT_GUARD_TICKS: int = 600
+const GENERATOR_VERSION: int = 2
+
+## Codes from [LevelValidator] that make the generator retry with the next
+## deterministic attempt (fairness is proven, not assumed).
+const RETRY_CODES: PackedStringArray = [
+	"impossible_level", "unfair_window", "dead_end", "unreachable_state", "spawn_collision"
+]
+
+var spec: LevelSpec
+var errors: PackedStringArray = PackedStringArray()
+## Run the independent validator on each candidate (off for endless chunks).
+var verify_with_validator: bool = true
+var _validator: LevelValidator
+
+var _rng: DetRng
+var _base: Dictionary = {}
+var _entities: Array[Dictionary] = []
+var _level: SimLevel
+var _checkpoint: FluxSim
+var _taps: PackedInt32Array = PackedInt32Array()
+var _cursor_d: float = LEAD_IN
+var _form: int = SimConst.Form.HOP
+var _segment_left: int = 0
+var _last_dash_d: float = -INF
+var _slot_index: int = 0
+var _window_min_seen: float = INF
+var _dropped: int = 0
+var _motif: Array[String] = []
+var _motif_row: int = -1
+## The pickup a chapter introduces ("shield"/"magnet"), placed at the first
+## pickup spot of each introduction level so its "New:" line is never empty.
+var _intro_pickup: String = ""
+## End of the last gravity well placed (wells never overlap).
+var _zone_end: float = -INF
+
+
+## Generates a complete level dictionary (or an empty dictionary on failure).
+func generate(level_spec: LevelSpec) -> Dictionary:
+	spec = level_spec
+	var slots: int = spec.slot_count
+	for attempt: int in MAX_ATTEMPTS:
+		errors.clear()
+		start(spec, attempt)
+		build_slots(slots)
+		var level: Dictionary = finish()
+		if level.is_empty():
+			continue
+		var duration: float = float(level["duration"])
+		if duration < spec.duration_bounds.x and attempt < MAX_ATTEMPTS - 1:
+			slots = int(ceil(float(slots) * spec.duration_bounds.x * 1.08 / maxf(duration, 0.1)))
+			continue
+		if duration > spec.duration_bounds.y and attempt < MAX_ATTEMPTS - 1:
+			slots = maxi(4, int(float(slots) * spec.duration_bounds.y * 0.95 / duration))
+			continue
+		level["generator"]["attempt"] = attempt
+		if verify_with_validator and attempt < MAX_ATTEMPTS - 1 and not _passes_validator(level):
+			continue
+		return level
+	errors.append("generation failed for %s" % spec.id)
+	return {}
+
+
+func _passes_validator(level: Dictionary) -> bool:
+	if _validator == null:
+		_validator = LevelValidator.new()
+		_validator.check_assets = false
+	var report: LevelValidator.Report = _validator.validate(level)
+	for code: String in report.codes():
+		if RETRY_CODES.has(code):
+			return false
+	return true
+
+
+## Begins a generation pass (also used directly by endless streaming).
+func start(level_spec: LevelSpec, attempt: int = 0) -> void:
+	spec = level_spec
+	_rng = DetRng.new(spec.seed + attempt * 7919)
+	_entities.clear()
+	_taps = PackedInt32Array()
+	_cursor_d = LEAD_IN
+	_form = SimConst.form_from_name(spec.start_form)
+	_segment_left = _segment_length()
+	_last_dash_d = -INF
+	_slot_index = 0
+	_window_min_seen = INF
+	_motif.clear()
+	_motif_row = -1
+	_zone_end = -INF
+	_intro_pickup = spec.intro_mechanic if INTRO_PICKUPS.has(spec.intro_mechanic) else ""
+	_base = {
+		"id": spec.id,
+		"lanes": spec.lanes,
+		"speed": snappedf(spec.speed, 0.001),
+		"length": SimLevel.ENDLESS_LENGTH,
+		"start_form": spec.start_form,
+		"start_lane": 0 if spec.lanes == 2 else 1,
+		"start_phase": 0,
+		"forgiving": spec.forgiving,
+		"beat_seconds": snappedf(spec.beat_seconds, 0.0001),
+		"modifiers": {"hop_time": spec.hop_time, "speed_ramp": spec.speed_ramp, "ramp_distance": _ramp_distance()},
+		"objective": {"type": "reach_end", "target": 0},
+	}
+	_rebuild_level()
+	_checkpoint = _new_sim(_level)
+
+
+## Fixed ramp distance (independent of final length so planning == playback).
+func _ramp_distance() -> float:
+	if spec.ramp_distance > 0.0:
+		return snappedf(spec.ramp_distance, 0.01)
+	return snappedf(LEAD_IN + TAIL + spec.spacing * float(spec.slot_count), 0.01)
+
+
+func build_slots(count: int) -> void:
+	for _i: int in count:
+		if _checkpoint == null or not _checkpoint.is_running():
+			errors.append("plan died before slot %d" % _slot_index)
+			return
+		_build_next_slot()
+		_slot_index += 1
+
+
+## Entities committed so far (used by endless streaming).
+func committed_entities() -> Array[Dictionary]:
+	return _entities
+
+
+func planned_taps() -> PackedInt32Array:
+	return _taps
+
+
+## Distance up to which slots have been planned (endless streaming frontier).
+func frontier() -> float:
+	return _cursor_d
+
+
+## Entities forgotten by [method compact] so far (streaming index offset).
+func dropped_count() -> int:
+	return _dropped
+
+
+## Streaming only: forgets up to [param max_drop] of the oldest committed
+## entities that lie more than [param behind] metres behind the planning
+## checkpoint. They can no longer influence planning (the checkpoint treats
+## everything behind the core as resolved), so the course is unchanged while
+## the per-slot cost stays bounded however long the run lasts.
+func compact(max_drop: int, behind: float) -> int:
+	if _checkpoint == null or max_drop <= 0:
+		return 0
+	var cutoff: float = _checkpoint.d - behind
+	var n: int = 0
+	while n < max_drop and n < _entities.size() and float(_entities[n].get("d", 0.0)) < cutoff:
+		n += 1
+	if n == 0:
+		return 0
+	var kept: Array[Dictionary] = []
+	for i: int in range(n, _entities.size()):
+		kept.append(_entities[i])
+	_entities = kept
+	_dropped += n
+	_rebuild_level()
+	_checkpoint = _retarget(_checkpoint, _level)
+	return n
+
+
+## Level header for an endless stream: the base level fields with no length
+## limit and no entities (they are appended chunk by chunk).
+func stream_header() -> Dictionary:
+	var data: Dictionary = _base.duplicate(true)
+	data["endless"] = true
+	data["kind"] = "endless"
+	data["entities"] = []
+	return data
+
+
+func finish() -> Dictionary:
+	if not errors.is_empty():
+		return {}
+	var length: float = snappedf(maxf(_cursor_d, _zone_end) + TAIL, 0.01)
+	var data: Dictionary = _base.duplicate(true)
+	data["length"] = length
+	data["entities"] = _entities.duplicate(true)
+	# Verify the plan from scratch on the final data; drop sparks the plan misses.
+	for _pass: int in 3:
+		var check: Dictionary = _replay_plan(data)
+		var missed: Array = check["missed_sparks"] as Array
+		if not bool(check["completed"]):
+			errors.append("plan replay failed: %s" % str(check["reason"]))
+			return {}
+		if missed.is_empty():
+			return _finalize(data, check)
+		var kept: Array = []
+		var lvl: SimLevel = SimLevel.from_dict(data)
+		# snapped distance -> lane of the missed spark there
+		var miss_d: Dictionary[float, int] = {}
+		for idx: Variant in missed:
+			miss_d[snappedf(lvl.e_d[int(idx)], 0.001)] = int(lvl.e_lane[int(idx)])
+		for ent: Variant in data["entities"] as Array:
+			var e: Dictionary = ent as Dictionary
+			var key: float = snappedf(float(e["d"]), 0.001)
+			if e["t"] == "spark" and miss_d.has(key) and miss_d[key] == int(e.get("lane", -1)):
+				continue
+			kept.append(e)
+		data["entities"] = kept
+	errors.append("could not settle spark placement")
+	return {}
+
+
+func _finalize(data: Dictionary, check: Dictionary) -> Dictionary:
+	var lvl: SimLevel = SimLevel.from_dict(data)
+	var plan_score: int = int(check["score"])
+	var plan_combo: int = int(check["max_combo"])
+	var objective: Dictionary = {"type": spec.objective_type, "target": 0}
+	match spec.objective_type:
+		"collect":
+			objective["target"] = maxi(1, int(floor(float(lvl.spark_total) * spec.objective_fraction)))
+		"shatter":
+			objective["target"] = maxi(1, int(floor(float(int(check["shatters"])) * spec.objective_fraction)))
+	if (
+		(spec.objective_type == "collect" and lvl.spark_total == 0)
+		or (spec.objective_type == "shatter" and int(check["shatters"]) == 0)
+	):
+		objective = {"type": "reach_end", "target": 0}
+	data["objective"] = objective
+	data["schema_version"] = 1
+	data["number"] = spec.number
+	data["world"] = spec.world_id
+	data["world_index"] = spec.world_index
+	data["local_index"] = spec.local_index
+	data["kind"] = spec.kind
+	data["tier"] = spec.tier
+	data["chapter"] = spec.chapter
+	data["chapter_phase"] = spec.chapter_phase
+	data["difficulty"] = snappedf(spec.intensity, 0.001)
+	data["seed"] = spec.seed
+	data["mechanics"] = _mechanics_used(data)
+	data["intro_mechanic"] = spec.intro_mechanic
+	data["tutorial"] = spec.tutorial
+	data["environment"] = spec.environment
+	data["visual_theme"] = spec.environment
+	data["music"] = spec.music if spec.kind != "boss" else spec.music + "_boss"
+	data["spawn"] = {"lead_in": LEAD_IN, "tail": TAIL, "slots": _slot_index, "spacing": snappedf(spec.spacing, 0.001)}
+	data["score_target"] = maxi(10, int(floor(float(plan_score) * spec.score_ratio / 10.0)) * 10)
+	data["perfect_target"] = lvl.spark_total
+	data["combo_target"] = maxi(3, int(floor(float(plan_combo) * spec.combo_ratio)))
+	data["unlock"] = {"requires_level": spec.unlock_requires, "requires_stars": spec.unlock_stars}
+	data["duration"] = snappedf(float(check["time"]), 0.01)
+	data["min_tap_window"] = snappedf(_window_min_seen if _window_min_seen < INF else 9.99, 0.001)
+	data["solution"] = {
+		"taps": Array(_taps),
+		"score": plan_score,
+		"max_combo": plan_combo,
+		"sparks": int(check["sparks"]),
+	}
+	if spec.kind != "normal":
+		data["special"] = {"name": spec.boss_name, "pattern": spec.pattern}
+	data["generator"] = {"version": GENERATOR_VERSION, "attempt": 0}
+	return data
+
+
+func _mechanics_used(data: Dictionary) -> Array:
+	var used: Dictionary[String, bool] = {}
+	used["spark"] = true
+	var forms_seen: Dictionary[String, bool] = {str(data["start_form"]): true}
+	var breakables: bool = false
+	for ent: Variant in data["entities"] as Array:
+		var e: Dictionary = ent as Dictionary
+		match str(e["t"]):
+			"barrier":
+				used["hop"] = true
+			"slider":
+				used["slider"] = true
+			"pulse_gate":
+				used["pulse"] = true
+			"phase_gate":
+				used["phase"] = true
+			"breakable":
+				breakables = true
+			"gravity":
+				used["gravity"] = true
+			"launch_pad":
+				used["launch"] = true
+			"plate":
+				used["stack"] = true
+			"current":
+				used["current"] = true
+			"portal":
+				used["portal"] = true
+			"form_gate":
+				used["form_gate"] = true
+				forms_seen[str(e["form"])] = true
+			"prism":
+				used["prism"] = true
+			"shield":
+				used["shield"] = true
+			"magnet":
+				used["magnet"] = true
+	for f: String in forms_seen:
+		used[f] = true
+	# Glass is broken by a dash, or (with plates and no dash form) by a full stack.
+	if breakables and (forms_seen.has("dash") or not used.has("stack")):
+		used["dash"] = true
+	if int(data["lanes"]) == 3:
+		used["lanes3"] = true
+	var mods: Dictionary = data["modifiers"] as Dictionary
+	if float(mods["hop_time"]) > SimConst.HOP_TIME + 0.001:
+		used["ice"] = true
+	if float(mods["speed_ramp"]) > 0.0:
+		used["speed_ramp"] = true
+	# A plain array: it becomes the level's JSON "mechanics" list.
+	var out: Array = []
+	out.assign(used.keys())
+	out.sort()
+	return out
+
+
+# --- Plan replay -------------------------------------------------------------
+
+
+func _replay_plan(data: Dictionary) -> Dictionary:
+	var lvl: SimLevel = SimLevel.from_dict(data)
+	var sim: FluxSim = FluxSim.new()
+	sim.shields_allowed = false
+	sim.record_events = true
+	sim.setup(lvl)
+	var replay: RunReplay = RunReplay.new()
+	replay.tap_ticks = _taps
+	replay.play_on(sim)
+	var missed: Array = []
+	var ev: PackedInt32Array = sim.recorded_events()
+	var i: int = 0
+	while i < ev.size():
+		if ev[i] == SimConst.EventType.SPARK_MISSED:
+			missed.append(ev[i + 1])
+		i += 3
+	# Sparks still ahead when the run ended count as missed too.
+	for j: int in lvl.entity_count():
+		if lvl.e_type[j] == SimConst.EntityType.SPARK and (sim.ent_flags[j] & FluxSim.FLAG_CONSUMED) == 0:
+			if not missed.has(j):
+				missed.append(j)
+	return {
+		"completed": sim.status == SimConst.Status.COMPLETED,
+		"reason": "status=%d fail=%d entity=%d d=%.2f" % [sim.status, sim.fail_reason, sim.fail_entity, sim.d],
+		"score": sim.score,
+		"max_combo": sim.max_combo,
+		"sparks": sim.sparks,
+		"shatters": sim.shatters,
+		"time": sim.time(),
+		"missed_sparks": missed,
+	}
+
+
+# --- Slot construction -------------------------------------------------------
+
+
+func _segment_length() -> int:
+	var base_len: int = maxi(2, spec.form_segment)
+	return base_len + _rng.range_int(0, 2) if _rng != null else base_len
+
+
+func _rebuild_level() -> void:
+	var data: Dictionary = _base.duplicate()
+	data["entities"] = _entities
+	_level = SimLevel.from_dict(data)
+
+
+func _new_sim(lvl: SimLevel) -> FluxSim:
+	var sim: FluxSim = FluxSim.new()
+	sim.record_events = false
+	sim.shields_allowed = false
+	sim.setup(lvl)
+	return sim
+
+
+## Returns a copy of [param source] rebased onto [param lvl]. Inserting sparks
+## re-sorts entities, so flags are rebuilt: everything behind the core is done,
+## everything ahead is fresh.
+func _retarget(source: FluxSim, lvl: SimLevel) -> FluxSim:
+	var c: FluxSim = source.clone()
+	c.level = lvl
+	var n: int = lvl.entity_count()
+	var flags: PackedByteArray = PackedByteArray()
+	flags.resize(n)
+	var cursor: int = n
+	var done: int = FluxSim.FLAG_CONSUMED | FluxSim.FLAG_RESOLVED
+	for j: int in n:
+		var ed: float = lvl.e_d[j]
+		if ed < source.d:
+			flags[j] = done
+		if cursor == n and ed + SimConst.ENTITY_REACH >= source.d - SimConst.CORE_RADIUS:
+			cursor = j
+	c.ent_flags = flags
+	c.cursor = cursor
+	return c
+
+
+func _build_next_slot() -> void:
+	var gap: float = spec.spacing * (1.0 + _rng.range_float(-spec.spacing_jitter, spec.spacing_jitter))
+	# Keep the *time* between slots, not the distance, when the plan runs fast
+	# (speed ramps, heavy surge): decisions never get closer than designed.
+	gap *= maxf(1.0, _checkpoint.speed / maxf(spec.speed, 0.1))
+	# Form segment boundaries become form gates.
+	if spec.forms.size() > 1:
+		_segment_left -= 1
+		if _segment_left <= 0:
+			_place_form_gate(gap)
+			_segment_left = _segment_length()
+			return
+	if _try_special_slot(_rng.next_float(), gap):
+		return
+	for retry: int in SLOT_RETRIES:
+		var change: bool = _rng.chance(spec.change_prob) or (_slot_index == 0 and spec.tutorial)
+		if _try_slot(gap * (1.0 + 0.25 * float(retry)), change):
+			return
+	# Fallback: a calm slot that never needs a tap.
+	if not _try_slot(gap * 1.6, false):
+		_advance_empty(gap)
+
+
+## Special slots by one roll: currents, portals and launch pads take the low
+## bands (hop form), gravity wells and plates the high bands. Each band only
+## exists when its chapter chance is above zero, so levels without them draw
+## exactly the same random numbers as before.
+func _try_special_slot(roll: float, gap: float) -> bool:
+	# A full stack of plates is spent on the next glass row.
+	if _checkpoint.plates >= SimConst.MAX_PLATES and _try_crash_slot(gap):
+		return true
+	var placed: bool = false
+	match _special_kind(roll):
+		"current":
+			placed = _try_current_slot(gap)
+		"portal":
+			placed = _try_portal_slot(gap)
+		"launch":
+			placed = _try_launch_slot(gap)
+		"gravity":
+			placed = _try_gravity_zone(gap)
+		"plate":
+			placed = _try_plate_slot(gap)
+	return placed
+
+
+## Which special slot [param roll] selects ("" for a regular slot).
+func _special_kind(roll: float) -> String:
+	var hop_ready: bool = _form == SimConst.Form.HOP and _slot_index > 1
+	var forced_chance: float = spec.current_chance + spec.portal_chance
+	var kind: String = ""
+	if hop_ready and roll < spec.current_chance:
+		kind = "current"
+	elif hop_ready and roll < forced_chance:
+		kind = "portal"
+	elif hop_ready and spec.launch_chance > 0.0 and roll < forced_chance + spec.launch_chance:
+		kind = "launch"
+	elif spec.gravity_chance > 0.0 and roll >= 1.0 - spec.gravity_chance:
+		kind = "gravity"
+	elif spec.plate_chance > 0.0 and roll >= 1.0 - spec.gravity_chance - spec.plate_chance:
+		kind = "plate"
+	return kind
+
+
+func _advance_empty(gap: float) -> void:
+	_cursor_d += gap
+	_checkpoint.advance_to_distance(_cursor_d)
+
+
+## Builds one regular slot. Returns false if no fair tap window exists.
+func _try_slot(gap: float, change: bool) -> bool:
+	var d_slot: float = snappedf(_cursor_d + gap, 0.01)
+	if _form == SimConst.Form.DASH and change and d_slot - _last_dash_d < _min_dash_gap():
+		change = false
+	var target: Dictionary = _desired_state(change)
+	var slot_entities: Array[Dictionary] = _slot_hazards(d_slot, target, change)
+	if slot_entities.is_empty():
+		return false
+	var trial: Array[Dictionary] = _entities.duplicate()
+	trial.append_array(slot_entities)
+	var trial_level: SimLevel = _level_with(trial)
+	var tap_tick: int = -1
+	if bool(target["needs_tap"]):
+		var window: Dictionary = _measure_window(trial_level, d_slot, target)
+		if float(window["length"]) < spec.min_window or _closes_too_early(window):
+			return false
+		tap_tick = int(window["center"])
+		_window_min_seen = minf(_window_min_seen, float(window["length"]))
+	else:
+		if not _survives_without_tap(trial_level, d_slot, target):
+			return false
+	var old_lane: int = _checkpoint.lane
+	var prev_d: float = _cursor_d
+	_commit(slot_entities, trial_level, tap_tick, d_slot)
+	if _form == SimConst.Form.DASH and bool(target["needs_tap"]):
+		_last_dash_d = d_slot
+	if tap_tick >= 0 and spec.prism_chance > 0.0 and _form == SimConst.Form.HOP:
+		_maybe_place_prism(prev_d, d_slot, old_lane)
+	return true
+
+
+## The run's first decisions need time to read after GO: a tap window that
+## closes earlier than [constant LevelValidator.FIRST_DECISION_S] is refused
+## (the retry moves the row further away, or the slot goes calm).
+func _closes_too_early(window: Dictionary) -> bool:
+	var length_ticks: int = int(round(float(window["length"]) / SimConst.DT))
+	var last_tick: int = int(window["start"]) + length_ticks - 1
+	return last_tick < int(ceil(LevelValidator.FIRST_DECISION_S * float(SimConst.TICK_RATE)))
+
+
+func _min_dash_gap() -> float:
+	return SimConst.DASH_COOLDOWN * spec.speed * SimConst.DASH_SPEED_FACTOR * MIN_DASH_GAP_FACTOR
+
+
+func _level_with(entities: Array[Dictionary]) -> SimLevel:
+	var data: Dictionary = _base.duplicate()
+	data["entities"] = entities
+	return SimLevel.from_dict(data)
+
+
+## Decides what the core should look like when it reaches the next slot.
+func _desired_state(change: bool) -> Dictionary:
+	var cp: FluxSim = _checkpoint
+	var target: Dictionary = {"lane": cp.lane, "phase": cp.phase, "heavy": cp.heavy, "needs_tap": change}
+	match _form:
+		SimConst.Form.HOP:
+			if change:
+				var nl: int
+				if spec.lanes == 2:
+					nl = 1 - cp.lane
+				else:
+					nl = cp.lane + cp.hop_dir
+					if nl < 0 or nl >= spec.lanes:
+						nl = cp.lane - cp.hop_dir
+				target["lane"] = nl
+		SimConst.Form.PHASE:
+			if change:
+				target["phase"] = 1 - cp.phase
+		SimConst.Form.SURGE:
+			if change:
+				target["heavy"] = not cp.heavy
+	return target
+
+
+func _pick_hazard(allowed: Array[String]) -> String:
+	# pattern_memory: the hazard type of the first MOTIF_LENGTH rows becomes a
+	# motif that repeats row by row, so the set piece can be learned and read
+	# ahead (every hazard of a row shares the row's type).
+	var memory: bool = spec.pattern == PATTERN_MEMORY
+	if memory and _motif.size() == MOTIF_LENGTH and allowed.has(_motif[_slot_index % MOTIF_LENGTH]):
+		return _motif[_slot_index % MOTIF_LENGTH]
+	var weights: Dictionary[String, float] = {}
+	for name: String in allowed:
+		var w: float = float(spec.hazards.get(name, 0.0))
+		if w > 0.0:
+			weights[name] = w
+	var picked: String = allowed[0] if weights.is_empty() else str(_rng.pick_weighted(weights))
+	if memory and _motif.size() < MOTIF_LENGTH and _motif_row != _slot_index:
+		# The first pick of each of the first rows that have hazards.
+		_motif.append(picked)
+		_motif_row = _slot_index
+	return picked
+
+
+func _arrival_time(d_slot: float, target: Dictionary) -> float:
+	# Constant-speed forms: the arrival time does not depend on tap timing.
+	var probe: FluxSim = _checkpoint.clone()
+	if bool(target["needs_tap"]) and _form == SimConst.Form.SURGE:
+		probe.step(true)
+	probe.advance_to_distance(d_slot)
+	return probe.time()
+
+
+func _slot_hazards(d_slot: float, target: Dictionary, change: bool) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var lanes: int = spec.lanes
+	var path_lane: int = int(target["lane"])
+	match _form:
+		SimConst.Form.HOP:
+			var blocked: Array[int] = []
+			if change:
+				blocked.append(_checkpoint.lane)
+			for l: int in lanes:
+				if l != path_lane and not blocked.has(l):
+					if blocked.is_empty() or _rng.chance(spec.density * 0.6):
+						blocked.append(l)
+			var t_arrive: float = _arrival_time(d_slot, target)
+			var slider_used: bool = false
+			for l: int in blocked:
+				# One slider per slot, only between adjacent lanes, so its sweep
+				# never crosses another blocked lane.
+				var can_slide: bool = not slider_used and absi(l - path_lane) == 1
+				var hazard: Dictionary = _hop_hazard(d_slot, l, path_lane, t_arrive, can_slide)
+				if str(hazard["t"]) == "slider":
+					slider_used = true
+				elif str(hazard["t"]) == "phase_gate":
+					# A phase gate spans every lane: it replaces the other blocks.
+					return [hazard] as Array[Dictionary]
+				out.append(hazard)
+		SimConst.Form.PHASE:
+			out.append({"t": "phase_gate", "d": d_slot, "color": int(target["phase"])})
+		SimConst.Form.DASH:
+			if change:
+				out.append({"t": "breakable", "d": d_slot, "lane": path_lane})
+			for l: int in lanes:
+				if l == path_lane:
+					continue
+				if change and _rng.chance(spec.cluster_chance):
+					out.append({"t": "breakable", "d": d_slot, "lane": l})
+				else:
+					out.append({"t": "barrier", "d": d_slot, "lanes": [l]})
+		SimConst.Form.SURGE:
+			var t_arr: float = _arrival_time(d_slot, target)
+			var kind: String = _pick_hazard(["pulse_gate", "slider"] as Array[String])
+			var slider_lane: int = -1
+			if kind == "slider" and lanes >= 2:
+				var slider: Dictionary = _surge_slider(d_slot, path_lane, t_arr)
+				slider_lane = int(slider["from"])
+				out.append(slider)
+			else:
+				out.append(_timed_pulse(d_slot, [path_lane], t_arr, true))
+			for l: int in lanes:
+				if l != path_lane and l != slider_lane:
+					out.append({"t": "barrier", "d": d_slot, "lanes": [l]})
+	return out
+
+
+func _hop_hazard(d_slot: float, lane: int, path_lane: int, t_arrive: float, allow_slider: bool) -> Dictionary:
+	var allowed: Array[String] = ["barrier", "pulse_gate"]
+	if allow_slider:
+		allowed.append("slider")
+	if spec.forms.has("phase"):
+		allowed.append("phase_gate")
+	var rotor: bool = spec.pattern == PATTERN_ROTOR
+	# rotor_gauntlet: every slider sweeps with one shared period, so the
+	# blades read as one rotating machine rather than separate hazards.
+	var kind: String = "slider" if rotor and allow_slider else _pick_hazard(allowed)
+	match kind:
+		"slider":
+			var beats: float = 2.0 if rotor else [2.0, 3.0, 4.0][_rng.range_int(0, 2)] as float
+			var period: float = beats * spec.beat_seconds
+			# Sit on the blocked lane exactly when the core arrives.
+			var offset: float = SimConst.wrap01(-t_arrive / period)
+			return {
+				"t": "slider",
+				"d": d_slot,
+				"from": lane,
+				"to": path_lane,
+				"period": snappedf(period, 0.0001),
+				"offset": snappedf(offset, 0.0001),
+			}
+		"pulse_gate":
+			return _timed_pulse(d_slot, [lane], t_arrive, false)
+		"phase_gate":
+			# Spans every lane; passable only in the phase the core already has.
+			return {"t": "phase_gate", "d": d_slot, "color": _checkpoint.phase}
+	return {"t": "barrier", "d": d_slot, "lanes": [lane]}
+
+
+## A pulse gate whose open (or closed) window is centred on the arrival time.
+func _timed_pulse(d_slot: float, lanes: Array, t_arrive: float, open_at_arrival: bool) -> Dictionary:
+	# rhythm_gauntlet: every gate pulses on the same beat, in unison with the music.
+	var beats: float = 1.0 if spec.pattern == PATTERN_RHYTHM else [1.0, 2.0][_rng.range_int(0, 1)] as float
+	var period: float = beats * spec.beat_seconds * 2.0
+	var open_frac: float = 0.5
+	var center_u: float = open_frac * 0.5 if open_at_arrival else open_frac + (1.0 - open_frac) * 0.5
+	var offset: float = SimConst.wrap01(center_u - t_arrive / period)
+	return {
+		"t": "pulse_gate",
+		"d": d_slot,
+		"lanes": lanes,
+		"period": snappedf(period, 0.0001),
+		"open": open_frac,
+		"offset": snappedf(offset, 0.0001),
+	}
+
+
+func _surge_slider(d_slot: float, path_lane: int, t_arrive: float) -> Dictionary:
+	var other: int = 1 if path_lane == 0 else path_lane - 1
+	var period: float = 4.0 * spec.beat_seconds
+	var offset: float = SimConst.wrap01(-t_arrive / period)
+	return {
+		"t": "slider",
+		"d": d_slot,
+		"from": other,
+		"to": path_lane,
+		"period": snappedf(period, 0.0001),
+		"offset": snappedf(offset, 0.0001),
+	}
+
+
+## Simulates every candidate tap tick between the checkpoint and the slot and
+## returns the longest contiguous run of ticks that clears the slot.
+func _measure_window(lvl: SimLevel, d_slot: float, target: Dictionary) -> Dictionary:
+	var walker: FluxSim = _retarget(_checkpoint, lvl)
+	var end_d: float = d_slot + CLEAR_AFTER
+	var best_start: int = -1
+	var best_len: int = 0
+	var run_start: int = -1
+	var run_len: int = 0
+	var guard: int = 0
+	while walker.is_running() and walker.d < d_slot and guard < 2000:
+		var trial: FluxSim = walker.clone()
+		trial.step(true)
+		trial.advance_to_distance(end_d)
+		var ok: bool = trial.is_running() and _state_matches(trial, target)
+		if ok:
+			if run_len == 0:
+				run_start = walker.tick
+			run_len += 1
+			if run_len > best_len:
+				best_len = run_len
+				best_start = run_start
+		else:
+			run_len = 0
+		walker.step(false)
+		guard += 1
+	return {
+		"length": float(best_len) * SimConst.DT,
+		"center": best_start + best_len / 2,
+		"start": best_start,
+	}
+
+
+func _state_matches(sim: FluxSim, target: Dictionary) -> bool:
+	if bool(target.get("launch", false)) and sim.launches <= _checkpoint.launches:
+		return false
+	match _form:
+		SimConst.Form.HOP:
+			return sim.lane == int(target["lane"])
+		SimConst.Form.PHASE:
+			return sim.phase == int(target["phase"])
+		SimConst.Form.SURGE:
+			return sim.heavy == bool(target["heavy"])
+		SimConst.Form.DASH:
+			return sim.shatters > _checkpoint.shatters
+	return true
+
+
+func _survives_without_tap(lvl: SimLevel, d_slot: float, target: Dictionary) -> bool:
+	var probe: FluxSim = _retarget(_checkpoint, lvl)
+	probe.advance_to_distance(d_slot + CLEAR_AFTER)
+	return probe.is_running() and _state_matches_no_tap(probe, target)
+
+
+func _state_matches_no_tap(sim: FluxSim, target: Dictionary) -> bool:
+	if _form == SimConst.Form.DASH:
+		return true
+	return _state_matches(sim, target)
+
+
+func _commit(slot_entities: Array[Dictionary], trial_level: SimLevel, tap_tick: int, d_slot: float) -> void:
+	var start_tick: int = _checkpoint.tick
+	var path: FluxSim = _retarget(_checkpoint, trial_level)
+	var samples: Array[Vector3] = []
+	var guard: int = 0
+	while path.is_running() and path.d < d_slot + CLEAR_AFTER and guard < 4000:
+		path.step(path.tick == tap_tick)
+		# Nothing is placed under a launch arc (a flying core cannot collect it).
+		samples.append(Vector3(path.d, path.x, 0.0 if path.airborne else path.hop_t))
+		guard += 1
+	if not path.is_running():
+		errors.append("commit failed at slot %d" % _slot_index)
+		return
+	if tap_tick >= 0:
+		_taps.append(tap_tick)
+	var prev_d: float = _cursor_d
+	_entities.append_array(slot_entities)
+	_add_path_pickups(samples, prev_d, d_slot, path.phase, start_tick)
+	_rebuild_level()
+	_checkpoint = _retarget(path, _level)
+	_cursor_d = d_slot
+
+
+## Sparks (and occasional pickups) follow the planned path where the core is
+## settled in a lane and clear of hazards — they double as path guidance.
+func _add_path_pickups(samples: Array[Vector3], from_d: float, to_d: float, phase: int, _start_tick: int) -> void:
+	if samples.is_empty():
+		return
+	var next_d: float = from_d + HAZARD_SPARK_GAP
+	var colored: bool = _form == SimConst.Form.PHASE
+	var lanes: int = spec.lanes
+	for s: Vector3 in samples:
+		if s.x < next_d:
+			continue
+		if s.x > to_d - HAZARD_SPARK_GAP:
+			break
+		if s.z < 1.0:
+			continue
+		var lane: int = _lane_of(s.y, lanes)
+		if absf(s.y - SimConst.lane_x(lane, lanes)) > 0.05:
+			continue
+		next_d = s.x + SPARK_STEP
+		if not _intro_pickup.is_empty():
+			_entities.append({"t": _intro_pickup, "d": snappedf(s.x, 0.01), "lane": lane})
+			_intro_pickup = ""
+			continue
+		if not _rng.chance(spec.spark_density):
+			continue
+		var d: float = snappedf(s.x, 0.01)
+		var roll: float = _rng.next_float()
+		if roll < spec.shield_chance * 0.25:
+			_entities.append({"t": "shield", "d": d, "lane": lane})
+		elif roll < (spec.shield_chance + spec.magnet_chance) * 0.25:
+			_entities.append({"t": "magnet", "d": d, "lane": lane})
+		else:
+			var spark: Dictionary = {"t": "spark", "d": d, "lane": lane}
+			if colored:
+				spark["color"] = phase
+			_entities.append(spark)
+
+
+static func _lane_of(x: float, lanes: int) -> int:
+	var best: int = 0
+	var best_dist: float = INF
+	for l: int in lanes:
+		var dist: float = absf(x - SimConst.lane_x(l, lanes))
+		if dist < best_dist:
+			best_dist = dist
+			best = l
+	return best
+
+
+## Risk/reward: a prism on the lane the core is leaving, reachable only by
+## delaying the hop towards the late edge of the tap window.
+func _maybe_place_prism(prev_d: float, d_slot: float, old_lane: int) -> void:
+	if not _rng.chance(spec.prism_chance):
+		return
+	var probe_d: float = d_slot - SimConst.HAZARD_HALF_DEPTH - SimConst.CORE_RADIUS - 1.0
+	if probe_d < prev_d + 1.5:
+		return
+	_entities.append({"t": "prism", "d": snappedf(probe_d, 0.01), "lane": old_lane})
+	_rebuild_level()
+	_checkpoint = _retarget(_checkpoint, _level)
+
+
+func _place_form_gate(gap: float) -> void:
+	var options: Dictionary[String, float] = {}
+	for f: String in spec.forms:
+		if SimConst.form_from_name(f) != _form and spec.forms[f] > 0.0:
+			options[f] = spec.forms[f]
+	if options.is_empty():
+		_advance_empty(gap)
+		return
+	var next_form: String = str(_rng.pick_weighted(options))
+	var d_gate: float = snappedf(_cursor_d + gap * 0.8, 0.01)
+	var gate: Dictionary = {"t": "form_gate", "d": d_gate, "form": next_form}
+	var trial: Array[Dictionary] = _entities.duplicate()
+	trial.append(gate)
+	var lvl: SimLevel = _level_with(trial)
+	_commit([gate], lvl, -1, d_gate)
+	_form = SimConst.form_from_name(next_form)
+
+
+func _try_current_slot(gap: float) -> bool:
+	var d_slot: float = snappedf(_cursor_d + gap, 0.01)
+	var lane: int = _checkpoint.lane
+	var to: int
+	if spec.lanes == 2:
+		to = 1 - lane
+	else:
+		to = lane + (1 if _rng.chance(0.5) else -1)
+		if to < 0 or to >= spec.lanes:
+			to = lane - (to - lane)
+	var ent: Dictionary = {"t": "current", "d": d_slot, "lanes": [lane], "to": to}
+	var trial: Array[Dictionary] = _entities.duplicate()
+	trial.append(ent)
+	var lvl: SimLevel = _level_with(trial)
+	var probe: FluxSim = _retarget(_checkpoint, lvl)
+	probe.advance_to_distance(d_slot + CLEAR_AFTER)
+	if not probe.is_running() or probe.lane != to:
+		return false
+	_commit([ent], lvl, -1, d_slot)
+	_reserve_reaction_room()
+	return true
+
+
+func _try_portal_slot(gap: float) -> bool:
+	var d_slot: float = snappedf(_cursor_d + gap, 0.01)
+	var lane: int = _checkpoint.lane
+	var to: int = 1 - lane if spec.lanes == 2 else (0 if lane != 0 else spec.lanes - 1)
+	var portal: Dictionary = {"t": "portal", "d": d_slot, "lane": lane, "to": to}
+	var wall: Dictionary = {"t": "barrier", "d": snappedf(d_slot + 1.4, 0.01), "lanes": [lane]}
+	var trial: Array[Dictionary] = _entities.duplicate()
+	trial.append(portal)
+	trial.append(wall)
+	var lvl: SimLevel = _level_with(trial)
+	var probe: FluxSim = _retarget(_checkpoint, lvl)
+	probe.advance_to_distance(d_slot + 1.4 + CLEAR_AFTER)
+	if not probe.is_running() or probe.lane != to:
+		return false
+	_commit([portal, wall], lvl, -1, d_slot + 1.4)
+	_reserve_reaction_room()
+	return true
+
+
+## Launch pad + wall row. The pad sits on the lane the plan reaches (a measured
+## hop onto it, or the lane the core already rides); the flight is simulated and
+## the wall goes into the middle of the stretch where the core is really above
+## block height, so heavy cores and high gravity simply fall back to normal slots.
+func _try_launch_slot(gap: float) -> bool:
+	var change: bool = _rng.chance(spec.change_prob)
+	var target: Dictionary = _desired_state(change)
+	target["launch"] = true
+	var pad_lane: int = int(target["lane"])
+	var d_pad: float = snappedf(_cursor_d + gap, 0.01)
+	var pad: Dictionary = {"t": "launch_pad", "d": d_pad, "lane": pad_lane}
+	var pad_only: Array[Dictionary] = _entities.duplicate()
+	pad_only.append(pad)
+	var pad_level: SimLevel = _level_with(pad_only)
+	var tap_tick: int = -1
+	if change:
+		var window: Dictionary = _measure_window(pad_level, d_pad, target)
+		if float(window["length"]) < spec.min_window:
+			return false
+		tap_tick = int(window["center"])
+	var flight: Dictionary[String, float] = _simulate_flight(pad_level, tap_tick, d_pad)
+	if flight["to"] - flight["from"] < MIN_AIR_STRETCH:
+		return false
+	# A player who skipped plates (or lost them to a shield hit) flies lighter:
+	# higher and longer. The landing room is planned for the lightest core.
+	var land: float = flight["land"]
+	if _checkpoint.plates > 0:
+		land = maxf(land, _simulate_flight(pad_level, tap_tick, d_pad, 0)["land"])
+	var d_wall: float = snappedf((flight["from"] + flight["to"]) * 0.5, 0.01)
+	var all_lanes: Array = []
+	for l: int in spec.lanes:
+		all_lanes.append(l)
+	var wall: Dictionary = {"t": "barrier", "d": d_wall, "lanes": all_lanes}
+	var trial: Array[Dictionary] = pad_only.duplicate()
+	trial.append(wall)
+	var lvl: SimLevel = _level_with(trial)
+	if change:
+		var full: Dictionary = _measure_window(lvl, d_pad, target)
+		if float(full["length"]) < spec.min_window:
+			return false
+		tap_tick = int(full["center"])
+		_window_min_seen = minf(_window_min_seen, float(full["length"]))
+	elif not _survives_without_tap(lvl, d_wall, target):
+		return false
+	_commit([pad, wall], lvl, tap_tick, d_wall)
+	if not errors.is_empty():
+		return true
+	# Nothing may demand an input before the core is back on the floor.
+	_cursor_d = maxf(_cursor_d, snappedf(land, 0.01))
+	_reserve_reaction_room()
+	return true
+
+
+## Follows a launch from the checkpoint (tapping at [param tap_tick] if >= 0)
+## and returns {"from", "to"}: the longest stretch above block height, and
+## {"land"}: where the core touches down. All zero when it never launches.
+## [param plates] >= 0 replaces the checkpoint's stack (a lighter player).
+func _simulate_flight(lvl: SimLevel, tap_tick: int, d_pad: float, plates: int = -1) -> Dictionary[String, float]:
+	var sim: FluxSim = _retarget(_checkpoint, lvl)
+	if plates >= 0:
+		sim.plates = plates
+	var launches: int = sim.launches
+	var guard: int = 0
+	while sim.is_running() and sim.d < d_pad + 1.0 and sim.launches == launches and guard < FLIGHT_GUARD_TICKS:
+		sim.step(sim.tick == tap_tick)
+		guard += 1
+	var out: Dictionary[String, float] = {"from": 0.0, "to": 0.0, "land": 0.0}
+	if sim.launches == launches:
+		return out
+	var run_from: float = -1.0
+	var best_len: float = 0.0
+	while sim.is_running() and sim.airborne and guard < FLIGHT_GUARD_TICKS * 2:
+		sim.step(false)
+		guard += 1
+		if sim.y >= SimConst.AIR_CLEARANCE:
+			if run_from < 0.0:
+				run_from = sim.d
+			if sim.d - run_from > best_len:
+				best_len = sim.d - run_from
+				out["from"] = run_from
+				out["to"] = sim.d
+		else:
+			run_from = -1.0
+	out["land"] = sim.d
+	return out
+
+
+## A gravity well spanning the next few slots (they are measured with the
+## new gravity, which the checkpoint carries).
+func _try_gravity_zone(gap: float) -> bool:
+	var d_zone: float = snappedf(_cursor_d + gap * 0.8, 0.01)
+	if d_zone < _zone_end or _checkpoint.grav != 1.0:
+		return false
+	var slots: int = _rng.range_int(spec.gravity_slots.x, spec.gravity_slots.y)
+	var g: float = spec.gravity_values[_rng.range_int(0, spec.gravity_values.size() - 1)]
+	var span: float = snappedf(spec.spacing * float(slots), 0.01)
+	var zone: Dictionary = {"t": "gravity", "d": d_zone, "span": span, "g": g}
+	var trial: Array[Dictionary] = _entities.duplicate()
+	trial.append(zone)
+	var lvl: SimLevel = _level_with(trial)
+	var probe: FluxSim = _retarget(_checkpoint, lvl)
+	probe.advance_to_distance(d_zone + CLEAR_AFTER)
+	if not probe.is_running() or probe.grav == 1.0:
+		return false
+	_commit([zone], lvl, -1, d_zone)
+	_zone_end = d_zone + span
+	return true
+
+
+## A mass plate in a calm slot on the lane the core rides, with blocks on
+## other lanes by density.
+func _try_plate_slot(gap: float) -> bool:
+	if _form == SimConst.Form.DASH or _checkpoint.plates >= SimConst.MAX_PLATES:
+		return false
+	var d_slot: float = snappedf(_cursor_d + gap, 0.01)
+	var lane: int = _checkpoint.lane
+	var slot: Array[Dictionary] = [{"t": "plate", "d": d_slot, "lane": lane}]
+	for l: int in spec.lanes:
+		if l != lane and _rng.chance(spec.density * 0.6):
+			slot.append({"t": "barrier", "d": d_slot, "lanes": [l]})
+	var trial: Array[Dictionary] = _entities.duplicate()
+	trial.append_array(slot)
+	var lvl: SimLevel = _level_with(trial)
+	var probe: FluxSim = _retarget(_checkpoint, lvl)
+	probe.advance_to_distance(d_slot + CLEAR_AFTER)
+	if not probe.is_running() or probe.plates != _checkpoint.plates + 1:
+		return false
+	_commit(slot, lvl, -1, d_slot)
+	return true
+
+
+## A glass row the full stack smashes on contact (others glass by cluster
+## chance, so chains still happen, or blocks).
+func _try_crash_slot(gap: float) -> bool:
+	var d_slot: float = snappedf(_cursor_d + gap, 0.01)
+	var lane: int = _checkpoint.lane
+	var slot: Array[Dictionary] = [{"t": "breakable", "d": d_slot, "lane": lane}]
+	for l: int in spec.lanes:
+		if l == lane:
+			continue
+		if _rng.chance(spec.cluster_chance):
+			slot.append({"t": "breakable", "d": d_slot, "lane": l})
+		else:
+			slot.append({"t": "barrier", "d": d_slot, "lanes": [l]})
+	var trial: Array[Dictionary] = _entities.duplicate()
+	trial.append_array(slot)
+	var lvl: SimLevel = _level_with(trial)
+	var probe: FluxSim = _retarget(_checkpoint, lvl)
+	probe.advance_to_distance(d_slot + CLEAR_AFTER)
+	if not probe.is_running() or probe.stack_crashes != _checkpoint.stack_crashes + 1:
+		return false
+	_commit(slot, lvl, -1, d_slot)
+	return true
+
+
+## After a forced move the player gets at least the reaction time (plus the
+## tier window) before the next slot can demand an input.
+func _reserve_reaction_room() -> void:
+	var room: float = spec.speed * (1.0 + spec.speed_ramp) * (LevelValidator.REACTION_TIME + spec.min_window)
+	_cursor_d += room
+	_checkpoint.advance_to_distance(_cursor_d - spec.spacing * 0.5)

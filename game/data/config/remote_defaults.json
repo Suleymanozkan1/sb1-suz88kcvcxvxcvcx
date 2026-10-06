@@ -1,0 +1,79 @@
+{
+	"schema_version": 1,
+	"schema": {
+		"economy.coin_multiplier": {
+			"type": "float",
+			"min": 0.5,
+			"max": 2.0,
+			"default": 1.0
+		},
+		"economy.daily_reward_multiplier": {
+			"type": "float",
+			"min": 0.5,
+			"max": 2.0,
+			"default": 1.0
+		},
+		"difficulty.global_speed_scale": {
+			"type": "float",
+			"min": 0.9,
+			"max": 1.1,
+			"default": 1.0
+		},
+		"difficulty.min_window_scale": {
+			"type": "float",
+			"min": 0.9,
+			"max": 1.25,
+			"default": 1.0
+		},
+		"ads.interstitial_every_n_levels": {
+			"type": "int",
+			"min": 2,
+			"max": 10,
+			"default": 3
+		},
+		"ads.interstitial_min_level": {
+			"type": "int",
+			"min": 3,
+			"max": 30,
+			"default": 6
+		},
+		"ads.enabled": {
+			"type": "bool",
+			"default": true
+		},
+		"daily.enabled": {
+			"type": "bool",
+			"default": true
+		},
+		"events.weekend_coin_bonus": {
+			"type": "float",
+			"min": 0.0,
+			"max": 1.0,
+			"default": 0.0
+		},
+		"leaderboard.base_url": {
+			"type": "string",
+			"format": "url",
+			"max_length": 256,
+			"default": ""
+		},
+		"cloud_save.base_url": {
+			"type": "string",
+			"format": "url",
+			"max_length": 256,
+			"default": ""
+		},
+		"analytics.endpoint": {
+			"type": "string",
+			"format": "url",
+			"max_length": 256,
+			"default": ""
+		},
+		"config.url": {
+			"type": "string",
+			"format": "url",
+			"max_length": 256,
+			"default": ""
+		}
+	}
+}

@@ -1,0 +1,157 @@
+{
+  "art": {
+    "ambient": {
+      "color": "#aebbd0",
+      "energy": 0.7
+    },
+    "atmosphere": {
+      "count": 6,
+      "type": "puffs"
+    },
+    "detail": "panels",
+    "floor": "#7d8aa1",
+    "fog": "#cdd6e2",
+    "hazard": {
+      "body": "#e9ecef",
+      "style": "industrial",
+      "warn": "#e5322a"
+    },
+    "key_light": {
+      "color": "#fff6ea",
+      "energy": 1.0,
+      "pitch": -58,
+      "yaw": 24
+    },
+    "lane": "#8f9cb2",
+    "rib_material": "ceramic",
+    "rib_profile": "arch",
+    "silhouette": "towers",
+    "sink": "#46e6f0",
+    "sky": {
+      "backdrop": {
+        "az_half": 31.5,
+        "el_bottom": -12,
+        "el_top": 28,
+        "gain": 0.9,
+        "image": "res://assets/backdrops/cloud_factory.jpg",
+        "saturation": 0.9
+      },
+      "body": {
+        "az": -10,
+        "color": "#fff8ee",
+        "el": 26,
+        "kind": "sun",
+        "size": 3.2
+      },
+      "cloud_color": "#ffffff",
+      "cloud_shade": "#bcc8d8",
+      "clouds": 0.9,
+      "skyline": "stacks",
+      "skyline_color": "#9eaabb",
+      "skyline_light": "#ffffff"
+    },
+    "sky_bottom": "#e3e9f1",
+    "sky_top": "#b9c6d9",
+    "story": "A sunlit porcelain plant above the clouds; the only high-key world.",
+    "story_accent": "#9fb2cc",
+    "structure": "#e4e9f0"
+  },
+  "boss": {
+    "cluster": 0.6,
+    "duration": 70,
+    "forms": {
+      "dash": 0.7,
+      "hop": 0.3
+    },
+    "hazards": {
+      "breakable": 0.8,
+      "pulse_gate": 0.2
+    },
+    "name": "Press Line",
+    "pattern": "chain_smasher"
+  },
+  "boss_level": 52,
+  "challenge": {
+    "cluster": 0.5,
+    "forms": {
+      "dash": 1
+    },
+    "hazards": {
+      "breakable": 1
+    },
+    "name": "Conveyor Crush",
+    "pattern": "fast_field",
+    "speed_bonus": 0.12
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "dash": 1
+      },
+      "hazards": {
+        "breakable": 1
+      },
+      "intro": "dash",
+      "start": 1
+    },
+    {
+      "cluster": 0.5,
+      "end": 25,
+      "forms": {
+        "dash": 1
+      },
+      "hazards": {
+        "breakable": 1
+      },
+      "intro": "chain",
+      "start": 14
+    },
+    {
+      "cluster": 0.3,
+      "end": 39,
+      "forms": {
+        "dash": 0.5,
+        "hop": 0.5
+      },
+      "hazards": {
+        "barrier": 0.5,
+        "breakable": 0.5
+      },
+      "intro": "dash_hop",
+      "prism": 0.2,
+      "start": 27
+    },
+    {
+      "cluster": 0.35,
+      "end": 51,
+      "forms": {
+        "dash": 0.6,
+        "hop": 0.4
+      },
+      "hazards": {
+        "breakable": 0.6,
+        "pulse_gate": 0.4
+      },
+      "intro": "dash_pulse",
+      "shield": 0.06,
+      "start": 40
+    }
+  ],
+  "id": "cloud_factory",
+  "index": 4,
+  "lanes": 2,
+  "levels": 52,
+  "music": {
+    "boss_bpm": 126,
+    "boss_track": "cloud_factory_boss",
+    "bpm": 112,
+    "root_midi": 60,
+    "scale": "major_pentatonic",
+    "track": "cloud_factory"
+  },
+  "name": "Cloud Factory",
+  "schema_version": 1,
+  "unlock_stars": 300
+}

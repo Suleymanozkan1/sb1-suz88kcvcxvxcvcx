@@ -1,0 +1,44 @@
+{
+	"schema_version": 1,
+	"campaign_span": 520,
+	"tiers": [
+		{"id": "tutorial", "from": 1, "to": 3, "duration": [8, 14], "min_window": 0.42},
+		{"id": "early", "from": 4, "to": 26, "duration": [9, 15], "min_window": 0.34},
+		{"id": "core_learning", "from": 27, "to": 52, "duration": [12, 28], "min_window": 0.28},
+		{"id": "mechanic_expansion", "from": 53, "to": 156, "duration": [14, 30], "min_window": 0.24},
+		{"id": "combination", "from": 157, "to": 260, "duration": [16, 30], "min_window": 0.21},
+		{"id": "advanced_timing", "from": 261, "to": 364, "duration": [22, 45], "min_window": 0.18},
+		{"id": "expert", "from": 365, "to": 416, "duration": [24, 50], "min_window": 0.16},
+		{"id": "master", "from": 417, "to": 468, "duration": [26, 55], "min_window": 0.15},
+		{"id": "challenge", "from": 469, "to": 494, "duration": [28, 58], "min_window": 0.14},
+		{"id": "endgame", "from": 495, "to": 520, "duration": [30, 60], "min_window": 0.13}
+	],
+	"duration_bounds": {
+		"tutorial": [5, 15],
+		"early": [5, 15],
+		"core_learning": [10, 30],
+		"mechanic_expansion": [10, 30],
+		"combination": [10, 30],
+		"advanced_timing": [20, 60],
+		"expert": [20, 60],
+		"master": [20, 60],
+		"challenge": [20, 60],
+		"endgame": [20, 60],
+		"special_challenge": [60, 120],
+		"special_boss": [60, 120]
+	},
+	"speed": {"start": 7.0, "end": 12.0, "exponent": 0.75, "wave": 0.07},
+	"spacing": {"start": 6.2, "end": 4.1, "exponent": 0.7, "wave": 0.06, "jitter": 0.12},
+	"change_prob": {"start": 0.6, "end": 0.82, "exponent": 0.6},
+	"density": {"start": 0.85, "end": 1.0},
+	"spark_density": {"start": 0.9, "end": 0.6},
+	"score_target_ratio": {"start": 0.55, "end": 0.72},
+	"combo_target_ratio": 0.6,
+	"chapter_phases": {
+		"introduction": {"levels": 2, "wave": -0.5, "density_scale": 0.9, "speed_scale": 0.97, "change_scale": 0.9},
+		"mastery": {"levels": 4, "wave": 0.0, "density_scale": 1.0},
+		"combination": {"levels": 4, "wave": 0.5, "density_scale": 1.0, "blend_previous": 0.3},
+		"high_pressure": {"levels": 3, "wave": 1.0, "density_scale": 1.0}
+	},
+	"tutorial": {"speed": 6.6, "spacing": 7.0, "change_prob": 0.65, "density": 0.7}
+}

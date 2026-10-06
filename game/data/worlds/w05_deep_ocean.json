@@ -1,0 +1,156 @@
+{
+  "art": {
+    "ambient": {
+      "color": "#123a40",
+      "energy": 0.6
+    },
+    "atmosphere": {
+      "count": 14,
+      "shafts": true,
+      "type": "bubbles"
+    },
+    "caustics": true,
+    "detail": "cables",
+    "floor": "#0b1a1f",
+    "floor_gloss": 0.4,
+    "fog": "#0c252c",
+    "hazard": {
+      "body": "#55606a",
+      "style": "mine",
+      "warn": "#ff3b2e"
+    },
+    "key_light": {
+      "color": "#9fe6e0",
+      "energy": 0.8,
+      "pitch": -62,
+      "yaw": 10
+    },
+    "lane": "#10232a",
+    "rib_material": "coated",
+    "rib_profile": "hex",
+    "silhouette": "pylons",
+    "sink": "#4de0c8",
+    "sky": {
+      "backdrop": {
+        "az_half": 31.5,
+        "el_bottom": -12,
+        "el_top": 28,
+        "gain": 0.9,
+        "image": "res://assets/backdrops/deep_ocean.jpg",
+        "saturation": 0.9
+      },
+      "nebula": 0.25,
+      "nebula_a": "#0f3a42",
+      "nebula_b": "#0b2a3a",
+      "rays": {
+        "amount": 0.8,
+        "az": 4,
+        "el": 70
+      },
+      "skyline": "reef",
+      "skyline_color": "#05131a",
+      "skyline_light": "#56e0c8"
+    },
+    "sky_bottom": "#0f2e36",
+    "sky_top": "#0a1a20",
+    "story": "A research shaft under the sea; caustics ripple across the floor.",
+    "story_accent": "#1f6b6b",
+    "structure": "#234046"
+  },
+  "boss": {
+    "duration": 90,
+    "forms": {
+      "hop": 0.3,
+      "surge": 0.7
+    },
+    "hazards": {
+      "pulse_gate": 0.6,
+      "slider": 0.4
+    },
+    "name": "Abyss Current",
+    "pattern": "survival"
+  },
+  "boss_level": 52,
+  "challenge": {
+    "forms": {
+      "surge": 1
+    },
+    "hazards": {
+      "pulse_gate": 1
+    },
+    "name": "Riptide",
+    "pattern": "fast_field",
+    "speed_bonus": 0.1
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "surge": 1
+      },
+      "hazards": {
+        "pulse_gate": 0.8,
+        "slider": 0.2
+      },
+      "intro": "surge",
+      "start": 1
+    },
+    {
+      "end": 25,
+      "forms": {
+        "surge": 1
+      },
+      "hazards": {
+        "pulse_gate": 1
+      },
+      "intro": "surge_rhythm",
+      "prism": 0.2,
+      "start": 14
+    },
+    {
+      "end": 39,
+      "forms": {
+        "hop": 0.6,
+        "surge": 0.4
+      },
+      "hazards": {
+        "barrier": 0.6,
+        "pulse_gate": 0.4
+      },
+      "intro": "portal",
+      "portal": 0.2,
+      "start": 27
+    },
+    {
+      "end": 51,
+      "forms": {
+        "hop": 0.3,
+        "surge": 0.7
+      },
+      "hazards": {
+        "pulse_gate": 0.5,
+        "slider": 0.5
+      },
+      "intro": "surge_slider",
+      "portal": 0.1,
+      "shield": 0.06,
+      "start": 40
+    }
+  ],
+  "id": "deep_ocean",
+  "index": 5,
+  "lanes": 2,
+  "levels": 52,
+  "music": {
+    "boss_bpm": 113,
+    "boss_track": "deep_ocean_boss",
+    "bpm": 100,
+    "root_midi": 50,
+    "scale": "aeolian",
+    "track": "deep_ocean"
+  },
+  "name": "Deep Ocean",
+  "schema_version": 1,
+  "unlock_stars": 410
+}

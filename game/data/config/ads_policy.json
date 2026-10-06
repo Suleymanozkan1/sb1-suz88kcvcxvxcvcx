@@ -1,0 +1,20 @@
+{
+	"schema_version": 1,
+	"enabled": true,
+	"interstitial": {
+		"enabled": true,
+		"placements": ["level_end", "world_end"],
+		"min_levels_cleared": 6,
+		"every_n_levels": 3,
+		"cooldown_seconds": 180
+	},
+	"rewarded": {
+		"enabled": true,
+		"placements": ["revive", "double_reward", "bonus_chest"],
+		"revives_per_run": 1
+	},
+	"tutorial": {
+		"done_flag": "tutorial_done",
+		"assume_done_after_levels": 8
+	}
+}

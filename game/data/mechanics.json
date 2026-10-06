@@ -1,0 +1,29 @@
+{
+	"schema_version": 1,
+	"forms": ["hop", "phase", "dash", "surge"],
+	"entity_types": ["barrier", "phase_gate", "slider", "pulse_gate", "breakable", "current", "portal", "form_gate", "spark", "prism", "shield", "magnet", "gravity", "launch_pad", "plate"],
+	"mechanics": {
+		"hop": {"family": ["tapping", "lane_switching", "dodging", "timing"], "forms": ["hop"], "entities": ["barrier"]},
+		"spark": {"family": ["collecting", "combo"], "entities": ["spark"]},
+		"near_miss": {"family": ["near_miss", "precision", "risk_reward"], "entities": []},
+		"shield": {"family": ["temporary_power_states"], "entities": ["shield"]},
+		"prism": {"family": ["risk_reward", "collecting"], "entities": ["prism"]},
+		"slider": {"family": ["moving_platforms", "timing"], "entities": ["slider"]},
+		"pulse": {"family": ["rhythm_timing", "timing"], "entities": ["pulse_gate"]},
+		"magnet": {"family": ["magnetic_interaction", "temporary_power_states"], "entities": ["magnet"]},
+		"phase": {"family": ["color_matching"], "forms": ["phase"], "entities": ["phase_gate"]},
+		"form_gate": {"family": ["portals"], "entities": ["form_gate"]},
+		"lanes3": {"family": ["lane_switching", "precision"], "entities": []},
+		"current": {"family": ["gravity_changes", "momentum"], "entities": ["current"]},
+		"dash": {"family": ["destructible_objects", "physics"], "forms": ["dash"], "entities": ["breakable"]},
+		"chain": {"family": ["chain_reactions", "reaction_chains", "physics"], "entities": ["breakable"]},
+		"surge": {"family": ["momentum", "gravity_changes", "timing"], "forms": ["surge"], "entities": ["pulse_gate"]},
+		"portal": {"family": ["portals", "teleport"], "entities": ["portal"]},
+		"overdrive": {"family": ["stacking", "temporary_power_states", "combo"], "entities": ["spark"]},
+		"ice": {"family": ["momentum", "precision"], "entities": []},
+		"speed_ramp": {"family": ["momentum", "physics"], "entities": []},
+		"gravity": {"family": ["gravity_changes", "physics"], "entities": ["gravity"]},
+		"launch": {"family": ["physics", "momentum", "timing"], "entities": ["launch_pad"]},
+		"stack": {"family": ["stacking", "destructible_objects", "physics"], "entities": ["plate"]}
+	}
+}

@@ -1,0 +1,228 @@
+{
+	"schema_version": 1,
+	"daily": {
+		"seed_salt": "fluxdrop-daily-v1",
+		"duration_bounds": [
+			30,
+			45
+		],
+		"weekday_difficulty": [
+			{
+				"day": "monday",
+				"label_key": "online.daily.difficulty.relaxed",
+				"pacing": [
+					70,
+					110
+				],
+				"mechanics_local": [
+					14,
+					25
+				],
+				"duration": 30
+			},
+			{
+				"day": "tuesday",
+				"label_key": "online.daily.difficulty.easy",
+				"pacing": [
+					110,
+					150
+				],
+				"mechanics_local": [
+					14,
+					25
+				],
+				"duration": 32
+			},
+			{
+				"day": "wednesday",
+				"label_key": "online.daily.difficulty.medium",
+				"pacing": [
+					155,
+					195
+				],
+				"mechanics_local": [
+					27,
+					39
+				],
+				"duration": 35
+			},
+			{
+				"day": "thursday",
+				"label_key": "online.daily.difficulty.medium",
+				"pacing": [
+					195,
+					235
+				],
+				"mechanics_local": [
+					27,
+					39
+				],
+				"duration": 37
+			},
+			{
+				"day": "friday",
+				"label_key": "online.daily.difficulty.tricky",
+				"pacing": [
+					235,
+					275
+				],
+				"mechanics_local": [
+					40,
+					51
+				],
+				"duration": 40
+			},
+			{
+				"day": "saturday",
+				"label_key": "online.daily.difficulty.hard",
+				"pacing": [
+					270,
+					310
+				],
+				"mechanics_local": [
+					40,
+					51
+				],
+				"duration": 42
+			},
+			{
+				"day": "sunday",
+				"label_key": "online.daily.difficulty.expert",
+				"pacing": [
+					305,
+					345
+				],
+				"mechanics_local": [
+					40,
+					51
+				],
+				"duration": 45
+			}
+		],
+		"objective_weights": {
+			"reach_end": 0.5,
+			"collect": 0.3,
+			"shatter": 0.2
+		},
+		"objective_fraction": {
+			"collect": 0.6,
+			"shatter": 0.6
+		},
+		"fallback": {
+			"attempts": 4,
+			"pacing_step": 40,
+			"mechanics_step": 6
+		},
+		"validate": true,
+		"late_grace_days": 1,
+		"history_limit": 60,
+		"level_cache_size": 3
+	},
+	"streak": {
+		"reward_table": "daily_streak",
+		"min_tier": 1,
+		"max_tier": 7,
+		"decay_per_missed_day": 1
+	},
+	"leaderboard": {
+		"queue_limit": 50,
+		"queue_max_age_days": 14,
+		"local_entries_per_board": 10,
+		"local_board_limit": 120,
+		"fetch_default_limit": 50,
+		"name_max_length": 24
+	},
+	"modes": {
+		"classic": {
+			"ranked": true,
+			"requires_completion": true,
+			"level_board": true,
+			"level_kinds": [
+				"normal",
+				"challenge",
+				"boss"
+			]
+		},
+		"daily": {
+			"ranked": true,
+			"requires_completion": true,
+			"level_board": false,
+			"level_kinds": [
+				"daily"
+			]
+		},
+		"endless": {
+			"ranked": true,
+			"requires_completion": false,
+			"level_board": false,
+			"level_kinds": [
+				"endless"
+			]
+		},
+		"time_attack": {
+			"ranked": true,
+			"requires_completion": false,
+			"level_board": false,
+			"level_kinds": [
+				"endless"
+			]
+		},
+		"perfect_run": {
+			"ranked": true,
+			"requires_completion": true,
+			"level_board": false,
+			"level_kinds": [
+				"normal",
+				"challenge",
+				"boss"
+			]
+		},
+		"hard": {
+			"ranked": true,
+			"requires_completion": true,
+			"level_board": false,
+			"level_kinds": [
+				"normal",
+				"challenge",
+				"boss"
+			]
+		},
+		"boss_rush": {
+			"ranked": false,
+			"requires_completion": true,
+			"level_board": false,
+			"level_kinds": [
+				"boss"
+			]
+		},
+		"zen": {
+			"ranked": false,
+			"requires_completion": false,
+			"level_board": false
+		}
+	},
+	"verifier": {
+		"max_taps_per_second": 12,
+		"tap_window_ticks": 60,
+		"daily_accept_days_back": 1,
+		"weekly_accept_weeks_back": 1,
+		"max_replay_ticks": 36000,
+		"reward_claim_types": [
+			"daily",
+			"level"
+		],
+		"reward_caps": {
+			"daily": {
+				"coins": 2500,
+				"gems": 25,
+				"xp": 2000
+			},
+			"level": {
+				"coins": 5000,
+				"gems": 50,
+				"xp": 5000
+			}
+		},
+		"max_stream_replay_ticks": 108000
+	}
+}

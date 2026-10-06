@@ -1,0 +1,168 @@
+{
+  "art": {
+    "ambient": {
+      "color": "#181a28",
+      "energy": 0.4
+    },
+    "atmosphere": {
+      "count": 20,
+      "type": "stars"
+    },
+    "detail": "conduits",
+    "floor": "#0a0b12",
+    "floor_gloss": 0.5,
+    "fog": "#0a0b14",
+    "hazard": {
+      "body": "#2e2a3c",
+      "style": "monolith",
+      "warn": "#ff3a2a"
+    },
+    "key_light": {
+      "color": "#b8b9d9",
+      "energy": 0.7,
+      "pitch": -60,
+      "yaw": 0
+    },
+    "lane": "#10111b",
+    "rib_material": "obsidian",
+    "rib_profile": "ring",
+    "silhouette": "ring",
+    "sink": "#a68cff",
+    "sky": {
+      "backdrop": {
+        "az_half": 31.5,
+        "el_bottom": -12,
+        "el_top": 28,
+        "gain": 0.9,
+        "image": "res://assets/backdrops/void_space.jpg",
+        "saturation": 0.9
+      },
+      "body": {
+        "az": -11,
+        "color": "#8f86c4",
+        "el": 22,
+        "kind": "ringed",
+        "size": 4.0
+      },
+      "nebula": 0.95,
+      "nebula_a": "#3b2a6a",
+      "nebula_b": "#1a3a5c",
+      "skyline": "rocks",
+      "skyline_color": "#05060c",
+      "skyline_light": "#a68cff",
+      "stars": 1.0
+    },
+    "sky_bottom": "#0e1020",
+    "sky_top": "#06070c",
+    "story": "Floating obsidian slabs at the edge of a silent horizon ring.",
+    "story_accent": "#3b3466",
+    "structure": "#262a3a"
+  },
+  "boss": {
+    "current": 0.15,
+    "duration": 95,
+    "hazards": {
+      "barrier": 0.5,
+      "pulse_gate": 0.2,
+      "slider": 0.3
+    },
+    "name": "Event Horizon",
+    "pattern": "escape",
+    "portal": 0.15,
+    "speed_ramp": 0.45
+  },
+  "boss_level": 52,
+  "challenge": {
+    "current": 0.3,
+    "hazards": {
+      "barrier": 0.6,
+      "slider": 0.4
+    },
+    "name": "Singularity Slip",
+    "pattern": "escape",
+    "portal": 0.2,
+    "speed_ramp": 0.3
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.7,
+        "pulse_gate": 0.3
+      },
+      "intro": "portal_maze",
+      "portal": 0.3,
+      "start": 1
+    },
+    {
+      "end": 25,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.6,
+        "slider": 0.4
+      },
+      "intro": "launch_pads",
+      "launch": 0.3,
+      "start": 14
+    },
+    {
+      "end": 39,
+      "form_segment": 4,
+      "forms": {
+        "hop": 0.4,
+        "phase": 0.3,
+        "surge": 0.3
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "phase_gate": 0.3,
+        "pulse_gate": 0.3
+      },
+      "intro": "form_flux",
+      "start": 27
+    },
+    {
+      "current": 0.1,
+      "end": 51,
+      "forms": {
+        "dash": 0.2,
+        "hop": 0.4,
+        "phase": 0.2,
+        "surge": 0.2
+      },
+      "gravity": 0.2,
+      "hazards": {
+        "barrier": 0.3,
+        "breakable": 0.15,
+        "phase_gate": 0.2,
+        "pulse_gate": 0.15,
+        "slider": 0.2
+      },
+      "intro": "void_wells",
+      "launch": 0.1,
+      "portal": 0.1,
+      "start": 40
+    }
+  ],
+  "id": "void_space",
+  "index": 9,
+  "lanes": 3,
+  "levels": 52,
+  "music": {
+    "boss_bpm": 158,
+    "boss_track": "void_space_boss",
+    "bpm": 140,
+    "root_midi": 49,
+    "scale": "locrian",
+    "track": "void_space"
+  },
+  "name": "Void Space",
+  "schema_version": 1,
+  "unlock_stars": 900
+}

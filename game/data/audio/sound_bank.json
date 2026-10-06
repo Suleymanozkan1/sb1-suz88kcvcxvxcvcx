@@ -1,0 +1,419 @@
+{
+  "schema_version": 1,
+  "mixer": {
+    "voices": 12,
+    "max_pitch_semitones": 12.0,
+    "strength_floor": 0.5,
+    "bus_base_db": {
+      "Music": -4.0,
+      "SFX": 0.0,
+      "UI": -2.0
+    },
+    "music_fade_s": 0.8,
+    "intensity_response": 4.0,
+    "intensity_full_combo": 20,
+    "base_volume_db": 0.0,
+    "hi_volume_db": -3.0,
+    "stinger_duck_db": -10.0,
+    "stinger_duck_release_s": 0.6,
+    "limiter_ceiling_db": -0.5,
+    "shimmer": {
+      "kinds": [
+        "collect",
+        "combo",
+        "gate",
+        "near_miss"
+      ],
+      "min_step": 10,
+      "semitones": 12.0,
+      "volume_db": -12.0
+    }
+  },
+  "sfx": {
+    "tap": {
+      "file": "res://assets/audio/sfx/tap.wav",
+      "volume_db": -6.0,
+      "pitch_step": 0.5,
+      "bus": "SFX",
+      "max_polyphony": 3,
+      "jitter": 0.15
+    },
+    "phase": {
+      "file": "res://assets/audio/sfx/phase.wav",
+      "volume_db": -7.0,
+      "pitch_step": 3.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.0
+    },
+    "dash": {
+      "file": "res://assets/audio/sfx/dash.wav",
+      "volume_db": -5.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.2
+    },
+    "denied": {
+      "file": "res://assets/audio/sfx/denied.wav",
+      "volume_db": -14.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "surge": {
+      "file": "res://assets/audio/sfx/surge.wav",
+      "volume_db": -7.0,
+      "pitch_step": 2.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.0
+    },
+    "collect": {
+      "file": "res://assets/audio/sfx/collect.wav",
+      "volume_db": -8.0,
+      "pitch_step": 0.5,
+      "bus": "SFX",
+      "max_polyphony": 6,
+      "jitter": 0.0
+    },
+    "prism": {
+      "file": "res://assets/audio/sfx/prism.wav",
+      "volume_db": -6.0,
+      "pitch_step": 0.25,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.0
+    },
+    "miss": {
+      "file": "res://assets/audio/sfx/miss.wav",
+      "volume_db": -14.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.2
+    },
+    "near_miss": {
+      "file": "res://assets/audio/sfx/near_miss.wav",
+      "volume_db": -6.0,
+      "pitch_step": 0.25,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.0
+    },
+    "shatter": {
+      "file": "res://assets/audio/sfx/shatter.wav",
+      "volume_db": -5.0,
+      "pitch_step": 1.0,
+      "bus": "SFX",
+      "max_polyphony": 3,
+      "jitter": 0.3
+    },
+    "chain": {
+      "file": "res://assets/audio/sfx/chain.wav",
+      "volume_db": -7.0,
+      "pitch_step": 1.0,
+      "bus": "SFX",
+      "max_polyphony": 4,
+      "jitter": 0.2
+    },
+    "gate": {
+      "file": "res://assets/audio/sfx/gate.wav",
+      "volume_db": -8.0,
+      "pitch_step": 0.25,
+      "bus": "SFX",
+      "max_polyphony": 3,
+      "jitter": 0.0
+    },
+    "shield_break": {
+      "file": "res://assets/audio/sfx/shield_break.wav",
+      "volume_db": -4.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "bump": {
+      "file": "res://assets/audio/sfx/bump.wav",
+      "volume_db": -8.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.3
+    },
+    "fail": {
+      "file": "res://assets/audio/sfx/fail.wav",
+      "volume_db": -3.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "perfect": {
+      "file": "res://assets/audio/sfx/perfect.wav",
+      "volume_db": -3.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "complete": {
+      "file": "res://assets/audio/sfx/complete.wav",
+      "volume_db": -4.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "form": {
+      "file": "res://assets/audio/sfx/form.wav",
+      "volume_db": -5.0,
+      "pitch_step": 2.0,
+      "bus": "SFX",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "portal": {
+      "file": "res://assets/audio/sfx/portal.wav",
+      "volume_db": -6.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.0
+    },
+    "current": {
+      "file": "res://assets/audio/sfx/current.wav",
+      "volume_db": -8.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.2
+    },
+    "pickup": {
+      "file": "res://assets/audio/sfx/pickup.wav",
+      "volume_db": -6.0,
+      "pitch_step": 5.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.0
+    },
+    "overdrive": {
+      "file": "res://assets/audio/sfx/overdrive.wav",
+      "volume_db": -4.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "overdrive_end": {
+      "file": "res://assets/audio/sfx/overdrive_end.wav",
+      "volume_db": -8.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "combo": {
+      "file": "res://assets/audio/sfx/combo.wav",
+      "volume_db": -8.0,
+      "pitch_step": 0.4,
+      "bus": "SFX",
+      "max_polyphony": 3,
+      "jitter": 0.0
+    },
+    "ui_click": {
+      "file": "res://assets/audio/sfx/ui_click.wav",
+      "volume_db": -10.0,
+      "pitch_step": 0.0,
+      "bus": "UI",
+      "max_polyphony": 3,
+      "jitter": 0.1
+    },
+    "ui_back": {
+      "file": "res://assets/audio/sfx/ui_back.wav",
+      "volume_db": -10.0,
+      "pitch_step": 0.0,
+      "bus": "UI",
+      "max_polyphony": 2,
+      "jitter": 0.0
+    },
+    "reward": {
+      "file": "res://assets/audio/sfx/reward.wav",
+      "volume_db": -6.0,
+      "pitch_step": 0.0,
+      "bus": "UI",
+      "max_polyphony": 2,
+      "jitter": 0.0
+    },
+    "star": {
+      "file": "res://assets/audio/sfx/star.wav",
+      "volume_db": -6.0,
+      "pitch_step": 2.0,
+      "bus": "UI",
+      "max_polyphony": 3,
+      "jitter": 0.0
+    },
+    "coin": {
+      "file": "res://assets/audio/sfx/coin.wav",
+      "volume_db": -10.0,
+      "pitch_step": 0.0,
+      "bus": "UI",
+      "max_polyphony": 4,
+      "jitter": 0.15
+    },
+    "level_up": {
+      "file": "res://assets/audio/sfx/level_up.wav",
+      "volume_db": -4.0,
+      "pitch_step": 0.0,
+      "bus": "UI",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "unlock": {
+      "file": "res://assets/audio/sfx/unlock.wav",
+      "volume_db": -5.0,
+      "pitch_step": 0.0,
+      "bus": "UI",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "launch": {
+      "file": "res://assets/audio/sfx/launch.wav",
+      "volume_db": -6.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.1
+    },
+    "land": {
+      "file": "res://assets/audio/sfx/land.wav",
+      "volume_db": -9.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.2
+    },
+    "gravity": {
+      "file": "res://assets/audio/sfx/gravity.wav",
+      "volume_db": -9.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 1,
+      "jitter": 0.0
+    },
+    "plate": {
+      "file": "res://assets/audio/sfx/plate.wav",
+      "volume_db": -7.0,
+      "pitch_step": 2.0,
+      "bus": "SFX",
+      "max_polyphony": 2,
+      "jitter": 0.0
+    },
+    "stack_crash": {
+      "file": "res://assets/audio/sfx/stack_crash.wav",
+      "volume_db": -5.0,
+      "pitch_step": 0.0,
+      "bus": "SFX",
+      "max_polyphony": 1,
+      "jitter": 0.1
+    }
+  },
+  "music": {
+    "menu": {
+      "base": "res://assets/audio/music/menu.wav",
+      "bpm": 76,
+      "bars": 8
+    },
+    "neon_core": {
+      "base": "res://assets/audio/music/neon_core.wav",
+      "hi": "res://assets/audio/music/neon_core_hi.wav",
+      "boss": "res://assets/audio/music/neon_core_boss.wav",
+      "bpm": 118,
+      "boss_bpm": 133,
+      "bars": 8
+    },
+    "crystal_valley": {
+      "base": "res://assets/audio/music/crystal_valley.wav",
+      "hi": "res://assets/audio/music/crystal_valley_hi.wav",
+      "boss": "res://assets/audio/music/crystal_valley_boss.wav",
+      "bpm": 124,
+      "boss_bpm": 140,
+      "bars": 8
+    },
+    "molten_grid": {
+      "base": "res://assets/audio/music/molten_grid.wav",
+      "hi": "res://assets/audio/music/molten_grid_hi.wav",
+      "boss": "res://assets/audio/music/molten_grid_boss.wav",
+      "bpm": 128,
+      "boss_bpm": 144,
+      "bars": 8
+    },
+    "cloud_factory": {
+      "base": "res://assets/audio/music/cloud_factory.wav",
+      "hi": "res://assets/audio/music/cloud_factory_hi.wav",
+      "boss": "res://assets/audio/music/cloud_factory_boss.wav",
+      "bpm": 112,
+      "boss_bpm": 126,
+      "bars": 8
+    },
+    "deep_ocean": {
+      "base": "res://assets/audio/music/deep_ocean.wav",
+      "hi": "res://assets/audio/music/deep_ocean_hi.wav",
+      "boss": "res://assets/audio/music/deep_ocean_boss.wav",
+      "bpm": 100,
+      "boss_bpm": 113,
+      "bars": 8
+    },
+    "cyber_garden": {
+      "base": "res://assets/audio/music/cyber_garden.wav",
+      "hi": "res://assets/audio/music/cyber_garden_hi.wav",
+      "boss": "res://assets/audio/music/cyber_garden_boss.wav",
+      "bpm": 122,
+      "boss_bpm": 137,
+      "bars": 8
+    },
+    "frozen_pulse": {
+      "base": "res://assets/audio/music/frozen_pulse.wav",
+      "hi": "res://assets/audio/music/frozen_pulse_hi.wav",
+      "boss": "res://assets/audio/music/frozen_pulse_boss.wav",
+      "bpm": 136,
+      "boss_bpm": 153,
+      "bars": 8
+    },
+    "desert_reactor": {
+      "base": "res://assets/audio/music/desert_reactor.wav",
+      "hi": "res://assets/audio/music/desert_reactor_hi.wav",
+      "boss": "res://assets/audio/music/desert_reactor_boss.wav",
+      "bpm": 130,
+      "boss_bpm": 146,
+      "bars": 8
+    },
+    "void_space": {
+      "base": "res://assets/audio/music/void_space.wav",
+      "hi": "res://assets/audio/music/void_space_hi.wav",
+      "boss": "res://assets/audio/music/void_space_boss.wav",
+      "bpm": 140,
+      "boss_bpm": 158,
+      "bars": 8
+    },
+    "candy_reactor": {
+      "base": "res://assets/audio/music/candy_reactor.wav",
+      "hi": "res://assets/audio/music/candy_reactor_hi.wav",
+      "boss": "res://assets/audio/music/candy_reactor_boss.wav",
+      "bpm": 146,
+      "boss_bpm": 164,
+      "bars": 8
+    }
+  },
+  "stingers": {
+    "level_complete": {
+      "file": "res://assets/audio/music/level_complete.wav",
+      "volume_db": -2.0
+    },
+    "perfect_fanfare": {
+      "file": "res://assets/audio/music/perfect_fanfare.wav",
+      "volume_db": -1.0
+    }
+  }
+}

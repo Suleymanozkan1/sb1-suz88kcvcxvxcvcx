@@ -1,0 +1,162 @@
+{
+  "art": {
+    "ambient": {
+      "color": "#4a3326",
+      "energy": 0.5
+    },
+    "atmosphere": {
+      "count": 12,
+      "shafts": true,
+      "type": "sand"
+    },
+    "detail": "panels",
+    "floor": "#2a1d16",
+    "fog": "#3f2a1e",
+    "hazard": {
+      "body": "#7a4030",
+      "style": "rust",
+      "warn": "#ff4a1c"
+    },
+    "key_light": {
+      "color": "#ffd9ae",
+      "energy": 1.25,
+      "pitch": -28,
+      "yaw": 38
+    },
+    "lane": "#33241b",
+    "rib_material": "sandstone",
+    "rib_profile": "monolith",
+    "silhouette": "dome",
+    "sink": "#ffb870",
+    "sky": {
+      "backdrop": {
+        "az_half": 31.5,
+        "el_bottom": -12,
+        "el_top": 28,
+        "gain": 0.9,
+        "image": "res://assets/backdrops/desert_reactor.jpg",
+        "saturation": 0.9
+      },
+      "body": {
+        "az": 7,
+        "color": "#ffd9ae",
+        "el": 9,
+        "kind": "sun",
+        "size": 4.5
+      },
+      "cloud_color": "#d9a273",
+      "cloud_shade": "#7a4a30",
+      "clouds": 0.35,
+      "rays": {
+        "amount": 0.5,
+        "az": 7,
+        "el": 9
+      },
+      "skyline": "dunes",
+      "skyline_color": "#3a2517",
+      "skyline_light": "#ffc488"
+    },
+    "sky_bottom": "#5a3a26",
+    "sky_top": "#2a1c15",
+    "story": "Sandstone monoliths around a sleeping reactor at golden hour.",
+    "story_accent": "#9a5a33",
+    "structure": "#8a6a50"
+  },
+  "boss": {
+    "duration": 85,
+    "hazards": {
+      "barrier": 0.5,
+      "pulse_gate": 0.2,
+      "slider": 0.3
+    },
+    "name": "Reactor Core",
+    "pattern": "fast_field",
+    "speed_bonus": 0.18
+  },
+  "boss_level": 52,
+  "challenge": {
+    "hazards": {
+      "barrier": 0.7,
+      "slider": 0.3
+    },
+    "name": "Sandstorm Sprint",
+    "pattern": "escape",
+    "speed_ramp": 0.35
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.7,
+        "slider": 0.3
+      },
+      "intro": "speed_ramp",
+      "speed_ramp": 0.25,
+      "start": 1
+    },
+    {
+      "current": 0.2,
+      "end": 25,
+      "forms": {
+        "hop": 0.5,
+        "surge": 0.5
+      },
+      "hazards": {
+        "barrier": 0.5,
+        "pulse_gate": 0.5
+      },
+      "intro": "surge_current",
+      "start": 14
+    },
+    {
+      "cluster": 0.4,
+      "end": 39,
+      "forms": {
+        "dash": 0.5,
+        "phase": 0.5
+      },
+      "hazards": {
+        "breakable": 0.5,
+        "phase_gate": 0.5
+      },
+      "intro": "chain_phase",
+      "start": 27
+    },
+    {
+      "current": 0.1,
+      "end": 51,
+      "forms": {
+        "dash": 0.25,
+        "hop": 0.5,
+        "surge": 0.25
+      },
+      "hazards": {
+        "barrier": 0.35,
+        "breakable": 0.2,
+        "pulse_gate": 0.2,
+        "slider": 0.25
+      },
+      "intro": "reactor_mix",
+      "start": 40
+    }
+  ],
+  "id": "desert_reactor",
+  "index": 8,
+  "lanes": 3,
+  "levels": 52,
+  "music": {
+    "boss_bpm": 146,
+    "boss_track": "desert_reactor_boss",
+    "bpm": 130,
+    "root_midi": 53,
+    "scale": "harmonic_minor",
+    "track": "desert_reactor"
+  },
+  "name": "Desert Reactor",
+  "schema_version": 1,
+  "unlock_stars": 770
+}

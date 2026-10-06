@@ -1,0 +1,144 @@
+{
+  "art": {
+    "ambient": {
+      "color": "#3a2620",
+      "energy": 0.45
+    },
+    "atmosphere": {
+      "count": 14,
+      "type": "embers"
+    },
+    "detail": "pipes",
+    "floor": "#15100e",
+    "fog": "#24140f",
+    "hazard": {
+      "body": "#2a2522",
+      "style": "basalt",
+      "warn": "#ff5a1f"
+    },
+    "key_light": {
+      "color": "#ffc9a3",
+      "energy": 0.9,
+      "pitch": -34,
+      "yaw": 30
+    },
+    "lane": "#1c1512",
+    "rib_material": "steel",
+    "rib_profile": "truss",
+    "silhouette": "chimneys",
+    "sink": "#ff8a4d",
+    "sky": {
+      "backdrop": {
+        "az_half": 31.5,
+        "el_bottom": -12,
+        "el_top": 28,
+        "gain": 0.9,
+        "image": "res://assets/backdrops/molten_grid.jpg",
+        "saturation": 0.9
+      },
+      "cloud_color": "#5a3226",
+      "cloud_shade": "#1c0f0b",
+      "clouds": 0.7,
+      "skyline": "volcano",
+      "skyline_color": "#120a08",
+      "skyline_light": "#ff7a3a"
+    },
+    "sky_bottom": "#2e1a14",
+    "sky_top": "#1a1210",
+    "story": "An abandoned foundry; the heat below lights the shaft from the far end.",
+    "story_accent": "#8a3a1f",
+    "structure": "#3a3330"
+  },
+  "boss": {
+    "current": 0.15,
+    "duration": 70,
+    "hazards": {
+      "barrier": 0.7,
+      "slider": 0.3
+    },
+    "name": "Meltdown Escape",
+    "pattern": "escape",
+    "speed_ramp": 0.55
+  },
+  "boss_level": 52,
+  "challenge": {
+    "hazards": {
+      "barrier": 0.8,
+      "slider": 0.2
+    },
+    "name": "Lava Rush",
+    "pattern": "escape",
+    "speed_ramp": 0.3
+  },
+  "challenge_level": 26,
+  "chapters": [
+    {
+      "end": 13,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 1
+      },
+      "intro": "lanes3",
+      "start": 1
+    },
+    {
+      "current": 0.22,
+      "end": 25,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.8,
+        "slider": 0.2
+      },
+      "intro": "current",
+      "start": 14
+    },
+    {
+      "end": 39,
+      "forms": {
+        "hop": 1
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "pulse_gate": 0.25,
+        "slider": 0.35
+      },
+      "intro": "slider3",
+      "prism": 0.25,
+      "start": 27
+    },
+    {
+      "current": 0.15,
+      "end": 51,
+      "forms": {
+        "hop": 0.65,
+        "phase": 0.35
+      },
+      "hazards": {
+        "barrier": 0.4,
+        "phase_gate": 0.3,
+        "slider": 0.3
+      },
+      "intro": "gravity_color",
+      "start": 40
+    }
+  ],
+  "id": "molten_grid",
+  "index": 3,
+  "lanes": 3,
+  "levels": 52,
+  "music": {
+    "boss_bpm": 144,
+    "boss_track": "molten_grid_boss",
+    "bpm": 128,
+    "root_midi": 52,
+    "scale": "phrygian",
+    "track": "molten_grid"
+  },
+  "name": "Molten Grid",
+  "schema_version": 1,
+  "unlock_stars": 190
+}

@@ -1,0 +1,85 @@
+{
+	"schema_version": 1,
+	"notes": "Balance: a first clear with two new stars pays 30-37 coins in every tier, so a 300-coin cosmetic takes about 9 levels and a 1500-coin one about 45 (fewer with daily, level-up, world and achievement rewards). Replays pay a small fixed amount so they are never worthless but never beat progressing. All contents are fixed; nothing here is random.",
+	"level": {
+		"default_tier": "early",
+		"base_by_tier": {
+			"tutorial": 22,
+			"early": 23,
+			"core_learning": 24,
+			"mechanic_expansion": 25,
+			"combination": 26,
+			"advanced_timing": 27,
+			"expert": 28,
+			"master": 28,
+			"challenge": 29,
+			"endgame": 29
+		},
+		"replay_coins_by_tier": {
+			"tutorial": 2,
+			"early": 2,
+			"core_learning": 3,
+			"mechanic_expansion": 3,
+			"combination": 3,
+			"advanced_timing": 4,
+			"expert": 4,
+			"master": 4,
+			"challenge": 5,
+			"endgame": 5
+		},
+		"replay_coins_min": 1,
+		"kind_bonus": {
+			"normal": 0,
+			"challenge": 20,
+			"boss": 40
+		},
+		"coins_per_new_star": 4,
+		"perfect_first_gems": 1,
+		"perfect_badge_prefix": "badge_perfect_",
+		"xp_base": 10,
+		"xp_per_star": 5,
+		"fail_xp": 2,
+		"fail_xp_min_seconds": 5.0
+	},
+	"daily_streak": {
+		"tiers": [
+			{"tier": 1, "reward": {"coins": 20, "xp": 10}},
+			{"tier": 2, "reward": {"coins": 25, "xp": 15}},
+			{"tier": 3, "reward": {"coins": 30, "gems": 1, "xp": 20}},
+			{"tier": 4, "reward": {"coins": 35, "gems": 1, "xp": 25}},
+			{"tier": 5, "reward": {"coins": 40, "gems": 2, "xp": 30}},
+			{"tier": 6, "reward": {"coins": 45, "gems": 2, "xp": 35}},
+			{"tier": 7, "reward": {"coins": 60, "gems": 3, "xp": 40}}
+		]
+	},
+	"bonus_chest": {
+		"reward": {"coins": 60, "xp": 20}
+	},
+	"level_up": {
+		"coins_base": 50,
+		"coins_per_level": 5,
+		"coins_max": 250,
+		"gems_every": 5,
+		"gems": 2,
+		"milestones": [
+			{"level": 10, "reward": {"gems": 3}},
+			{"level": 25, "reward": {"gems": 5}},
+			{"level": 50, "reward": {"gems": 10}},
+			{"level": 100, "reward": {"gems": 20}}
+		]
+	},
+	"world_complete": {
+		"coins_base": 250,
+		"coins_per_world": 50,
+		"gems": 5,
+		"xp": 100,
+		"worlds": 10
+	},
+	"ad_double": {
+		"types": ["coins", "gems"]
+	},
+	"limits": {
+		"max_xp_per_item": 20000,
+		"max_stars_per_item": 3
+	}
+}

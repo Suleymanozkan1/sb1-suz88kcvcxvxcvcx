@@ -1,0 +1,444 @@
+{
+	"schema_version": 1,
+	"daily_count": 3,
+	"weekly_count": 3,
+	"reward_scaling": {
+		"step_per_target_index": 0.25,
+		"keys": [
+			"coins",
+			"xp"
+		]
+	},
+	"daily_templates": [
+		{
+			"id": "play_levels",
+			"desc_key": "mis.play_levels.desc",
+			"stat": "runs_played",
+			"targets": [
+				5,
+				8,
+				10
+			],
+			"reward": {
+				"coins": 60,
+				"xp": 40
+			}
+		},
+		{
+			"id": "clear_levels",
+			"desc_key": "mis.clear_levels.desc",
+			"stat": "levels_cleared",
+			"targets": [
+				3,
+				5,
+				7
+			],
+			"reward": {
+				"coins": 70,
+				"xp": 50
+			}
+		},
+		{
+			"id": "get_perfects",
+			"desc_key": "mis.get_perfects.desc",
+			"stat": "perfects",
+			"targets": [
+				2,
+				3,
+				4
+			],
+			"reward": {
+				"coins": 90,
+				"xp": 60
+			}
+		},
+		{
+			"id": "collect_energy",
+			"desc_key": "mis.collect_energy.desc",
+			"stat": "sparks_collected",
+			"targets": [
+				100,
+				150,
+				250
+			],
+			"reward": {
+				"coins": 60,
+				"xp": 40
+			}
+		},
+		{
+			"id": "reach_combo",
+			"desc_key": "mis.reach_combo.desc",
+			"stat": "best_combo_today",
+			"targets": [
+				10,
+				15,
+				20
+			],
+			"reward": {
+				"coins": 80,
+				"xp": 50
+			}
+		},
+		{
+			"id": "no_damage",
+			"desc_key": "mis.no_damage.desc",
+			"stat": "damage_free_clears",
+			"targets": [
+				1,
+				2,
+				3
+			],
+			"reward": {
+				"coins": 80,
+				"xp": 50
+			}
+		},
+		{
+			"id": "near_misses",
+			"desc_key": "mis.near_misses.desc",
+			"stat": "near_misses",
+			"targets": [
+				5,
+				10,
+				15
+			],
+			"reward": {
+				"coins": 70,
+				"xp": 45
+			}
+		},
+		{
+			"id": "overdrives",
+			"desc_key": "mis.overdrives.desc",
+			"stat": "overdrives",
+			"targets": [
+				2,
+				3,
+				5
+			],
+			"reward": {
+				"coins": 70,
+				"xp": 45
+			}
+		},
+		{
+			"id": "score_points",
+			"desc_key": "mis.score_points.desc",
+			"stat": "total_score",
+			"targets": [
+				2000,
+				4000,
+				6000
+			],
+			"reward": {
+				"coins": 70,
+				"xp": 45
+			}
+		},
+		{
+			"id": "daily_challenge",
+			"desc_key": "mis.daily_challenge.desc",
+			"stat": "daily_completed",
+			"targets": [
+				1
+			],
+			"daily_cap": 1,
+			"reward": {
+				"coins": 80,
+				"xp": 50
+			}
+		},
+		{
+			"id": "collect_prisms",
+			"desc_key": "mis.collect_prisms.desc",
+			"stat": "prisms_collected",
+			"targets": [
+				2,
+				3,
+				5
+			],
+			"reward": {
+				"coins": 80,
+				"xp": 50
+			},
+			"requires": {
+				"stat": "unique_levels_cleared",
+				"min": 20
+			}
+		},
+		{
+			"id": "colour_gates",
+			"desc_key": "mis.colour_gates.desc",
+			"stat": "gates_passed",
+			"targets": [
+				10,
+				20,
+				30
+			],
+			"reward": {
+				"coins": 70,
+				"xp": 45
+			},
+			"requires": {
+				"stat": "unique_levels_cleared",
+				"min": 55
+			}
+		},
+		{
+			"id": "ride_currents",
+			"desc_key": "mis.ride_currents.desc",
+			"stat": "currents_ridden",
+			"targets": [
+				3,
+				5,
+				8
+			],
+			"reward": {
+				"coins": 80,
+				"xp": 50
+			},
+			"requires": {
+				"stat": "unique_levels_cleared",
+				"min": 120
+			}
+		},
+		{
+			"id": "shatter_blocks",
+			"desc_key": "mis.shatter_blocks.desc",
+			"stat": "shatters",
+			"targets": [
+				5,
+				10,
+				15
+			],
+			"reward": {
+				"coins": 80,
+				"xp": 50
+			},
+			"requires": {
+				"stat": "unique_levels_cleared",
+				"min": 160
+			}
+		},
+		{
+			"id": "use_portals",
+			"desc_key": "mis.use_portals.desc",
+			"stat": "portals_used",
+			"targets": [
+				2,
+				4,
+				6
+			],
+			"reward": {
+				"coins": 80,
+				"xp": 50
+			},
+			"requires": {
+				"stat": "unique_levels_cleared",
+				"min": 240
+			}
+		}
+	],
+	"weekly_templates": [
+		{
+			"id": "weekly_clear_levels",
+			"desc_key": "mis.weekly_clear_levels.desc",
+			"stat": "levels_cleared",
+			"targets": [
+				20,
+				30,
+				40
+			],
+			"reward": {
+				"coins": 300,
+				"gems": 1,
+				"xp": 200
+			}
+		},
+		{
+			"id": "weekly_perfects",
+			"desc_key": "mis.weekly_perfects.desc",
+			"stat": "perfects",
+			"targets": [
+				10,
+				15,
+				20
+			],
+			"reward": {
+				"coins": 350,
+				"gems": 1,
+				"xp": 250
+			}
+		},
+		{
+			"id": "weekly_energy",
+			"desc_key": "mis.weekly_energy.desc",
+			"stat": "sparks_collected",
+			"targets": [
+				1500,
+				2000,
+				3000
+			],
+			"reward": {
+				"coins": 300,
+				"xp": 200
+			}
+		},
+		{
+			"id": "weekly_dailies",
+			"desc_key": "mis.weekly_dailies.desc",
+			"stat": "daily_completed",
+			"targets": [
+				3,
+				5
+			],
+			"daily_cap": 1,
+			"reward": {
+				"coins": 350,
+				"gems": 2,
+				"xp": 250
+			}
+		},
+		{
+			"id": "weekly_boss",
+			"desc_key": "mis.weekly_boss.desc",
+			"stat": "bosses_cleared",
+			"targets": [
+				1,
+				2
+			],
+			"reward": {
+				"coins": 400,
+				"gems": 2,
+				"xp": 300
+			},
+			"requires": {
+				"stat": "unique_levels_cleared",
+				"min": 51
+			}
+		},
+		{
+			"id": "weekly_combo",
+			"desc_key": "mis.weekly_combo.desc",
+			"stat": "best_combo_week",
+			"targets": [
+				25,
+				30,
+				40
+			],
+			"reward": {
+				"coins": 300,
+				"gems": 1,
+				"xp": 200
+			}
+		},
+		{
+			"id": "weekly_no_damage",
+			"desc_key": "mis.weekly_no_damage.desc",
+			"stat": "damage_free_clears",
+			"targets": [
+				10,
+				15,
+				20
+			],
+			"reward": {
+				"coins": 300,
+				"gems": 1,
+				"xp": 200
+			}
+		},
+		{
+			"id": "weekly_play",
+			"desc_key": "mis.weekly_play.desc",
+			"stat": "runs_played",
+			"targets": [
+				40,
+				60,
+				80
+			],
+			"reward": {
+				"coins": 250,
+				"xp": 200
+			}
+		},
+		{
+			"id": "weekly_near_misses",
+			"desc_key": "mis.weekly_near_misses.desc",
+			"stat": "near_misses",
+			"targets": [
+				50,
+				80,
+				120
+			],
+			"reward": {
+				"coins": 250,
+				"xp": 180
+			}
+		},
+		{
+			"id": "weekly_overdrives",
+			"desc_key": "mis.weekly_overdrives.desc",
+			"stat": "overdrives",
+			"targets": [
+				15,
+				25,
+				40
+			],
+			"reward": {
+				"coins": 250,
+				"xp": 180
+			}
+		},
+		{
+			"id": "weekly_score",
+			"desc_key": "mis.weekly_score.desc",
+			"stat": "total_score",
+			"targets": [
+				20000,
+				35000,
+				50000
+			],
+			"reward": {
+				"coins": 300,
+				"xp": 200
+			}
+		},
+		{
+			"id": "weekly_challenges",
+			"desc_key": "mis.weekly_challenges.desc",
+			"stat": "challenges_cleared",
+			"targets": [
+				1,
+				2
+			],
+			"reward": {
+				"coins": 350,
+				"gems": 1,
+				"xp": 250
+			},
+			"requires": {
+				"stat": "unique_levels_cleared",
+				"min": 30
+			}
+		},
+		{
+			"id": "weekly_fast_clears",
+			"desc_key": "mis.weekly_fast_clears.desc",
+			"stat": "fast_clears",
+			"targets": [
+				3,
+				5
+			],
+			"reward": {
+				"coins": 300,
+				"gems": 1,
+				"xp": 200
+			},
+			"requires": {
+				"stat": "unique_levels_cleared",
+				"min": 160
+			}
+		}
+	]
+}
