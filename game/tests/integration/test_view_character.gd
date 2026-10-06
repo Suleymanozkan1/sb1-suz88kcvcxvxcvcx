@@ -1,8 +1,10 @@
 extends TestCase
-## The player character (player feedback: "change the character completely"):
-## a flux craft per form instead of a glowing ball, with skins on its energy
-## parts, banking into lane changes, a barrel roll on a phase change, engine
-## flames and sparks. And each world's sky scenery.
+## The player character (player feedback: "change the character completely",
+## then "make the character more advanced"): a flux craft per form, lofted
+## hulls with airfoil wings, a glass canopy over the core, detailed engines,
+## skins on its energy parts, banking into lane changes, a barrel roll on a
+## phase change, engine flames, sparks and wingtip vapour trails. And each
+## world's sky scenery.
 
 const FIXED_UNIX: int = 1790000000
 ## A craft's half span may reach at most this far from the lane centre: the
@@ -55,7 +57,7 @@ func test_every_form_is_its_own_craft() -> void:
 	for form: int in FORMS:
 		var mesh: ArrayMesh = CraftShapes.build(form)
 		seen[mesh] = true
-		assert_eq(mesh.get_surface_count(), 3, "hull, trim and energy surfaces")
+		assert_eq(mesh.get_surface_count(), 4, "hull, trim, energy and glass surfaces")
 		var box: AABB = mesh.get_aabb()
 		var half_span: float = maxf(absf(box.position.x), absf(box.end.x)) * CoreView.CRAFT_SCALE
 		assert_le(half_span, MAX_HALF_SPAN, "form %d clears the next lane's blocks" % form)
@@ -191,3 +193,67 @@ func test_the_top_preset_adds_bloom_sun_scatter_and_crisp_shadows() -> void:
 	assert_eq(view.environment.get_glow_level(1), 0.0)
 	assert_eq(view.environment.fog_sun_scatter, 0.0)
 	assert_eq(view.key_light.directional_shadow_mode, DirectionalLight3D.SHADOW_ORTHOGONAL)
+
+
+func test_the_core_glows_under_a_glass_canopy() -> void:
+	var view: GameplayView = _view_for("w01_l20")
+	var core: CoreView = view.core_view
+	for form: int in FORMS:
+		core.set_form(form, 0, false)
+		var glass: Material = core.body.get_surface_override_material(CraftShapes.SURFACE_GLASS)
+		assert_true(glass is ShaderMaterial, "form %d has its glass" % form)
+		assert_eq((glass as ShaderMaterial).shader, CoreView.GLASS_SHADER)
+		var mesh: ArrayMesh = core.body.mesh as ArrayMesh
+		var glass_box: AABB = _surface_box(mesh, CraftShapes.SURFACE_GLASS)
+		var energy_box: AABB = _surface_box(mesh, CraftShapes.SURFACE_ENERGY)
+		assert_true(glass_box.intersects(energy_box), "form %d: the core sits under the glass" % form)
+	view.set_quality(false, 0.4, 12, false, false, false, false, false, false)
+	assert_eq(float(core._glass_mat.get_shader_parameter("detail")), 0.0, "plain glass on Low")
+
+
+func test_engines_have_petals_turbines_and_a_glow() -> void:
+	var per_nozzle: int = CraftShapes.NOZZLE_PETALS * 4 + CraftShapes.TURBINE_BLADES * 2
+	for form: int in FORMS:
+		var mesh: ArrayMesh = CraftShapes.build(form)
+		var trim_tris: int = mesh.surface_get_array_len(CraftShapes.SURFACE_TRIM) / 3
+		var nozzles: int = CraftShapes.engines(form).size()
+		assert_ge(float(trim_tris), float(per_nozzle * nozzles), "form %d: petals and blades on every nozzle" % form)
+		var tris: int = 0
+		for s: int in mesh.get_surface_count():
+			tris += mesh.surface_get_array_len(s) / 3
+		assert_ge(float(tris), 1000.0, "form %d is detailed" % form)
+		assert_le(float(tris), 6000.0, "form %d stays in a phone's budget" % form)
+
+
+func test_wings_carry_an_airfoil() -> void:
+	assert_eq(CraftShapes._naca(0.0), 0.0, "sharp at the leading edge")
+	assert_near(CraftShapes._naca(0.3), 0.5, 0.01, "thickest near 30 % of the chord")
+	assert_lt(CraftShapes._naca(1.0), 0.02, "thin at the trailing edge")
+	for form: int in FORMS:
+		var layout: Vector2 = CraftShapes.paint_layout(form)
+		var tip: Vector3 = CraftShapes.wingtips(form)[1]
+		assert_lt(layout.x, layout.y, "form %d: fuselage inside the span" % form)
+		assert_le(tip.x * CoreView.CRAFT_SCALE, MAX_HALF_SPAN, "form %d: wingtip inside the lane" % form)
+
+
+func test_vapour_trails_follow_the_wingtips_on_high() -> void:
+	var view: GameplayView = _view_for("w01_l20")
+	view.set_quality(true, 1.0, 28, true, true)
+	assert_true(view.wing_trails.allowed, "High draws them")
+	for _i: int in 3:
+		view._update_frame(1.0 / 60.0)
+	assert_true(view.wing_trails.visible)
+	view.set_quality(true, 0.7, 20, true, false)
+	assert_false(view.wing_trails.allowed, "Medium keeps the particle budget")
+	view.set_quality(true, 1.0, 28, true, true)
+	view.reduce_motion = true
+	view._update_frame(1.0 / 60.0)
+	assert_false(view.wing_trails.allowed, "reduce motion turns them off")
+
+
+func _surface_box(mesh: ArrayMesh, surface: int) -> AABB:
+	var verts: PackedVector3Array = mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX] as PackedVector3Array
+	var box: AABB = AABB(verts[0], Vector3.ZERO)
+	for v: Vector3 in verts:
+		box = box.expand(v)
+	return box

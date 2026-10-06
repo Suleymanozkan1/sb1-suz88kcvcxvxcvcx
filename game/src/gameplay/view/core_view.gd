@@ -1,20 +1,22 @@
 class_name CoreView
 extends Node3D
-## The player: a small flux craft carrying the energy core in its canopy —
-## the game's signature and visual priority #1.
+## The player: a small flux craft carrying the energy core under its glass
+## canopy — the game's signature and visual priority #1.
 ##
 ## Each form is its own craft ([CraftShapes]), so the silhouette tells the tap
 ## meaning (ART_DIRECTION §4): the Glider (hop), the crystal Prism (phase), the
-## needle Dart (dash) and the round Hauler in its ring (surge). Seen from behind
-## it reads by its wings, glowing engines and their flames. Its energy parts
-## (canopy core, crystal, nozzles, wing lights) wear the core shader, so skins
-## show there. Motion character (§8): elastic and alive — anticipation squash,
+## needle Dart (dash) and the boxy Hauler in its ring (surge). Seen from behind
+## it reads by its wings, fins, detailed engines (iris petals, turbine blades
+## over the glow) and their flames. Its energy parts (the core under the glass
+## canopy, the crystal, leading-edge strips, nozzle glow, wing lights) wear the
+## core shader, so skins show there. Motion character (§8): elastic and alive — anticipation squash,
 ## stretch, one overshoot, settle; it banks into lane changes, hovers, and
 ## barrel-rolls on a phase change. Only its energy may bloom strongly.
 
 const CORE_SHADER: Shader = preload("res://assets/shaders/core.gdshader")
 const FLAME_SHADER: Shader = preload("res://assets/shaders/flame.gdshader")
 const HULL_SHADER: Shader = preload("res://assets/shaders/craft_hull.gdshader")
+const GLASS_SHADER: Shader = preload("res://assets/shaders/craft_glass.gdshader")
 const GLOW_SHADER: Shader = preload("res://assets/shaders/glow_sprite.gdshader")
 const INK_SHADER: Shader = preload("res://assets/shaders/ink_shell.gdshader")
 ## In high-key worlds the core trades raw brightness for hue so it never melts
@@ -166,6 +168,8 @@ var _ink_mat: ShaderMaterial = ShaderMaterial.new()
 var _shield_mat: StandardMaterial3D = StandardMaterial3D.new()
 ## Hull paint (craft_hull.gdshader): seams and stripes, off on Low quality.
 var _hull_mat: ShaderMaterial = ShaderMaterial.new()
+## Canopy glass over the core (craft_glass.gdshader).
+var _glass_mat: ShaderMaterial = ShaderMaterial.new()
 var _trim_mat: StandardMaterial3D = StandardMaterial3D.new()
 var _flame_mat: ShaderMaterial = ShaderMaterial.new()
 var _ion_mat: StandardMaterial3D = StandardMaterial3D.new()
@@ -207,6 +211,7 @@ func _ensure_built() -> void:
 	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	add_child(body)
 	_hull_mat.shader = HULL_SHADER
+	_glass_mat.shader = GLASS_SHADER
 	_trim_mat.albedo_color = TRIM_COLOR
 	_trim_mat.roughness = TRIM_ROUGHNESS
 	_trim_mat.metallic = TRIM_METALLIC
@@ -337,6 +342,7 @@ func _make_ions() -> CPUParticles3D:
 func set_detail(enabled: bool) -> void:
 	_ensure_built()
 	_hull_mat.set_shader_parameter("detail", 1.0 if enabled else 0.0)
+	_glass_mat.set_shader_parameter("detail", 1.0 if enabled else 0.0)
 
 
 ## Ion sparks follow the particle quality: fewer on lower presets, none at 0.
@@ -405,6 +411,10 @@ func set_form(form: int, phase: int, heavy: bool) -> void:
 		body.set_surface_override_material(CraftShapes.SURFACE_HULL, _hull_mat)
 		body.set_surface_override_material(CraftShapes.SURFACE_TRIM, _trim_mat)
 		body.set_surface_override_material(CraftShapes.SURFACE_ENERGY, _mat)
+		body.set_surface_override_material(CraftShapes.SURFACE_GLASS, _glass_mat)
+		var layout: Vector2 = CraftShapes.paint_layout(form)
+		_hull_mat.set_shader_parameter("body_width", layout.x)
+		_hull_mat.set_shader_parameter("span", layout.y)
 		ink_shell.mesh = body.mesh
 		flames.mesh = CraftShapes.flames(form)
 		ring.visible = form == SimConst.Form.SURGE

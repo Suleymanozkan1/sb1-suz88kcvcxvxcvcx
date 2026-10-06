@@ -56,20 +56,30 @@ contrast, but stay within the saturation cap. Each world defines `sky_top`, `sky
 
 ## 4. Shape language
 
-* **Player craft (`CraftShapes`):** the player is a small flux craft with the energy core in its
-  canopy, seen from behind: wings, glowing engines and their flames. Each form is its own craft, so the
-  silhouette still tells the tap meaning: HOP = the Glider (rounded hull, swept wings, twin engines),
-  PHASE = the Prism (a tall crystal hull with blade wings, all energy so the phase colour fills it),
-  DASH = the Dart (a long needle, wings swept right back, one big engine and a long flame), SURGE = the
-  Hauler (a chunky round hull inside its ring). Hull: ceramic paint tinted by the skin or form colour
-  (dark graphite in high-key worlds); trim: dark metal; energy parts (canopy, crystal, nozzles, wing
-  lights) wear the core shader, so skins show there. Drawn 1.3x the core radius, with its half span
-  kept under 0.6 u so the wings never seem to touch the next lane's blocks. It banks into lane
-  changes, hovers, and barrel-rolls on a phase change (off with reduce motion). Curved parts (hull,
-  canopy, engines, pods) are smooth-shaded; the hull paint (`craft_hull.gdshader`) carries recessed
-  panel seams, a seam round the waist, a racing stripe down the spine and on the wings in the skin or
-  form colour, and a faint clearcoat flake (flat paint on Low). The silhouette, not
-  the colour, communicates the tap meaning.
+* **Player craft (`CraftShapes`):** the player is a small flux craft with the energy core glowing under
+  a glass canopy, seen from behind: wings, fins, detailed engines and their flames. Each form is its own
+  craft, so the silhouette still tells the tap meaning: HOP = the Glider (a sleek fighter: swept delta
+  wings with tip pods, twin fins, two engines in nacelles along its flanks), PHASE = the Prism (a
+  faceted energy crystal in a glass case on a slim keel, blade wings, a shard floating off each tip;
+  all energy so the phase colour fills it), DASH = the Dart (a long needle with canards, wings swept
+  right back, one big engine and a long flame), SURGE = the Hauler (a wide boxy hull with engine pods
+  on stub wings, inside its ring). Hulls are lofted through superellipse cross-sections (rounder on top,
+  flatter underneath); wings, fins and strakes carry a real symmetric airfoil (NACA 00xx) tapering to the
+  tip; everything curved is smooth-shaded from the surface's own derivatives. Engines read as machinery
+  from the camera's seat: iris petals round each nozzle, a recessed glow and turbine blades and a centre
+  cone in front of it, a lip ring; intakes are dark. Hull: ceramic paint tinted by the skin or form
+  colour (dark graphite in high-key worlds); trim (nacelle intakes, petals, blades, canopy frame and
+  sill, pods): dark metal; glass (`craft_glass.gdshader`): clear face-on so the core glows through,
+  reflective at the edges with a soft sheen band, never glowing itself; energy parts (the core,
+  crystal, leading-edge strips, nozzle glow, wingtip lights) wear the core shader, so skins show there.
+  The hull paint (`craft_hull.gdshader`) carries recessed panel seams with real relief (bump-mapped, so
+  they catch the light), chord lines across the wings, a waist seam, panels each a hair lighter or darker,
+  a racing stripe down the spine and a band near each wingtip in the skin or form colour, and a faint
+  clearcoat flake (flat paint and plain glass on Low). Drawn 1.3x the core radius, with its half span
+  kept under 0.6 u so the wings never seem to touch the next lane's blocks; 1100–3800 triangles per
+  craft. It banks into lane changes, hovers, and barrel-rolls on a phase change (off with reduce
+  motion); on High and Ultra faint vapour trails stream off its wingtips. The silhouette, not the
+  colour, communicates the tap meaning.
 * **Collectibles:** spark = small octahedral shard (always the same silhouette); prism = larger shard
   with an orbiting ring (the "premium" version of the same family).
 * **Obstacles:** each world builds its lane blockers from its own shape family
@@ -286,10 +296,13 @@ found a gap, listed in 13.11. Elements removed during the polish passes are in 1
 
 | Element | Where | Communicates | Kept / removed |
 |---|---|---|---|
-| Craft per form: Glider, crystal Prism, needle Dart, round Hauler | `craft_shapes.gd`, `core_view.gd` | Where the player is and what a tap does now (the form, by silhouette) | Kept (replaced the orb, shard, capsule and sphere) |
+| Craft per form: Glider, crystal Prism, needle Dart, boxy Hauler | `craft_shapes.gd`, `core_view.gd` | Where the player is and what a tap does now (the form, by silhouette) | Kept (replaced the orb, shard, capsule and sphere; rebuilt with lofted hulls and airfoil wings) |
+| Glass canopy over the core | `craft_glass.gdshader` | Where the core rides; the craft is a crewed machine, not a toy | Kept |
+| Nozzle petals, turbine blades, recessed glow | `craft_shapes.gd` `_nozzle` | Thrust, read from behind as machinery | Kept |
+| Wingtip vapour trails | `wing_trails.gd` | Speed and banking (High and Ultra) | Kept |
 | Energy parts colour and shader style (canopy core, crystal, nozzles, wing lights) | `core.gdshader` | HOP: the equipped skin; PHASE / DASH / SURGE: the form or phase colour (gameplay meaning) | Kept (colour-overriding styles yield to the form colour, `form_lock`) |
 | Hull paint tint | `core_view.gd` `_apply_paint` | The skin in HOP, the form colour otherwise; dark in high-key worlds | Kept |
-| Engine flames | `flame.gdshader` | Speed; a long flame in DASH and overdrive | Kept |
+| Engine flames with shock diamonds | `flame.gdshader` | Speed; a long flame (with brighter diamonds) in DASH and overdrive | Kept |
 | Engine sparks | `core_view.gd` `ions` | Thrust; streams behind the craft (fewer on lower presets) | Kept |
 | Bank, yaw, hover, phase barrel roll | `core_view.gd` `_update_flight` | A lane change in progress; a phase change (§8) | Kept |
 | SURGE ring | `core_view.gd` `ring` | The SURGE form (craft-in-ring silhouette) | Kept |

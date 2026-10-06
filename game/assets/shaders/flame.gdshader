@@ -1,6 +1,7 @@
 // FLUX DROP engine flame: an additive cone from each nozzle of the player's
 // craft (CraftShapes.flames). White-hot at the nozzle, the form / skin colour
-// towards the tip, flickering; `length` stretches it with speed and in DASH.
+// towards the tip, flickering, with shock diamonds down a long plume; `length`
+// stretches it with speed and in DASH.
 shader_type spatial;
 render_mode unshaded, blend_add, cull_disabled, depth_draw_never, shadows_disabled;
 
@@ -23,5 +24,8 @@ void fragment() {
 	float flick = mix(1.0, 0.75 + 0.25 * wave, flicker);
 	vec3 c = mix(vec3(1.0, 1.0, 1.0), flame_color.rgb, smoothstep(0.0, 0.45, t));
 	float fade = pow(1.0 - t, 1.8);
-	ALBEDO = c * fade * intensity * flick;
+	// Shock diamonds: a few bright bands down the plume, strongest near the
+	// nozzle and when the flame is long (dash, overdrive).
+	float diamonds = pow(abs(sin(t * 3.1416 * 5.0)), 6.0) * (1.0 - t) * smoothstep(0.25, 0.6, length);
+	ALBEDO = c * fade * intensity * flick * (1.0 + diamonds * 0.8);
 }

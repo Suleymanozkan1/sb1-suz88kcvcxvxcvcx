@@ -91,6 +91,8 @@ var core_shadow: MeshInstance3D
 var ripples: TapRipple
 ## Wind lines past the shaft (High and Ultra).
 var streaks: SpeedStreaks
+## Vapour trails off the wingtips (High and Ultra).
+var wing_trails: WingTrails
 
 ## Quality / accessibility toggles.
 var post_fx_enabled: bool = true
@@ -101,6 +103,8 @@ var reduce_motion: bool = false:
 		reduce_motion = value
 		if camera_rig != null:
 			camera_rig.shake_scale = FeelTuning.REDUCED_CAMERA_MOTION if value else 1.0
+		if theme != null and wing_trails != null:
+			_apply_atmosphere_quality()
 var _core_skin: Dictionary = {}
 ## Equipped particle / effect / background cosmetics ({} = the art direction's
 ## own palette, i.e. the default item).
@@ -241,6 +245,8 @@ func _ensure_built() -> void:
 	add_child(_atmosphere)
 	streaks = SpeedStreaks.new()
 	add_child(streaks)
+	wing_trails = WingTrails.new()
+	add_child(wing_trails)
 	_finish = Node3D.new()
 	_finish_arch = MeshInstance3D.new()
 	_finish.add_child(_finish_arch)
@@ -506,6 +512,7 @@ func reset_for_run(full_reveal: bool) -> void:
 	sparks.build(session.sim_level, theme)
 	_spawn_cursor = 0
 	trail.clear_points()
+	wing_trails.clear()
 	camera_rig.reset_state()
 	camera_rig.start_reveal(1.0 if full_reveal else 0.25)
 	core_view.spawn_in()
@@ -627,6 +634,7 @@ func _apply_atmosphere_quality() -> void:
 	_shaft_mat.set_shader_parameter("shaft_color", theme.key_color)
 	streaks.set_tint(theme.key_color)
 	streaks.set_allowed(_ambient and _particle_scale >= STREAK_MIN_PARTICLES)
+	wing_trails.set_allowed(_ambient and _particle_scale >= STREAK_MIN_PARTICLES and not reduce_motion)
 
 
 func _process(delta: float) -> void:
@@ -671,6 +679,8 @@ func _update_frame(delta: float) -> void:
 			_sky_tan_half = tan_half
 			_sky_mat.set_shader_parameter("tan_half", tan_half)
 	trail.rebuild(camera_rig.camera)
+	var flying: bool = core_view.visible and sim.status == SimConst.Status.RUNNING and not reduce_motion
+	wing_trails.follow(core_view.body, sim.form, camera_rig.camera, flying)
 	_floor.position = Vector3(0.0, 0.0, -d - FLOOR_LENGTH * 0.5 + 12.0)
 	_floor_mat.set_shader_parameter("scroll", d + FLOOR_LENGTH * 0.5 - 12.0)
 	_place_ribs(d)
