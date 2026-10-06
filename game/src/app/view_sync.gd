@@ -83,6 +83,7 @@ func apply_quality() -> void:
 		bool(p.get("reflections", false)),
 		bool(p.get("fine_glass", true))
 	)
+	_view.set_quality_extras(bool(p.get("cinematic", false)), int(p.get("shadow_quality", 1)))
 
 
 func apply_settings() -> void:

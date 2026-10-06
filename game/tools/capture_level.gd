@@ -76,6 +76,7 @@ func _setup() -> void:
 			bool(p.get("reflections", false)),
 			bool(p.get("fine_glass", true))
 		)
+		_view.set_quality_extras(bool(p.get("cinematic", false)), int(p.get("shadow_quality", 1)))
 	if _closeup:
 		var cam: Camera3D = Camera3D.new()
 		cam.fov = 34.0

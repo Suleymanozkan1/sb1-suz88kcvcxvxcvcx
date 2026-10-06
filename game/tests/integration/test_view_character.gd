@@ -77,14 +77,19 @@ func test_skins_and_forms_paint_the_craft() -> void:
 	assert_eq(
 		core.body.get_surface_override_material(CraftShapes.SURFACE_ENERGY), core._mat, "skins show on the energy"
 	)
-	var skin_hull: Color = core._hull_mat.albedo_color
+	var skin_hull: Color = core._hull_mat.get_shader_parameter("paint") as Color
+	var skin_stripe: Color = core._hull_mat.get_shader_parameter("accent") as Color
+	assert_true(skin_stripe.is_equal_approx(core.skin_color_a), "the stripe wears the skin")
 	core.set_form(SimConst.Form.DASH, 0, false)
-	assert_false(core._hull_mat.albedo_color.is_equal_approx(skin_hull), "the dash hull takes the form tint")
+	assert_false((core._hull_mat.get_shader_parameter("paint") as Color).is_equal_approx(skin_hull), "dash tint")
+	var stripe: Color = core._hull_mat.get_shader_parameter("accent") as Color
+	assert_true(stripe.is_equal_approx(Palette.FORM_DASH), "and its stripe is the form colour")
 	var flame: Color = core._flame_mat.get_shader_parameter("flame_color") as Color
 	assert_true(flame.is_equal_approx(Palette.FORM_DASH), "flames burn in the form colour")
 	core.set_form(SimConst.Form.HOP, 0, false)
 	core.set_high_key(true)
-	assert_lt(core._hull_mat.albedo_color.get_luminance(), 0.4, "a dark hull on a light floor")
+	var dark: Color = core._hull_mat.get_shader_parameter("paint") as Color
+	assert_lt(dark.get_luminance(), 0.4, "a dark hull on a light floor")
 
 
 func test_the_craft_banks_and_rolls() -> void:
@@ -156,3 +161,33 @@ func test_the_sky_material_carries_the_world_scenery() -> void:
 	view.apply_world(WorldTheme.from_world(_app.catalog.world("void_space")))
 	assert_false(bool(view._sky_mat.get_shader_parameter("detail")), "and a new world keeps that")
 	assert_eq(int(view._sky_mat.get_shader_parameter("body_kind")), WorldTheme.BODY_KINDS.find("ringed"))
+
+
+func test_the_hull_is_smooth_and_detailed() -> void:
+	var mesh: ArrayMesh = CraftShapes.build(SimConst.Form.HOP)
+	var arrays: Array = mesh.surface_get_arrays(CraftShapes.SURFACE_HULL)
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] as PackedVector3Array
+	var smooth: int = 0
+	for t: int in range(0, normals.size() - 2, 3):
+		if not normals[t].is_equal_approx(normals[t + 1]) or not normals[t].is_equal_approx(normals[t + 2]):
+			smooth += 1
+	assert_gt(float(smooth), 200.0, "the curved hull is smooth shaded, not faceted")
+	var view: GameplayView = _view_for("w01_l20")
+	var hull: ShaderMaterial = view.core_view._hull_mat
+	assert_eq(hull.shader, CoreView.HULL_SHADER, "panel seams and stripes")
+	view.set_quality(false, 0.4, 12, false, false, false, false, false, false)
+	assert_eq(float(hull.get_shader_parameter("detail")), 0.0, "flat paint on Low")
+	view.set_quality(true, 1.0, 28, true, true)
+	assert_eq(float(hull.get_shader_parameter("detail")), 1.0)
+
+
+func test_the_top_preset_adds_bloom_sun_scatter_and_crisp_shadows() -> void:
+	var view: GameplayView = _view_for("w01_l20")
+	view.set_quality_extras(true, 2)
+	assert_gt(view.environment.get_glow_level(1), 0.0, "a wider bloom")
+	assert_gt(view.environment.fog_sun_scatter, 0.0, "the fog catches the key light")
+	assert_eq(view.key_light.directional_shadow_mode, DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS)
+	view.set_quality_extras(false, 0)
+	assert_eq(view.environment.get_glow_level(1), 0.0)
+	assert_eq(view.environment.fog_sun_scatter, 0.0)
+	assert_eq(view.key_light.directional_shadow_mode, DirectionalLight3D.SHADOW_ORTHOGONAL)

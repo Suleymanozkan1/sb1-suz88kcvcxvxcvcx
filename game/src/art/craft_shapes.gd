@@ -14,8 +14,11 @@ extends RefCounted
 ##
 ## Built at the core's scale (radius 0.3): -Z is forward (the direction of
 ## travel), +Z is the back the camera sees, +Y is up. Every craft has three
-## surfaces: 0 hull paint, 1 trim (metal: engines, fins), 2 energy (canopy core,
-## crystal, nozzles, wing lights; drawn with the core shader so skins show).
+## surfaces: 0 hull paint (craft_hull.gdshader: panel seams, a stripe in the
+## skin colour), 1 trim (metal: engines, pods), 2 energy (canopy core, crystal,
+## nozzles, wing lights; drawn with the core shader so skins show). Curved parts
+## (hull, canopy, engines, pods) are smooth-shaded; wings, fins and crystal
+## facets stay crisp.
 
 const SURFACE_HULL: int = 0
 const SURFACE_TRIM: int = 1
@@ -30,6 +33,12 @@ const ENGINES: Dictionary[int, Array] = {
 }
 const WING_THICK: float = 0.022
 const FLAME_SIDES: int = 10
+## Tessellation of the smooth parts.
+const HULL_RINGS: int = 12
+const HULL_SEGMENTS: int = 24
+const SMALL_RINGS: int = 8
+const SMALL_SEGMENTS: int = 16
+const TUBE_SIDES: int = 16
 
 static var _cache: Dictionary[int, ArrayMesh] = {}
 static var _flames: Dictionary[int, ArrayMesh] = {}
@@ -104,8 +113,8 @@ static func _at(scale: Vector3, pos: Vector3) -> Transform3D:
 ## Glider (HOP): rounded hull, glass canopy with the core inside, swept wings
 ## with tip lights, a tail fin and twin engines.
 static func _glider(hull: SurfaceTool, trim: SurfaceTool, energy: SurfaceTool) -> void:
-	MeshFactory.add_ball(hull, 1.0, 6, 12, _at(Vector3(0.16, 0.12, 0.33), Vector3(0.0, 0.0, 0.02)))
-	MeshFactory.add_ball(energy, 1.0, 5, 12, _at(Vector3(0.1, 0.085, 0.17), Vector3(0.0, 0.085, -0.07)))
+	_ball(hull, Vector3(0.16, 0.12, 0.33), Vector3(0.0, 0.0, 0.02), HULL_RINGS, HULL_SEGMENTS)
+	_ball(energy, Vector3(0.1, 0.085, 0.17), Vector3(0.0, 0.085, -0.07), SMALL_RINGS, SMALL_SEGMENTS)
 	for side: float in [-1.0, 1.0]:
 		var wing: PackedVector2Array = [
 			Vector2(0.1 * side, -0.06), Vector2(0.37 * side, 0.12), Vector2(0.37 * side, 0.2), Vector2(0.1 * side, 0.18)
@@ -113,9 +122,7 @@ static func _glider(hull: SurfaceTool, trim: SurfaceTool, energy: SurfaceTool) -
 		_slab(hull, wing, -0.02, WING_THICK, 0.06)
 		_strip(energy, Vector3(0.1 * side, -0.004, -0.066), Vector3(0.37 * side, 0.056, 0.114), 0.016)
 		MeshFactory.add_box(energy, Vector3(0.035, 0.03, 0.08), _at(Vector3.ONE, Vector3(0.375 * side, 0.0, 0.16)), 0.2)
-		MeshFactory.add_prism(
-			trim, 0.058, 0.05, 0.2, 8, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0.1 * side, -0.03, 0.2))
-		)
+		_tube(trim, 0.058, 0.05, 0.2, Vector3(0.1 * side, -0.03, 0.2))
 	_fin(hull, Vector3(0.0, 0.08, 0.08), Vector3(0.0, 0.2, 0.25), Vector3(0.0, 0.08, 0.27))
 
 
@@ -142,16 +149,14 @@ static func _prism(hull: SurfaceTool, trim: SurfaceTool, energy: SurfaceTool) ->
 		]
 		_slab(hull, blade, 0.02, WING_THICK * 0.8, 0.22)
 		_strip(energy, Vector3(0.12 * side, 0.03, -0.126), Vector3(0.43 * side, 0.25, 0.174), 0.014)
-	MeshFactory.add_prism(
-		trim, 0.06, 0.055, 0.1, 8, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0.0, -0.01, 0.29))
-	)
+	_tube(trim, 0.06, 0.055, 0.1, Vector3(0.0, -0.01, 0.29))
 
 
 ## Dart (DASH): a long needle hull, canopy, wings swept right back, twin tail
 ## fins and one big engine.
 static func _dart(hull: SurfaceTool, trim: SurfaceTool, energy: SurfaceTool) -> void:
-	MeshFactory.add_ball(hull, 1.0, 6, 12, _at(Vector3(0.115, 0.105, 0.44), Vector3(0.0, 0.0, 0.0)))
-	MeshFactory.add_ball(energy, 1.0, 5, 12, _at(Vector3(0.066, 0.055, 0.16), Vector3(0.0, 0.08, -0.1)))
+	_ball(hull, Vector3(0.115, 0.105, 0.44), Vector3.ZERO, HULL_RINGS, HULL_SEGMENTS)
+	_ball(energy, Vector3(0.066, 0.055, 0.16), Vector3(0.0, 0.08, -0.1), SMALL_RINGS, SMALL_SEGMENTS)
 	for side: float in [-1.0, 1.0]:
 		var wing: PackedVector2Array = [
 			Vector2(0.08 * side, 0.02), Vector2(0.3 * side, 0.3), Vector2(0.3 * side, 0.36), Vector2(0.08 * side, 0.28)
@@ -162,24 +167,94 @@ static func _dart(hull: SurfaceTool, trim: SurfaceTool, energy: SurfaceTool) -> 
 			energy, Vector3(0.03, 0.025, 0.09), _at(Vector3.ONE, Vector3(0.3 * side, -0.045, 0.32)), 0.2
 		)
 		_fin(hull, Vector3(0.06 * side, 0.05, 0.2), Vector3(0.12 * side, 0.19, 0.36), Vector3(0.06 * side, 0.05, 0.38))
-	MeshFactory.add_prism(
-		trim, 0.085, 0.075, 0.14, 10, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0.0, 0.0, 0.4))
-	)
+	_tube(trim, 0.085, 0.075, 0.14, Vector3(0.0, 0.0, 0.4))
 
 
 ## Hauler (SURGE): a chunky round hull with a canopy dome, side pods and twin
 ## engines; the weight ring is CoreView's.
 static func _hauler(hull: SurfaceTool, trim: SurfaceTool, energy: SurfaceTool) -> void:
-	MeshFactory.add_ball(hull, 1.0, 7, 12, _at(Vector3(0.21, 0.17, 0.25), Vector3(0.0, 0.0, 0.0)))
-	MeshFactory.add_ball(energy, 1.0, 5, 12, _at(Vector3(0.1, 0.07, 0.11), Vector3(0.0, 0.14, -0.04)))
+	_ball(hull, Vector3(0.21, 0.17, 0.25), Vector3.ZERO, HULL_RINGS, HULL_SEGMENTS)
+	_ball(energy, Vector3(0.1, 0.07, 0.11), Vector3(0.0, 0.14, -0.04), SMALL_RINGS, SMALL_SEGMENTS)
 	for side: float in [-1.0, 1.0]:
-		MeshFactory.add_ball(trim, 1.0, 4, 8, _at(Vector3(0.07, 0.07, 0.14), Vector3(0.2 * side, -0.02, 0.05)))
+		_ball(trim, Vector3(0.07, 0.07, 0.14), Vector3(0.2 * side, -0.02, 0.05), SMALL_RINGS, SMALL_SEGMENTS)
 		MeshFactory.add_box(
 			energy, Vector3(0.025, 0.025, 0.07), _at(Vector3.ONE, Vector3(0.27 * side, -0.02, 0.05)), 0.2
 		)
-		MeshFactory.add_prism(
-			trim, 0.06, 0.05, 0.14, 8, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0.1 * side, -0.03, 0.18))
-		)
+		_tube(trim, 0.06, 0.05, 0.14, Vector3(0.1 * side, -0.03, 0.18))
+
+
+## Smooth ellipsoid with half axes [param scale] at [param center]; normals are
+## the ellipsoid's true normals, so the hull shades as one curved surface.
+static func _ball(st: SurfaceTool, scale: Vector3, center: Vector3, rings: int, segments: int) -> void:
+	for r: int in rings:
+		var lat0: float = PI * float(r) / float(rings) - PI * 0.5
+		var lat1: float = PI * float(r + 1) / float(rings) - PI * 0.5
+		for k: int in segments:
+			var lon0: float = TAU * float(k) / float(segments)
+			var lon1: float = TAU * float(k + 1) / float(segments)
+			var u00: Vector3 = _unit(lat0, lon0)
+			var u01: Vector3 = _unit(lat0, lon1)
+			var u10: Vector3 = _unit(lat1, lon0)
+			var u11: Vector3 = _unit(lat1, lon1)
+			if r > 0:
+				_smooth_tri(st, scale, center, u00, u01, u11)
+			if r < rings - 1:
+				_smooth_tri(st, scale, center, u00, u11, u10)
+
+
+static func _unit(lat: float, lon: float) -> Vector3:
+	return Vector3(cos(lat) * cos(lon), sin(lat), cos(lat) * sin(lon))
+
+
+## One triangle of a smooth ellipsoid from unit-sphere directions, wound as a
+## front face seen from outside.
+static func _smooth_tri(st: SurfaceTool, scale: Vector3, center: Vector3, a: Vector3, b: Vector3, c: Vector3) -> void:
+	var corners: Array[Vector3] = [a, b, c]
+	if (b - a).cross(c - a).dot(a + b + c) > 0.0:
+		corners = [a, c, b]
+	for u: Vector3 in corners:
+		st.set_normal((u / scale).normalized())
+		st.add_vertex(center + u * scale)
+
+
+## Smooth engine tube along Z centred at [param at]: [param front] radius at
+## the front, [param back] at the back, flat caps.
+static func _tube(st: SurfaceTool, front: float, back: float, length: float, at: Vector3) -> void:
+	var z0: float = at.z - length * 0.5
+	var z1: float = at.z + length * 0.5
+	for k: int in TUBE_SIDES:
+		var a0: float = TAU * float(k) / float(TUBE_SIDES)
+		var a1: float = TAU * float(k + 1) / float(TUBE_SIDES)
+		var d0: Vector3 = Vector3(cos(a0), sin(a0), 0.0)
+		var d1: Vector3 = Vector3(cos(a1), sin(a1), 0.0)
+		var f0: Vector3 = at + d0 * front
+		var f1: Vector3 = at + d1 * front
+		var b0: Vector3 = at + d0 * back
+		var b1: Vector3 = at + d1 * back
+		f0.z = z0
+		f1.z = z0
+		b0.z = z1
+		b1.z = z1
+		_quad_smooth(st, [f0, f1, b1, b0], [d0, d1, d1, d0])
+		_tri(st, Vector3(at.x, at.y, z0), f1, f0, Vector3.FORWARD)
+		_tri(st, Vector3(at.x, at.y, z1), b0, b1, Vector3.BACK)
+
+
+## Quad with per-corner normals, wound as a front face along those normals.
+static func _quad_smooth(st: SurfaceTool, p: Array[Vector3], n: Array[Vector3]) -> void:
+	var avg: Vector3 = (n[0] + n[1] + n[2] + n[3]).normalized()
+	var order: PackedInt32Array = [0, 1, 2, 0, 2, 3]
+	for t: int in 2:
+		var i0: int = order[t * 3]
+		var i1: int = order[t * 3 + 1]
+		var i2: int = order[t * 3 + 2]
+		if (p[i1] - p[i0]).cross(p[i2] - p[i0]).dot(avg) > 0.0:
+			var tmp: int = i1
+			i1 = i2
+			i2 = tmp
+		for j: int in [i0, i1, i2]:
+			st.set_normal(n[j])
+			st.add_vertex(p[j])
 
 
 ## A thin light strip from [param a] to [param b] (wing leading edges).
@@ -196,9 +271,9 @@ static func _strip(st: SurfaceTool, a: Vector3, b: Vector3, thickness: float) ->
 static func _nozzle(trim: SurfaceTool, energy: SurfaceTool, at: Vector3, radius: float) -> void:
 	var xform: Transform3D = Transform3D(Basis(Vector3.RIGHT, PI * 0.5), at)
 	MeshFactory.add_prism(
-		trim, radius * 1.18, radius * 1.18, 0.012, 10, xform.translated_local(Vector3(0.0, -0.006, 0.0))
+		trim, radius * 1.18, radius * 1.18, 0.012, TUBE_SIDES, xform.translated_local(Vector3(0.0, -0.006, 0.0))
 	)
-	MeshFactory.add_prism(energy, radius, radius, 0.016, 10, xform.translated_local(Vector3(0.0, 0.006, 0.0)))
+	MeshFactory.add_prism(energy, radius, radius, 0.016, TUBE_SIDES, xform.translated_local(Vector3(0.0, 0.006, 0.0)))
 
 
 ## A flat slab from a polygon in the XZ plane at height [param y], with

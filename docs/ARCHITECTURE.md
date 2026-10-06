@@ -133,7 +133,11 @@ Node children are used where a coroutine or tween must end with the app root.
   which GameFlow fans out to audio and haptics.
 * Quality presets (Low/Medium/High/Ultra + battery saver + automatic downgrade from a frame monitor)
   set render scale, MSAA and fps cap (re-applied on every automatic step), post FX, glow, ambient
-  particles, particle scale, trail length, dynamic light and shadows. Reduce Motion scales camera
+  particles, particle scale, trail length, dynamic light and shadows, plus the top preset's extras
+  (`GameplayView.set_quality_extras`): a wide bloom and sun scatter (`cinematic`) and the shadow
+  filter, map size and two-split shadows (`shadow_quality` 0-2). "Auto" starts at the best preset the
+  device class can carry (Ultra on 8+ cores, High on 6, Medium below; Low only on the GL fallback)
+  and steps down one level after 3 s of sustained slow frames, at most once per 8 s. Reduce Motion scales camera
   shake, lean and FOV kicks; Colour-blind adds shape markers to phase gates and phase-B sparks.
 * Cosmetics: skins and trails drive the core shader and ribbon; particle, effect and background items
   drive burst colours/sizes, fail/perfect colours, shockwave strength and the sky; UI themes recolour
@@ -200,7 +204,8 @@ loads and validates it and lists violations.
 **Probe.** `game/tools/perf_probe.gd` boots an isolated app (in-memory save, fixed clock) with the real
 main scene and sets the preset through the Settings path (`SettingsService` → `QualityService` →
 `quality_changed` → viewport render scale / MSAA / fps cap, and `GameFlow._apply_quality` →
-`GameplayView.set_quality`). It starts a classic run on each world's level 20 and its boss (level 52),
+`GameplayView.set_quality`), before the game first draws (as a saved choice would be; auto starts on
+Ultra, whose buffers would otherwise count against a lower preset). It starts a classic run on each world's level 20 and its boss (level 52),
 lets the READY beat play, steps the stored solution to the level's busiest stretch (the view window
 holding the most pooled hazards), plays 20 frames and samples 30, one tick per frame. Presets run
 lowest first in one process: a richer preset's GPU allocations stay for the rest of a session, so they

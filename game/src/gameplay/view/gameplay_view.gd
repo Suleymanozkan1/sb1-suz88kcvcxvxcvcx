@@ -54,6 +54,19 @@ const PROBE_SIZE: Vector3 = Vector3(14.0, 10.0, 70.0)
 const PROBE_STEP: float = 21.0
 const PROBE_HEIGHT: float = 2.0
 ## Ground shadow under the core: shrinks and fades as a launch carries it up.
+## Cinematic (Ultra): the bloom spreads over more glow levels and the fog
+## scatters the key light towards the sun. (No depth of field: it blurred the
+## obstacles ahead, which the player must read.)
+const SUN_SCATTER: float = 0.22
+const WIDE_GLOW_LEVELS: PackedFloat32Array = [0.0, 0.6, 1.0, 0.8, 0.6, 0.0, 0.0]
+const DEFAULT_GLOW_LEVELS: PackedFloat32Array = [0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0]
+## Shadow quality 0..2: soft-filter quality and the key light's shadow map.
+const SHADOW_FILTERS: Array[RenderingServer.ShadowQuality] = [
+	RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
+	RenderingServer.SHADOW_QUALITY_SOFT_LOW,
+	RenderingServer.SHADOW_QUALITY_SOFT_HIGH,
+]
+const SHADOW_ATLAS: PackedInt32Array = [1024, 1024, 2048]
 const CORE_SHADOW_SIZE: float = 0.9
 const CORE_SHADOW_ALPHA: float = 0.32
 const CORE_SHADOW_FALLOFF: float = 0.5
@@ -139,6 +152,8 @@ var _shafts: Node3D
 ## Side details between the ribs (one per rib gap, same MultiMesh rhythm).
 var _details: MultiMeshInstance3D
 var _shaft_mat: ShaderMaterial
+## Top preset extras: a wider bloom and sun scatter in the fog.
+var _cinematic: bool = false
 
 
 func _ready() -> void:
@@ -365,6 +380,32 @@ func _apply_sky_scenery() -> void:
 	_sky_mat.set_shader_parameter("detail", _surface_detail)
 
 
+## The top preset's extras (QualityService "cinematic" and "shadow_quality"):
+## a wide bloom and sun scatter, and the shadow filter and map.
+func set_quality_extras(cinematic: bool, shadow_quality: int) -> void:
+	_ensure_built()
+	_cinematic = cinematic
+	_apply_cinematic()
+	_apply_shadow_quality(shadow_quality)
+
+
+## The wide bloom and sun scatter (Ultra), plain otherwise.
+func _apply_cinematic() -> void:
+	environment.fog_sun_scatter = SUN_SCATTER if _cinematic else 0.0
+	var levels: PackedFloat32Array = WIDE_GLOW_LEVELS if _cinematic else DEFAULT_GLOW_LEVELS
+	for i: int in levels.size():
+		environment.set_glow_level(i, levels[i])
+
+
+func _apply_shadow_quality(level: int) -> void:
+	var q: int = clampi(level, 0, SHADOW_FILTERS.size() - 1)
+	RenderingServer.directional_soft_shadow_filter_set_quality(SHADOW_FILTERS[q])
+	RenderingServer.directional_shadow_atlas_set_size(SHADOW_ATLAS[q], true)
+	key_light.directional_shadow_mode = (
+		DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if q >= 2 else DirectionalLight3D.SHADOW_ORTHOGONAL
+	)
+
+
 func _apply_core_skin_defaults() -> void:
 	apply_cosmetics(_core_skin, _trail_skin)
 
@@ -542,6 +583,7 @@ func set_quality(
 	# Surface relief follows dynamic lighting: both are off on Low and in
 	# battery saver, where a flat lit surface is the budget.
 	_surface_detail = dynamic_light
+	core_view.set_detail(dynamic_light)
 	_fine_glass = fine_glass
 	if kit != null:
 		kit.set_detail(_surface_detail)

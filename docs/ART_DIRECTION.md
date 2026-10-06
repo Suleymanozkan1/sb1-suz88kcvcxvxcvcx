@@ -65,7 +65,10 @@ contrast, but stay within the saturation cap. Each world defines `sky_top`, `sky
   (dark graphite in high-key worlds); trim: dark metal; energy parts (canopy, crystal, nozzles, wing
   lights) wear the core shader, so skins show there. Drawn 1.3x the core radius, with its half span
   kept under 0.6 u so the wings never seem to touch the next lane's blocks. It banks into lane
-  changes, hovers, and barrel-rolls on a phase change (off with reduce motion). The silhouette, not
+  changes, hovers, and barrel-rolls on a phase change (off with reduce motion). Curved parts (hull,
+  canopy, engines, pods) are smooth-shaded; the hull paint (`craft_hull.gdshader`) carries recessed
+  panel seams, a seam round the waist, a racing stripe down the spine and on the wings in the skin or
+  form colour, and a faint clearcoat flake (flat paint on Low). The silhouette, not
   the colour, communicates the tap meaning.
 * **Collectibles:** spark = small octahedral shard (always the same silhouette); prism = larger shard
   with an orbiting ring (the "premium" version of the same family).

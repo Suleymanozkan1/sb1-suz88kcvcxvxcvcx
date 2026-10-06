@@ -561,7 +561,7 @@
  },
  "REQ-113": {
   "status": "IMPLEMENTED",
-  "evidence": "data/quality/presets.json: shadows true on medium/high/ultra; auto_detect.mobile picks medium for >= 8 cores. GameplayView.set_quality sets key_light.shadow_enabled; the core body, hazards (EntityView._part shadows=true for blocks, shutters, glass, arches, pads, plates) cast; ribs deliberately do not (ART_DIRECTION 13.10). Test: tests/integration/test_view_world_art.gd test_quality_presets_drive_reflections_shadows_and_relief (Medium has shadows; Low turns them off). Hazard and core shadows are visible in the round-5 captures (scratch lead/review24, e.g. w07_l20_t017.5.png).",
+  "evidence": "data/quality/presets.json: shadows true on medium/high/ultra; auto_detect.mobile now starts at ultra for >= 8 cores, high for >= 6, medium below (shadows on in all three); Ultra adds two-split shadows with the high soft filter and a 2048 map (shadow_quality 2). GameplayView.set_quality sets key_light.shadow_enabled; the core body, hazards (EntityView._part shadows=true for blocks, shutters, glass, arches, pads, plates) cast; ribs deliberately do not (ART_DIRECTION 13.10). Test: tests/integration/test_view_world_art.gd test_quality_presets_drive_reflections_shadows_and_relief (Medium has shadows; Low turns them off). Hazard and core shadows are visible in the round-5 captures (scratch lead/review24, e.g. w07_l20_t017.5.png).",
   "note": "Round-5 independent re-assessment: The stated gap (off on every phone by default) is closed: the phone auto preset now has dynamic shadows. Caveat: phones under 8 cores and battery saver fall to Low (no shadows); never rendered on a phone GPU."
  },
  "REQ-114": {
@@ -991,8 +991,8 @@
  },
  "REQ-199": {
   "status": "PARTIAL",
-  "evidence": "data/quality/presets.json fps_cap 60 (ultra 120); QualityService.auto_detect/detect_for picks low on compat renderer or weak mobile; Mobile renderer (opengl3 fallback default); test_feel_quality.gd test_auto_detect_is_conservative.",
-  "note": "Targets are configured only. No FPS was measured on any device class (no hardware); screenshots used llvmpipe."
+  "evidence": "data/quality/presets.json fps_cap 60 (ultra 120); QualityService.auto_detect/detect_for starts at the best preset the device class can carry (ultra on 8+ cores) and the frame monitor steps it down after 3 s of slow frames, at most once per 8 s; low on the compat renderer; Mobile renderer (opengl3 fallback default); test_feel_quality.gd test_auto_starts_at_the_top_the_device_can_carry, test_the_top_preset_turns_everything_on.",
+  "note": "Targets are configured only. No FPS was measured on any device class (no hardware); screenshots used llvmpipe. Starting on Ultra relies on the automatic downgrade on weaker phones; never measured on a device."
  },
  "REQ-200": {
   "status": "IMPLEMENTED",

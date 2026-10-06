@@ -14,6 +14,7 @@ extends Node3D
 
 const CORE_SHADER: Shader = preload("res://assets/shaders/core.gdshader")
 const FLAME_SHADER: Shader = preload("res://assets/shaders/flame.gdshader")
+const HULL_SHADER: Shader = preload("res://assets/shaders/craft_hull.gdshader")
 const GLOW_SHADER: Shader = preload("res://assets/shaders/glow_sprite.gdshader")
 const INK_SHADER: Shader = preload("res://assets/shaders/ink_shell.gdshader")
 ## In high-key worlds the core trades raw brightness for hue so it never melts
@@ -40,9 +41,7 @@ const LIGHT_RANGE: float = 3.4
 const CRAFT_SCALE: float = 1.3
 const HULL_COLOR: Color = Color("#e6ebf2")
 const HULL_DARK: Color = Color("#353e50")
-const HULL_TINT: float = 0.22
-const HULL_ROUGHNESS: float = 0.3
-const HULL_CLEARCOAT: float = 0.7
+const HULL_TINT: float = 0.12
 const TRIM_COLOR: Color = Color("#262d3a")
 const TRIM_ROUGHNESS: float = 0.35
 const TRIM_METALLIC: float = 0.75
@@ -165,7 +164,8 @@ var _accent_mat: ShaderMaterial = ShaderMaterial.new()
 var _halo_mat: ShaderMaterial = ShaderMaterial.new()
 var _ink_mat: ShaderMaterial = ShaderMaterial.new()
 var _shield_mat: StandardMaterial3D = StandardMaterial3D.new()
-var _hull_mat: StandardMaterial3D = StandardMaterial3D.new()
+## Hull paint (craft_hull.gdshader): seams and stripes, off on Low quality.
+var _hull_mat: ShaderMaterial = ShaderMaterial.new()
 var _trim_mat: StandardMaterial3D = StandardMaterial3D.new()
 var _flame_mat: ShaderMaterial = ShaderMaterial.new()
 var _ion_mat: StandardMaterial3D = StandardMaterial3D.new()
@@ -206,9 +206,7 @@ func _ensure_built() -> void:
 	body = MeshInstance3D.new()
 	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	add_child(body)
-	_hull_mat.roughness = HULL_ROUGHNESS
-	_hull_mat.clearcoat_enabled = true
-	_hull_mat.clearcoat = HULL_CLEARCOAT
+	_hull_mat.shader = HULL_SHADER
 	_trim_mat.albedo_color = TRIM_COLOR
 	_trim_mat.roughness = TRIM_ROUGHNESS
 	_trim_mat.metallic = TRIM_METALLIC
@@ -335,6 +333,12 @@ func _make_ions() -> CPUParticles3D:
 	return p
 
 
+## Hull seams, stripes and flake follow the quality's surface detail.
+func set_detail(enabled: bool) -> void:
+	_ensure_built()
+	_hull_mat.set_shader_parameter("detail", 1.0 if enabled else 0.0)
+
+
 ## Ion sparks follow the particle quality: fewer on lower presets, none at 0.
 func set_particle_scale(amount_scale: float) -> void:
 	_ensure_built()
@@ -429,7 +433,8 @@ func set_form(form: int, phase: int, heavy: bool) -> void:
 func _apply_paint() -> void:
 	var base: Color = HULL_DARK if high_key else HULL_COLOR
 	var accent: Color = skin_color_b if _form == SimConst.Form.HOP else _tint
-	_hull_mat.albedo_color = base.lerp(accent, HULL_TINT)
+	_hull_mat.set_shader_parameter("paint", base.lerp(accent, HULL_TINT))
+	_hull_mat.set_shader_parameter("accent", _tint)
 	_flame_mat.set_shader_parameter("flame_color", _tint)
 	ions.color = _tint
 

@@ -4,9 +4,10 @@ extends RefCounted
 ## automatic, conservative downgrade on sustained slow frames.
 ##
 ## The "quality" setting is either a preset name (manual: never changed by the
-## game) or "auto": an initial preset is chosen from the device class and the
-## [FrameMonitor] steps it down one level when frames stay slow, at most once
-## per cooldown and never below the lowest preset. Battery saver caps the
+## game) or "auto": the game starts at the best preset the device class can
+## carry (Ultra on 8+ cores) and the [FrameMonitor] steps it down one level
+## when frames stay slow, at most once per cooldown and never below the
+## lowest preset. Battery saver caps the
 ## effective preset and frame rate without touching the chosen preset.
 
 const LOG_CHANNEL: String = "quality"
@@ -27,6 +28,8 @@ const PARAM_TYPES: Dictionary[String, Variant.Type] = {
 	"ambient_particles": TYPE_BOOL,
 	"reflections": TYPE_BOOL,
 	"fine_glass": TYPE_BOOL,
+	"cinematic": TYPE_BOOL,
+	"shadow_quality": TYPE_INT,
 }
 ## Safe values used for any missing or malformed parameter.
 const FALLBACK_PARAMS: Dictionary = {
@@ -42,10 +45,13 @@ const FALLBACK_PARAMS: Dictionary = {
 	"ambient_particles": false,
 	"reflections": false,
 	"fine_glass": false,
+	"cinematic": false,
+	"shadow_quality": 0,
 }
 const MIN_RENDER_SCALE: float = 0.25
 const MAX_RENDER_SCALE: float = 2.0
 const MAX_MSAA: int = 3
+const MAX_SHADOW_QUALITY: int = 2
 const MIN_FPS_CAP: int = 15
 const MAX_FPS_CAP: int = 240
 const MAX_PARTICLE_SCALE: float = 4.0
@@ -153,7 +159,8 @@ func params() -> Dictionary:
 	return p
 
 
-## Conservative initial preset for this device.
+## Initial preset for this device: the best its class can carry (the
+## automatic downgrade steps it down if frames stay slow).
 func auto_detect() -> StringName:
 	return detect_for(AppInfo.is_mobile(), OS.get_processor_count(), RenderingServer.get_current_rendering_method())
 
@@ -327,6 +334,8 @@ static func _clamp_param(key: String, v: Variant) -> Variant:
 			return clampi(int(v), MIN_TRAIL_POINTS, MAX_TRAIL_POINTS)
 		"fps_cap":
 			return clampi(int(v), MIN_FPS_CAP, MAX_FPS_CAP)
+		"shadow_quality":
+			return clampi(int(v), 0, MAX_SHADOW_QUALITY)
 	return v
 
 

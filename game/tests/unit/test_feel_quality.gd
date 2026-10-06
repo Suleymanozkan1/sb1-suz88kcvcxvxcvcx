@@ -99,16 +99,35 @@ func test_battery_saver_caps_fps_and_preset() -> void:
 	assert_eq(int(q.params()["fps_cap"]), 120)
 
 
-func test_auto_detect_is_conservative() -> void:
+func test_auto_starts_at_the_top_the_device_can_carry() -> void:
+	# Player feedback: phones started on Medium or Low and never showed the
+	# game's best graphics. Auto now starts high; slow frames step it down.
 	var q: QualityService = QualityService.new(_settings, _bus)
-	assert_eq(q.detect_for(true, 8, "mobile"), &"medium")
-	assert_eq(q.detect_for(true, 4, "mobile"), &"low")
-	assert_eq(q.detect_for(false, 16, "forward_plus"), &"high")
-	assert_eq(q.detect_for(false, 4, "forward_plus"), &"medium")
-	assert_eq(q.detect_for(false, 2, "mobile"), &"low")
-	assert_eq(q.detect_for(false, 32, QualityService.RENDERER_COMPATIBILITY), &"low")
-	assert_ne(q.auto_detect(), &"ultra", "auto never picks ultra")
+	assert_eq(q.detect_for(true, 8, "mobile"), &"ultra")
+	assert_eq(q.detect_for(true, 6, "mobile"), &"high")
+	assert_eq(q.detect_for(true, 4, "mobile"), &"medium")
+	assert_eq(q.detect_for(false, 16, "forward_plus"), &"ultra")
+	assert_eq(q.detect_for(false, 4, "forward_plus"), &"high")
+	assert_eq(q.detect_for(false, 2, "mobile"), &"medium")
+	assert_eq(q.detect_for(false, 32, QualityService.RENDERER_COMPATIBILITY), &"low", "the GL fallback stays low")
 	assert_true(q.preset_names().has(q.auto_detect()))
+
+
+func test_the_top_preset_turns_everything_on() -> void:
+	var q: QualityService = QualityService.new(_settings, _bus)
+	assert_true(q.set_preset(&"ultra"))
+	var p: Dictionary = q.params()
+	for key: String in [
+		"post_fx", "dynamic_light", "shadows", "glow", "ambient_particles", "reflections", "fine_glass"
+	]:
+		assert_true(bool(p[key]), "ultra: %s" % key)
+	assert_true(bool(p["cinematic"]), "ultra: depth of field and wide bloom")
+	assert_eq(int(p["shadow_quality"]), QualityService.MAX_SHADOW_QUALITY)
+	assert_eq(float(p["render_scale"]), 1.0, "native resolution")
+	assert_ge(float(p["msaa_3d"]), 2.0, "4x MSAA")
+	_settings.set_value("battery_saver", true)
+	assert_false(bool(q.params()["cinematic"]), "battery saver drops the extras")
+	assert_eq(int(q.params()["shadow_quality"]), 0)
 
 
 func test_auto_downgrade_needs_sustained_slow_frames() -> void:
@@ -124,8 +143,8 @@ func test_auto_downgrade_needs_sustained_slow_frames() -> void:
 func test_auto_downgrade_at_most_once_per_cooldown_and_never_below_low() -> void:
 	var q: QualityService = QualityService.new(_settings, _bus, _doc_starting_high())
 	assert_eq(_feed(q, SLOW_DT, 3.5), 1)
-	assert_eq(_feed(q, SLOW_DT, 15.0), 0, "cooldown blocks a second step")
-	assert_eq(_feed(q, SLOW_DT, 6.0), 1, "after 20 s another step is allowed")
+	assert_eq(_feed(q, SLOW_DT, 6.0), 0, "cooldown blocks a second step")
+	assert_eq(_feed(q, SLOW_DT, 6.0), 1, "after 8 s another step is allowed")
 	assert_eq(q.current(), &"low")
 	assert_eq(_feed(q, SLOW_DT, 120.0), 0, "never below low")
 	assert_eq(_events.size(), 2)

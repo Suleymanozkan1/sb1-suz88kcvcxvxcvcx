@@ -13,7 +13,9 @@
       "fps_cap": 60,
       "ambient_particles": false,
       "reflections": false,
-      "fine_glass": false
+      "fine_glass": false,
+      "cinematic": false,
+      "shadow_quality": 0
     },
     "medium": {
       "render_scale": 0.85,
@@ -27,7 +29,9 @@
       "fps_cap": 60,
       "ambient_particles": true,
       "reflections": false,
-      "fine_glass": false
+      "fine_glass": false,
+      "cinematic": false,
+      "shadow_quality": 0
     },
     "high": {
       "render_scale": 1.0,
@@ -41,7 +45,9 @@
       "fps_cap": 60,
       "ambient_particles": true,
       "reflections": true,
-      "fine_glass": true
+      "fine_glass": true,
+      "cinematic": false,
+      "shadow_quality": 1
     },
     "ultra": {
       "render_scale": 1.0,
@@ -55,7 +61,9 @@
       "fps_cap": 120,
       "ambient_particles": true,
       "reflections": true,
-      "fine_glass": true
+      "fine_glass": true,
+      "cinematic": true,
+      "shadow_quality": 2
     }
   },
   "battery_saver": {
@@ -66,7 +74,9 @@
       "dynamic_light": false,
       "ambient_particles": false,
       "reflections": false,
-      "fine_glass": false
+      "fine_glass": false,
+      "cinematic": false,
+      "shadow_quality": 0
     }
   },
   "auto_detect": {
@@ -74,30 +84,34 @@
     "mobile": [
       {
         "min_cores": 8,
-        "preset": "medium"
+        "preset": "ultra"
+      },
+      {
+        "min_cores": 6,
+        "preset": "high"
       },
       {
         "min_cores": 0,
-        "preset": "low"
+        "preset": "medium"
       }
     ],
     "desktop": [
       {
         "min_cores": 8,
-        "preset": "high"
+        "preset": "ultra"
       },
       {
         "min_cores": 4,
-        "preset": "medium"
+        "preset": "high"
       },
       {
         "min_cores": 0,
-        "preset": "low"
+        "preset": "medium"
       }
     ]
   },
   "auto_downgrade": {
-    "cooldown_s": 20.0,
+    "cooldown_s": 8.0,
     "window_s": 3.0,
     "slow_ratio": 1.25,
     "ema_tau_s": 0.5,

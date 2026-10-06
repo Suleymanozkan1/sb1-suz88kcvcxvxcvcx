@@ -159,13 +159,16 @@ func _measure(level_id: String, preset: StringName) -> Dictionary:
 	var clock: GameClock = GameClock.new()
 	clock.set_fixed_unix(FIXED_UNIX)
 	app.boot(MemorySaveStorage.new(), clock)
+	# The Settings screen's path: settings -> QualityService -> quality_changed
+	# -> viewport (render scale, MSAA, fps cap) and GameFlow -> view. Chosen
+	# before the game first draws, as a saved choice would be: auto now starts
+	# on Ultra, and buffers it allocated would otherwise count against the
+	# lower presets.
+	app.settings.set_value("quality", String(preset))
 	var flow: GameFlow = (load(MAIN_SCENE_PATH) as PackedScene).instantiate() as GameFlow
 	flow.s = app
 	root.add_child(flow)
 	await _frames(SETTLE_FRAMES)
-	# The Settings screen's path: settings -> QualityService -> quality_changed
-	# -> viewport (render scale, MSAA, fps cap) and GameFlow -> view.
-	app.settings.set_value("quality", String(preset))
 	var row: Dictionary = await _play(flow, level_id)
 	row["preset"] = String(preset)
 	row["applied_preset"] = String(app.quality.effective_preset())
