@@ -54,11 +54,12 @@ COLUMN_TITLES = {
     "lighting": "Lighting", "topology": "Topology", "texture": "Texture", "animation": "Animation",
     "readability": "Readability", "mobile_cost": "Mobile cost",
 }
-KINDS = ["shader", "mesh_builder", "texture_generator", "icon", "font", "audio", "cosmetic_style"]
+KINDS = ["shader", "mesh_builder", "texture_generator", "backdrop", "icon", "font", "audio", "cosmetic_style"]
 KIND_TITLES = {
     "shader": "Shaders",
     "mesh_builder": "Code-built meshes",
     "texture_generator": "Generated textures",
+    "backdrop": "Painted backdrops",
     "icon": "Icons",
     "font": "Fonts",
     "audio": "Audio",

@@ -42,6 +42,9 @@ const PARTICLE_SLOT_STREAK: int = 2
 const NORMAL_GRAVITY_PERCENT: int = 100
 ## Ambient motes per unit of the world's `atmosphere.count` (High preset).
 const MOTE_DENSITY: float = 2.0
+## Speed streaks need the High particle budget; they start this far ahead of the core.
+const STREAK_MIN_PARTICLES: float = 0.9
+const STREAK_LEAD: float = 4.0
 const FOG_BEGIN: float = 28.0
 const FOG_END: float = 115.0
 const SHAFT_SHADER: Shader = preload("res://assets/shaders/light_shaft.gdshader")
@@ -86,6 +89,8 @@ var post_rect: ColorRect
 var post_layer: CanvasLayer
 var core_shadow: MeshInstance3D
 var ripples: TapRipple
+## Wind lines past the shaft (High and Ultra).
+var streaks: SpeedStreaks
 
 ## Quality / accessibility toggles.
 var post_fx_enabled: bool = true
@@ -234,6 +239,8 @@ func _ensure_built() -> void:
 	add_child(bursts)
 	_atmosphere = CPUParticles3D.new()
 	add_child(_atmosphere)
+	streaks = SpeedStreaks.new()
+	add_child(streaks)
 	_finish = Node3D.new()
 	_finish_arch = MeshInstance3D.new()
 	_finish.add_child(_finish_arch)
@@ -378,6 +385,12 @@ func _apply_sky_scenery() -> void:
 	_sky_mat.set_shader_parameter("body", theme.body)
 	_sky_mat.set_shader_parameter("body_color", theme.body_color)
 	_sky_mat.set_shader_parameter("detail", _surface_detail)
+	var painted: bool = not theme.backdrop.is_empty()
+	_sky_mat.set_shader_parameter("backdrop", load(theme.backdrop) as Texture2D if painted else null)
+	_sky_mat.set_shader_parameter("backdrop_on", painted)
+	_sky_mat.set_shader_parameter("backdrop_rect", theme.backdrop_rect)
+	_sky_mat.set_shader_parameter("backdrop_gain", theme.backdrop_gain)
+	_sky_mat.set_shader_parameter("backdrop_saturation", theme.backdrop_saturation)
 
 
 ## The top preset's extras (QualityService "cinematic" and "shadow_quality"):
@@ -457,9 +470,16 @@ func _effect_color(key: String, fallback: Color) -> Color:
 	return c as Color if typeof(c) == TYPE_COLOR else fallback
 
 
-## A non-world background replaces the sky gradient and its star density.
+## A non-world background replaces the sky gradient and its star density (and
+## hides the world's painted backdrop; the landmark silhouette shows only
+## without one).
 func _apply_sky_skin() -> void:
-	if _sky_skin.is_empty() or bool(_sky_skin.get("use_world_palette", true)):
+	var world_sky: bool = _sky_skin.is_empty() or bool(_sky_skin.get("use_world_palette", true))
+	var painted: bool = world_sky and not theme.backdrop.is_empty()
+	_sky_mat.set_shader_parameter("backdrop_on", painted)
+	# A painting carries its own far landmarks; the mesh one would sit on it.
+	_silhouette.visible = not painted
+	if world_sky:
 		return
 	_sky_mat.set_shader_parameter("sky_top", _sky_skin.get("sky_top", theme.sky_top))
 	_sky_mat.set_shader_parameter("sky_bottom", _sky_skin.get("sky_bottom", theme.sky_bottom))
@@ -605,6 +625,8 @@ func _apply_atmosphere_quality() -> void:
 	_atmosphere.emitting = _ambient and theme.atmosphere_count > 0 and _particle_scale > 0.2
 	_shafts.visible = _ambient and theme.shafts
 	_shaft_mat.set_shader_parameter("shaft_color", theme.key_color)
+	streaks.set_tint(theme.key_color)
+	streaks.set_allowed(_ambient and _particle_scale >= STREAK_MIN_PARTICLES)
 
 
 func _process(delta: float) -> void:
@@ -668,6 +690,9 @@ func _update_frame(delta: float) -> void:
 		_silhouette.transform.basis = Basis(Vector3.BACK, _turbine_angle)
 		_silhouette.position += Vector3(0.0, 30.0, 0.0) - _silhouette.transform.basis * Vector3(0.0, 30.0, 0.0)
 	_atmosphere.position = Vector3(0.0, 1.6, -d - 14.0)
+	streaks.position = Vector3(0.0, 0.0, -d - STREAK_LEAD)
+	var base_speed: float = lvl.base_speed * sim.speed_scale
+	streaks.update_run(sim.status == SimConst.Status.RUNNING and not reduce_motion, sim.speed, base_speed)
 	_shafts.position = Vector3(0.0, 0.0, -d)
 	if _finish.visible:
 		# The finish membrane opens as the core reaches it and is gone once the

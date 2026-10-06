@@ -1,8 +1,10 @@
 // FLUX DROP loading screen backdrop (ART_DIRECTION §10). At reveal 0 it is the
 // boot splash exactly: the splash colour with one soft glow behind the emblem
-// (the splash image is rendered from this same screen). As reveal rises, thin
-// speed streaks fall past (the drop down the shaft) and the flux sink glows
-// at the bottom edge. Layout is in "square space": the centred square of side
+// (the splash image is rendered from this same screen). As reveal rises, the
+// key art (a world painting, cover-fitted, dimmed so the emblem and wordmark
+// stay in front) rises out of the dark with a slow push-in, thin speed streaks
+// fall past (the drop down the shaft) and the flux sink glows at the bottom
+// edge. Layout is in "square space": the centred square of side
 // min(width, height) that the boot splash image fills.
 shader_type canvas_item;
 
@@ -15,6 +17,11 @@ uniform float glow_strength = 0.16;
 uniform float reveal = 0.0;
 // Control size in pixels (set by LoadingScreen).
 uniform vec2 size = vec2(720.0, 1280.0);
+uniform sampler2D art : source_color, filter_linear, repeat_disable;
+uniform bool has_art = false;
+// How bright the painting gets at full reveal, and how far the push-in starts.
+uniform float art_level = 0.42;
+uniform float art_zoom = 0.06;
 
 float hash(float n) {
 	return fract(sin(n * 91.345) * 47453.5453);
@@ -25,6 +32,16 @@ void fragment() {
 	float side = min(size.x, size.y);
 	vec2 sq = (px - vec2((size.x - side) * 0.5, (size.y - side) * 0.5)) / side;
 	vec3 col = base.rgb;
+	if (has_art && reveal > 0.0) {
+		// Cover-fit the square painting, centred, easing in from a little closer.
+		float cover = max(size.x, size.y);
+		float zoom = 1.0 + art_zoom * (1.0 - reveal);
+		vec2 auv = 0.5 + (px - size * 0.5) / (cover * zoom);
+		vec3 painting = texture(art, auv).rgb * art_level;
+		// Darker toward the top and bottom, where the text and bar sit.
+		painting *= mix(0.55, 1.0, exp(-pow((UV.y - 0.42) * 2.2, 2.0)));
+		col = mix(col, max(col, painting), reveal * reveal);
+	}
 	float d = length(sq - glow_center) / glow_radius;
 	col += glow.rgb * glow_strength * exp(-d * d * 2.2);
 	if (reveal > 0.0) {

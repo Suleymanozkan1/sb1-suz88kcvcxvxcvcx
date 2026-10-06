@@ -36,6 +36,9 @@ xvfb-run -a godot --path game --rendering-driver opengl3 --resolution 540x960 \
 xvfb-run -a godot --path game --rendering-driver opengl3 --resolution 540x960 \
   -s res://tools/capture_level.gd -- --level=w03_l20 --at=2,6 --out=/tmp/shots
 
+# re-bake a world's painted backdrop (offline raymarch; see docs/ART_DIRECTION.md §7)
+xvfb-run -a godot --path game -s res://tools/bake_backdrop.gd -- --scene=frozen_pulse
+
 # regenerate the procedural audio bank (deterministic)
 pip install -r tools/audio/requirements.txt && python3 tools/audio/synth_bank.py
 ```

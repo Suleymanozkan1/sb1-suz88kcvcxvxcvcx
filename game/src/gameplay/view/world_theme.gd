@@ -85,6 +85,12 @@ var body_kind: String = "none"
 var body: Vector3 = Vector3(0.0, deg_to_rad(18.0), deg_to_rad(3.0))
 var body_color: Color = Color("#e8ecf2")
 var stars: float = 0.0
+## Painted backdrop (art.sky.backdrop): image path ("" for the procedural
+## scenery), its placement (half width, bottom, top; radians) and grade.
+var backdrop: String = ""
+var backdrop_rect: Vector3 = Vector3(deg_to_rad(31.5), deg_to_rad(-14.0), deg_to_rad(49.0))
+var backdrop_gain: float = 0.9
+var backdrop_saturation: float = 0.9
 
 
 static func from_world(world: Dictionary) -> WorldTheme:
@@ -184,6 +190,16 @@ func _read_sky(sky: Dictionary) -> void:
 		deg_to_rad(clampf(float(b.get("size", 3.0)), 0.5, 12.0))
 	)
 	body_color = _c(b, "color", body_color)
+	var bd: Dictionary = sky.get("backdrop", {}) as Dictionary
+	var image: String = str(bd.get("image", ""))
+	backdrop = image if not image.is_empty() and ResourceLoader.exists(image) else ""
+	backdrop_rect = Vector3(
+		deg_to_rad(clampf(float(bd.get("az_half", 31.5)), 10.0, 90.0)),
+		deg_to_rad(float(bd.get("el_bottom", -14.0))),
+		deg_to_rad(float(bd.get("el_top", 49.0)))
+	)
+	backdrop_gain = clampf(float(bd.get("gain", 0.9)), 0.2, 1.5)
+	backdrop_saturation = clampf(float(bd.get("saturation", 0.9)), 0.0, 1.5)
 
 
 static func _c(dict: Dictionary, key: String, fallback: Color) -> Color:

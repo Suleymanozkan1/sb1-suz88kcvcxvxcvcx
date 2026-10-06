@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "renderer": "mobile",
-  "measured_with": "tools/perf_probe.gd --worlds=all: Godot 4.7.2 Mobile renderer on Mesa lavapipe under Xvfb, 360x640; budget = worst of 10 worlds x (l20, l52) + 25 %, rounded up. See docs/ARCHITECTURE.md section 9.",
+  "measured_with": "tools/perf_probe.gd --worlds=all: Godot 4.7.2 Mobile renderer on Mesa lavapipe under Xvfb, 360x640; budget = worst of 10 worlds x (l20, l52) + 25 %, rounded up. See docs/ARCHITECTURE.md section 9; video memory then raised by 10 MB per preset for one painted sky backdrop (art.sky.backdrop: a 1536 x 1024 or 1536 x 1536 RGBA8 texture, 6-9 MB), measured worst after: low 49.2, medium 61.0, high 94.4, ultra 105.8.",
   "presets": {
     "low": {
       "draw_calls": 210,
@@ -9,7 +9,7 @@
       "objects": 235,
       "nodes": 900,
       "static_memory_mb": 95,
-      "video_memory_mb": 45
+      "video_memory_mb": 55
     },
     "medium": {
       "draw_calls": 265,
@@ -17,7 +17,7 @@
       "objects": 290,
       "nodes": 900,
       "static_memory_mb": 95,
-      "video_memory_mb": 55
+      "video_memory_mb": 65
     },
     "high": {
       "draw_calls": 265,
@@ -25,7 +25,7 @@
       "objects": 290,
       "nodes": 900,
       "static_memory_mb": 100,
-      "video_memory_mb": 95
+      "video_memory_mb": 105
     },
     "ultra": {
       "draw_calls": 265,
@@ -33,7 +33,7 @@
       "objects": 290,
       "nodes": 900,
       "static_memory_mb": 100,
-      "video_memory_mb": 105
+      "video_memory_mb": 115
     }
   }
 }

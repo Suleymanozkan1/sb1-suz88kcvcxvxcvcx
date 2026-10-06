@@ -35,7 +35,8 @@ game/
   assets/                   fonts (Outfit, OFL), shaders, synthesised audio, icons, LICENSES.json
   server/                   verify_replay.gd CLI + README (server-side anti-cheat entry point)
   tests/                    dependency-free runner, unit/ and integration/ suites
-  tools/                    generate_levels, validate_levels, capture_level, capture_ui, perf_probe
+  tools/                    generate_levels, validate_levels, capture_level, capture_ui, perf_probe,
+                            render_splash, bake_backdrop (+ backdrops/: per-world scene shaders)
 tools/ci/                   placeholder_scan.py, license_check.py
 tools/audio/                synth_bank.py (procedural, deterministic SFX + music)
 .github/workflows/ci.yml    lint, scans, import, tests, level validation + regen diff, perf budgets,
@@ -234,10 +235,10 @@ and objects never below the preset under it):
 
 | Preset | Draw calls | Primitives | Objects | Nodes | Static MB | Video MB | Frame ms, mean (not budgeted) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Low | 165 → **210** | 61 312 → **77 000** | 186 → **235** | 716 → **900** | 73.7 → **95** | 34.5 → **45** | 18–44 |
-| Medium | 210 → **265** | 71 080 → **89 000** | 231 → **290** | 716 → **900** | 73.9 → **95** | 42.2 → **55** | 28–88 |
-| High | 210 → **265** | 71 098 → **89 000** | 227 → **290** | 716 → **900** | 76.3 → **100** | 75.5 → **95** | 41–63 |
-| Ultra | 210 → **265** | 71 098 → **89 000** | 217 → **290** | 716 → **900** | 76.8 → **100** | 80.9 → **105** | 46–126 |
+| Low | 165 → **210** | 61 312 → **77 000** | 186 → **235** | 716 → **900** | 73.7 → **95** | 34.5 → 45 → **55** | 18–44 |
+| Medium | 210 → **265** | 71 080 → **89 000** | 231 → **290** | 716 → **900** | 73.9 → **95** | 42.2 → 55 → **65** | 28–88 |
+| High | 210 → **265** | 71 098 → **89 000** | 227 → **290** | 716 → **900** | 76.3 → **100** | 75.5 → 95 → **105** | 41–63 |
+| Ultra | 210 → **265** | 71 098 → **89 000** | 217 → **290** | 716 → **900** | 76.8 → **100** | 80.9 → 105 → **115** | 46–126 |
 
 * Draw calls and objects peak on w08_l20 (Desert Reactor), primitives on w10_l52 (Candy Reactor),
   nodes on both; a 200-frame sample of w08_l20 read at most 211 draw calls and 232 objects, inside
@@ -255,10 +256,18 @@ and objects never below the preset under it):
   `rendering/reflections/reflection_atlas/reflection_count=2`; the High/Ultra re-measure
   (`--worlds=all --presets=high,ultra`, 40 runs) read 75.5 / 80.9 MB and the budgets were tightened
   to 95 / 105 MB.
+* **Painted backdrops (2026-10-06).** Each world's sky now samples one painting (`art.sky.backdrop`,
+  1536 × 1024 or, for the two AI paintings, 1536 × 1536; imported lossy, uploaded as RGBA8: 6–9 MB).
+  Only the current world's is loaded. The video memory budgets rose by 10 MB each (table above); the
+  re-measure (`--worlds=all`, 80 runs) read at worst 49.2 / 61.0 / 94.4 / 105.8 MB on Low / Medium /
+  High / Ultra, with draw calls, primitives and objects unchanged (a texture lookup replaces the sky's
+  procedural layers). VRAM compression (ETC2/ASTC) would cut that to about 1.5–2.3 MB per painting at
+  the price of a larger APK; not done.
 * Nodes are 412–716 on every preset (pooled hazard views on dense stretches, plus HUD and screens).
 * **No texture atlas (decision, REQ-202).** The game ships no bitmap sprites: surfaces are procedural
   shaders, icons and swatches are drawn as vectors, and the only textures are five tiny generated
-  gradients (soft mote, blob shadow, burst glow, slider grabber, menu backdrop) plus the engine's own
+  gradients (soft mote, blob shadow, burst glow, slider grabber, menu backdrop), the boot splash, one
+  painted sky backdrop per world (one at a time, each sampled alone by the sky) and the engine's own
   glyph cache for the font. Packing five gradients into an atlas would add UV bookkeeping to every
   material for no measurable saving, so none is built; the decision is revisited if bitmap art is added.
   Static memory grows ≈ 0.07 MB per probed run because each run boots a fresh isolated service

@@ -51,6 +51,15 @@ uniform vec3 body = vec3(0.2, 0.3, 0.06);
 uniform vec4 body_color : source_color = vec4(0.9, 0.9, 0.95, 1.0);
 // Low quality and battery saver drop the soft layers.
 uniform bool detail = true;
+// Painted backdrop (art.sky.backdrop): a matte painting that replaces the
+// procedural scenery. Mapped by azimuth and elevation (radians): half width,
+// bottom and top in backdrop_rect; graded down so gameplay stays in front.
+uniform sampler2D backdrop : source_color, filter_linear, repeat_disable;
+uniform bool backdrop_on = false;
+uniform vec3 backdrop_rect = vec3(0.55, -0.25, 0.85);
+uniform float backdrop_gain = 0.9;
+uniform float backdrop_saturation = 0.9;
+uniform float backdrop_sink = 0.5;
 
 float hash12(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -440,7 +449,7 @@ void sky() {
 		float el = asin(clamp(dir.y, -1.0, 1.0));
 		float az = atan(dir.x, -dir.z);
 		if (AT_HALF_RES_PASS) {
-			COLOR = detail ? soft_layers(az, el) : vec3(0.0);
+			COLOR = (detail && !backdrop_on) ? soft_layers(az, el) : vec3(0.0);
 		} else {
 			vec2 uv = SCREEN_UV;
 			vec3 v = rest_view * EYEDIR;
@@ -453,21 +462,34 @@ void sky() {
 			float r = length((uv - c) * vec2(1.0, 1.9));
 			// Broad soft falloff plus a small bright core (only the core exceeds 1.0).
 			vec3 sink = sink_color.rgb * (exp(-r * 5.5) * 0.35 + exp(-r * 40.0) * 1.2) * sink_strength;
-			if (star_density > 0.0) {
-				col += vec3(star_layer(az, el)) * (1.0 - smoothstep(0.0, 0.3, exp(-r * 3.0)));
+			if (backdrop_on) {
+				vec2 bu = vec2(
+					az / (2.0 * backdrop_rect.x) + 0.5,
+					(backdrop_rect.z - el) / (backdrop_rect.z - backdrop_rect.y)
+				);
+				vec3 p = texture(backdrop, clamp(bu, vec2(0.002), vec2(0.998))).rgb;
+				float lum = dot(p, vec3(0.299, 0.587, 0.114));
+				p = mix(vec3(lum), p, backdrop_saturation) * backdrop_gain;
+				// Above the painting its top edge fades into the world's gradient.
+				float top = smoothstep(-0.12, 0.0, bu.y);
+				col = mix(col, p, top) + sink * backdrop_sink;
+			} else {
+				if (star_density > 0.0) {
+					col += vec3(star_layer(az, el)) * (1.0 - smoothstep(0.0, 0.3, exp(-r * 3.0)));
+				}
+				float aa = max(fwidth(el), 0.0005);
+				vec4 b = body_layer(az, el, aa);
+				col = mix(col, b.rgb, b.a);
+				// Soft layers glow over the stars and body; clouds cover them all.
+				col += HALF_RES_COLOR.rgb;
+				if (detail) {
+					vec4 cl = cloud_layer(az, el);
+					col = mix(col, cl.rgb, cl.a);
+				}
+				col += sink;
+				vec4 s = skyline_layer(az, el, aa);
+				col = mix(col, s.rgb, clamp(s.a, 0.0, 1.0));
 			}
-			float aa = max(fwidth(el), 0.0005);
-			vec4 b = body_layer(az, el, aa);
-			col = mix(col, b.rgb, b.a);
-			// Soft layers glow over the stars and body; clouds cover them all.
-			col += HALF_RES_COLOR.rgb;
-			if (detail) {
-				vec4 cl = cloud_layer(az, el);
-				col = mix(col, cl.rgb, cl.a);
-			}
-			col += sink;
-			vec4 s = skyline_layer(az, el, aa);
-			col = mix(col, s.rgb, clamp(s.a, 0.0, 1.0));
 			COLOR = col;
 		}
 	}

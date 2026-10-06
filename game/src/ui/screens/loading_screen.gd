@@ -4,9 +4,11 @@ extends CanvasLayer
 ## life. At first it is the splash image exactly (the image is rendered from
 ## this screen by tools/render_splash.gd): the splash colour, a soft glow, the
 ## flux craft emblem and the wordmark, laid out in the centred square the
-## splash image fills. Then speed streaks and the sink glow fade in, a progress
-## bar and status appear, and once the language is known a gameplay tip. It
-## covers the game while it boots and compiles its shaders, then fades away.
+## splash image fills. Then the first world's painting rises out of the dark
+## behind them with a slow push-in, speed streaks and the sink glow fade in, a
+## progress bar and status appear, and once the language is known a gameplay
+## tip. It covers the game while it boots and compiles its shaders, then fades
+## away.
 
 const LAYER: int = 100
 const GLOW_CENTER: Vector2 = Vector2(0.5, 0.42)
@@ -28,6 +30,8 @@ const REVEAL_TIME: float = 0.5
 const FADE_OUT_TIME: float = 0.4
 const TIP_KEYS: PackedStringArray = ["tip.timing", "tip.combo", "tip.near_miss", "tip.phase", "tip.dash", "tip.surge"]
 const BG_SHADER: Shader = preload("res://assets/shaders/loading_bg.gdshader")
+## Key art behind the emblem: Neon Core, the world every run starts in.
+const KEY_ART_PATH: String = "res://assets/backdrops/neon_core.jpg"
 const HULL: Color = Color("#e8ecf2")
 const HULL_SHADE: Color = Color("#b9c3d2")
 const TRIM: Color = Color("#2a3140")
@@ -62,6 +66,9 @@ func _ready() -> void:
 	_bg_mat.set_shader_parameter("base", ProjectSettings.get_setting("application/boot_splash/bg_color"))
 	_bg_mat.set_shader_parameter("glow", Palette.PRIMARY)
 	_bg_mat.set_shader_parameter("glow_center", GLOW_CENTER)
+	var key_art: Texture2D = load(KEY_ART_PATH) as Texture2D
+	_bg_mat.set_shader_parameter("art", key_art)
+	_bg_mat.set_shader_parameter("has_art", key_art != null)
 	_bg.material = _bg_mat
 	_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_bg)

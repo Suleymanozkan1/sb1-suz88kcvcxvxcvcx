@@ -161,6 +161,17 @@ world units so nothing stretches or tiles visibly; Low quality and battery saver
   use quiet environment colours; their lights stay at saturation ≤ 0.6 and below the bloom threshold.
   The sky is static (no TIME: a time-driven sky would re-bake its radiance every frame); its soft
   layers are drawn at half resolution and dropped on Low.
+* **Painted backdrops:** each world can instead show a painting of its far scenery (`art.sky.backdrop`:
+  image, azimuth half-width and elevation range). The sky shader maps it by view direction across the
+  band of sky the camera shows above the course (about -8° to +21°; the eight baked ones span -12° to
+  +28°), fades its top edge into the world gradient, grades it (gain 0.9, saturation 0.9) and keeps the
+  flux sink glowing over it; the mesh silhouette is hidden while it shows, and a background cosmetic
+  turns it off. Eight are baked offline by `game/tools/bake_backdrop.gd` from scene shaders in
+  `game/tools/backdrops/` (raymarched terrain, SDF props, volumetric clouds, far too heavy for a phone);
+  Neon Core and Deep Ocean are AI image generations. Rules for a painting: the hero element (spire,
+  volcano, reactor, planet, aurora) sits above the vanishing point inside the visible band; nothing in it
+  looks like a hazard (Molten Grid's plain lava is crusted and dim, only the far volcano burns); and it
+  stays darker and softer than the course.
 * **Atmosphere particles:** up to 48 on screen (twice the world's `atmosphere.count` on High), at most
   20 % opacity, with a reason (dust in the key light, rising embers, bubbles). Never "particle rain".
 
@@ -189,6 +200,7 @@ world units so nothing stretches or tiles visibly; Low quality and battery saver
 | Combo step | progression | Thin ring around the core plus HUD multiplier punch |
 | Overdrive | state change | Trail thickens; brief distortion ring |
 | Complete / Perfect | reward | Slow-down, core dives into the sink; Perfect adds a gold ring sweep and ≤ 30 rising motes |
+| Speed (always, stronger on dash / surge / ramp) | speed | 24 hairline streaks in the key-light colour rush past above the blocks and beside the pillars, never over the course; 6 % opacity at the level's speed up to 20 % at 1.5×; High and Ultra only, off with reduce motion |
 
 The camera shakes only on impacts: fail (0.6 trauma), shield hit (0.35), a Zen-mode bump (0.15, Zen's
 stand-in for a hit), a shatter (0.12, small) and a landing after a launch pad (0.08, smallest). Collecting, near misses and taps never shake. Hops get a
@@ -217,7 +229,9 @@ it to 20 %.
   glow, the Glider emblem seen from above and the wordmark; `assets/splash/boot_splash.png`, rendered
   from the loading screen by `tools/render_splash.gd`, square and fitted to the screen width). The
   first scene (`BootLoader`) puts the `LoadingScreen` up at once, laid out in the same square so the
-  hand-over shows no jump; then speed streaks and the sink glow fade in, a thin PRIMARY progress bar,
+  hand-over shows no jump; then the Neon Core painting rises out of the dark behind the emblem with a
+  slow push-in (dimmed to 42 %, darker where text sits), speed streaks and the sink glow fade in, a thin
+  PRIMARY progress bar,
   a caption status and, once the language is known, one gameplay tip. It covers the boot, the main
   scene build and the first frames' shader compilation (at least 1.2 s), then fades out in 0.4 s.
 * **Buttons:**
