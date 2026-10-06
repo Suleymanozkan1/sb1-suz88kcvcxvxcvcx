@@ -34,7 +34,7 @@
     "Audio facts (length, format, import mode, volumes) come from the WAV headers, the .import files and game/data/audio/sound_bank.json.",
     "Not done: no render on a phone GPU or the Mobile renderer on a device, no frame-time or memory measurement per asset, no listening test on a device speaker. The mobile_cost column states static cost, not measurements.",
     "Verdicts: pass = meets the art direction as far as checked; pass_with_note = ships, with a deviation, an unverified point or a known weakness stated in the note.",
-    "Painted backdrops: eight are baked offline by tools/bake_backdrop.gd from the scene shaders in game/tools/backdrops/ (raymarched terrain, SDF props and volumetric clouds, far too heavy for a phone, rendered once at 2048 x 1365 and scaled to 1536 x 1024 with Lanczos); two (Neon Core, Deep Ocean) are AI image generations (ElevenLabs, flux-3-image). Each was judged on its own and in Xvfb level captures."
+    "Painted backdrops: all ten are baked offline by tools/bake_backdrop.gd from the scene shaders in game/tools/backdrops/ (raymarched terrain, SDF props and volumetric clouds, far too heavy for a phone, rendered once at 2048 x 1365 and scaled to 1536 x 1024 with Lanczos). Each was judged on its own and in Xvfb level captures."
   ],
   "entries": [
     {
@@ -131,19 +131,19 @@
       "id": "backdrop.neon_core",
       "kind": "backdrop",
       "path": "game/assets/backdrops/neon_core.jpg",
-      "role": "Neon Core far scenery: a rain-wet night city seen from an elevated road, with the giant ring of The Turbine above it; also the loading screen's key art.",
-      "style": "§6/§7: teal-grey night city, lit windows; matches the world's cyan sink.",
-      "scale": "1536 x 1536 JPG (q 0.92), mapped across azimuth ±31.5° and elevation -14° to +49° (only about -8° to +21° shows above the course).",
-      "perspective": "Eye-level view down a corridor, vanishing point near the centre; mapped by view direction.",
+      "role": "Neon Core far scenery: a rain-hazed night city seen from high above its main avenue, towers lit window by window (some with neon edge strips), a low cloud ceiling, and The Turbine: a giant rotor ring with rim lights standing over the skyline; also the loading screen's key art.",
+      "style": "§6/§7: teal-grey night; window lights cool white, teal and a few warm, held below the course's energy colours.",
+      "scale": "1536 x 1024 JPG (q 0.92), mapped across azimuth ±31.5° and elevation -12° to +28°: the band of sky the camera shows above the course, with margin.",
+      "perspective": "Painted from the course's own eye point looking down the shaft; the sky shader maps it by view direction, so lean and lane follow turn the view across it.",
       "material": "Sampled by sky.gdshader (backdrop uniforms), graded by the world's gain 0.9 and saturation 0.9; the flux sink glows over it.",
-      "lighting": "Night: city lights and haze.",
+      "lighting": "Night: lit windows, rooftop beacons, haze thick near the street and lit by the city.",
       "topology": "n/a: raster image.",
-      "texture": "AI image generation (ElevenLabs creative tools, flux-3-image, 2048 x 2048), scaled to 1536; imported lossy (WebP 0.85), no mipmaps.",
-      "animation": "Static.",
-      "readability": "The road and the ring lead the eye into the shaft; the mesh turbine silhouette is hidden while the painting shows.",
-      "mobile_cost": "One texture lookup per sky pixel; about 7 MB of video memory (RGB8 1536 x 1536).",
+      "texture": "Baked by tools/bake_backdrop.gd from tools/backdrops/neon_core.gdshader; imported lossy (WebP 0.85), no mipmaps.",
+      "animation": "Static (the sky is never time-driven).",
+      "readability": "The avenue leads the eye down the shaft to the Turbine ring above the vanishing point; the mesh turbine silhouette is hidden while the painting shows.",
+      "mobile_cost": "One texture lookup per sky pixel instead of the procedural layers; about 4.7 MB of video memory (RGB8 1536 x 1024).",
       "verdict": "pass_with_note",
-      "note": "Generated on the ElevenLabs free plan: check its licence terms (attribution, commercial use) before a store release, or replace it with a baked painting (tools/bake_backdrop.gd). Judged on Xvfb captures only."
+      "note": "Judged on Xvfb/llvmpipe captures only; never seen on a phone screen. Re-bake with tools/bake_backdrop.gd after changing its scene shader."
     },
     {
       "id": "backdrop.crystal_valley",
@@ -203,19 +203,19 @@
       "id": "backdrop.deep_ocean",
       "kind": "backdrop",
       "path": "game/assets/backdrops/deep_ocean.jpg",
-      "role": "Deep Ocean far scenery: a reef corridor under sun rays from the surface, kelp, bioluminescent corals and fish schools.",
-      "style": "§6/§7: deep teal water, bioluminescent cyan accents.",
-      "scale": "1536 x 1536 JPG (q 0.92), mapped across azimuth ±31.5° and elevation -14° to +49° (only about -8° to +21° shows above the course).",
-      "perspective": "Eye-level view down a corridor, vanishing point near the centre; mapped by view direction.",
+      "role": "Deep Ocean far scenery: a reef canyon on the sea floor, sun shafts through blue-green water, twisting kelp blades, rock shelves with bioluminescent coral dots, a rock arch ahead, a fish school and marine snow.",
+      "style": "§6/§7: deep teal water, olive kelp, cyan bioluminescent accents.",
+      "scale": "1536 x 1024 JPG (q 0.92), mapped across azimuth ±31.5° and elevation -12° to +28°: the band of sky the camera shows above the course, with margin.",
+      "perspective": "Painted from the course's own eye point looking down the shaft; the sky shader maps it by view direction, so lean and lane follow turn the view across it.",
       "material": "Sampled by sky.gdshader (backdrop uniforms), graded by the world's gain 0.9 and saturation 0.9; the flux sink glows over it.",
-      "lighting": "Sun rays from the surface, glowing corals.",
+      "lighting": "Sun from the surface with caustics on the sand and shafts along the view; water absorption by distance.",
       "topology": "n/a: raster image.",
-      "texture": "AI image generation (ElevenLabs creative tools, flux-3-image, 2048 x 2048), scaled to 1536; imported lossy (WebP 0.85), no mipmaps.",
-      "animation": "Static.",
-      "readability": "The reef corridor continues the course into the distance.",
-      "mobile_cost": "One texture lookup per sky pixel; about 7 MB of video memory (RGB8 1536 x 1536).",
+      "texture": "Baked by tools/bake_backdrop.gd from tools/backdrops/deep_ocean.gdshader; imported lossy (WebP 0.85), no mipmaps.",
+      "animation": "Static (the sky is never time-driven).",
+      "readability": "The canyon continues the course into the distance, the arch marks the way.",
+      "mobile_cost": "One texture lookup per sky pixel instead of the procedural layers; about 4.7 MB of video memory (RGB8 1536 x 1024).",
       "verdict": "pass_with_note",
-      "note": "Generated on the ElevenLabs free plan: check its licence terms (attribution, commercial use) before a store release, or replace it with a baked painting (tools/bake_backdrop.gd). Judged on Xvfb captures only."
+      "note": "Judged on Xvfb/llvmpipe captures only; never seen on a phone screen. Re-bake with tools/bake_backdrop.gd after changing its scene shader."
     },
     {
       "id": "backdrop.cyber_garden",

@@ -33,10 +33,10 @@ void fragment() {
 	vec2 sq = (px - vec2((size.x - side) * 0.5, (size.y - side) * 0.5)) / side;
 	vec3 col = base.rgb;
 	if (has_art && reveal > 0.0) {
-		// Cover-fit the square painting, centred, easing in from a little closer.
-		float cover = max(size.x, size.y);
-		float zoom = 1.0 + art_zoom * (1.0 - reveal);
-		vec2 auv = 0.5 + (px - size * 0.5) / (cover * zoom);
+		// Cover-fit the painting (any aspect), centred, easing in from a little closer.
+		vec2 tex = vec2(textureSize(art, 0));
+		float cover = max(size.x / tex.x, size.y / tex.y) * (1.0 + art_zoom * (1.0 - reveal));
+		vec2 auv = 0.5 + (px - size * 0.5) / (tex * cover);
 		vec3 painting = texture(art, auv).rgb * art_level;
 		// Darker toward the top and bottom, where the text and bar sit.
 		painting *= mix(0.55, 1.0, exp(-pow((UV.y - 0.42) * 2.2, 2.0)));

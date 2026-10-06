@@ -617,7 +617,7 @@
  "REQ-124": {
   "status": "IMPLEMENTED",
   "evidence": "game/assets/LICENSES.json manifest; tools/ci/license_check.py run here: '0 problem(s), 14 manifest entries' (fonts, audio, icons, splash, backdrops); game/assets/fonts/OFL.txt present; CI runs it (.github/workflows/ci.yml:37).",
-  "note": "The only open-source asset (Outfit, OFL-1.1) is recorded and license-checked; the two AI-generated backdrops are recorded with their provider (see REQ-251)."
+  "note": "The only open-source asset (Outfit, OFL-1.1) is recorded and license-checked; every other asset is generated in the repo (audio, icons, splash, backdrops)."
  },
  "REQ-125": {
   "status": "IMPLEMENTED",
@@ -1250,9 +1250,9 @@
   "note": ""
  },
  "REQ-251": {
-  "status": "PARTIAL",
-  "evidence": "Audio from tools/audio/synth_bank.py, meshes from MeshFactory/ViewKit, icons from IconGlyph code, eight painted backdrops baked by game/tools/bake_backdrop.gd; Outfit OFL-1.1 with assets/fonts/OFL.txt; assets/LICENSES.json; tools/ci/license_check.py -> 0 problems, placeholder_scan.py -> 0 hits (re-run here).",
-  "note": "Two painted backdrops (Neon Core, which is also the loading key art, and Deep Ocean) are AI image generations made on the ElevenLabs free plan; their commercial terms were not checked here, so they are listed under 'AI-generated (provider terms)' in LICENSES.json and must be cleared or re-baked before a store release. Separately: only a one-line 'Godot Engine - MIT License' ships (Presenters.licenses_text); the full Godot/third-party notice text is not shipped."
+  "status": "IMPLEMENTED",
+  "evidence": "Audio from tools/audio/synth_bank.py, meshes from MeshFactory/ViewKit/CraftShapes, icons from IconGlyph code, all ten painted backdrops baked by game/tools/bake_backdrop.gd from the project's own scene shaders; Outfit OFL-1.1 with assets/fonts/OFL.txt; assets/LICENSES.json; tools/ci/license_check.py -> 0 problems, placeholder_scan.py -> 0 hits (re-run here).",
+  "note": "The two AI-generated backdrops of an earlier pass were replaced by baked ones, so no generated asset of unchecked terms ships. Separately: only a one-line 'Godot Engine - MIT License' ships (Presenters.licenses_text); the full Godot/third-party notice text is not shipped."
  },
  "REQ-252": {
   "status": "IMPLEMENTED",

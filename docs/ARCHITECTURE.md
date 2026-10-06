@@ -257,7 +257,8 @@ and objects never below the preset under it):
   (`--worlds=all --presets=high,ultra`, 40 runs) read 75.5 / 80.9 MB and the budgets were tightened
   to 95 / 105 MB.
 * **Painted backdrops (2026-10-06).** Each world's sky now samples one painting (`art.sky.backdrop`,
-  1536 × 1024 or, for the two AI paintings, 1536 × 1536; imported lossy, uploaded as RGBA8: 6–9 MB).
+  1536 × 1024, imported lossy, uploaded as RGBA8: about 6 MB; the measure below still had two
+  1536 × 1536 paintings of 9 MB, since replaced).
   Only the current world's is loaded. The video memory budgets rose by 10 MB each (table above); the
   re-measure (`--worlds=all`, 80 runs) read at worst 49.2 / 61.0 / 94.4 / 105.8 MB on Low / Medium /
   High / Ultra, with draw calls, primitives and objects unchanged (a texture lookup replaces the sky's

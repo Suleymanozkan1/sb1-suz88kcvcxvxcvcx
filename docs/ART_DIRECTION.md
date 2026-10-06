@@ -163,12 +163,11 @@ world units so nothing stretches or tiles visibly; Low quality and battery saver
   layers are drawn at half resolution and dropped on Low.
 * **Painted backdrops:** each world can instead show a painting of its far scenery (`art.sky.backdrop`:
   image, azimuth half-width and elevation range). The sky shader maps it by view direction across the
-  band of sky the camera shows above the course (about -8° to +21°; the eight baked ones span -12° to
-  +28°), fades its top edge into the world gradient, grades it (gain 0.9, saturation 0.9) and keeps the
+  band of sky the camera shows above the course (about -8° to +21°; the paintings span -12° to +28°), fades its top edge into the world gradient, grades it (gain 0.9, saturation 0.9) and keeps the
   flux sink glowing over it; the mesh silhouette is hidden while it shows, and a background cosmetic
-  turns it off. Eight are baked offline by `game/tools/bake_backdrop.gd` from scene shaders in
-  `game/tools/backdrops/` (raymarched terrain, SDF props, volumetric clouds, far too heavy for a phone);
-  Neon Core and Deep Ocean are AI image generations. Rules for a painting: the hero element (spire,
+  turns it off. All ten are baked offline by `game/tools/bake_backdrop.gd` from scene shaders in
+  `game/tools/backdrops/` (raymarched terrain, SDF props, volumetric clouds, far too heavy for a phone),
+  so every one is original project art. Rules for a painting: the hero element (spire,
   volcano, reactor, planet, aurora) sits above the vanishing point inside the visible band; nothing in it
   looks like a hazard (Molten Grid's plain lava is crusted and dim, only the far volcano burns); and it
   stays darker and softer than the course.

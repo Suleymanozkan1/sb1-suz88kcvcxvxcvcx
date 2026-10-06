@@ -38,11 +38,11 @@ measurement and human playtests (PARTIAL where a requirement depends on them).
 <!-- COMPLETION:BEGIN -->
 | Total requirements | 333 |
 |---|---|
-| IMPLEMENTED | 261 |
-| PARTIAL | 67 |
+| IMPLEMENTED | 262 |
+| PARTIAL | 66 |
 | NOT_IMPLEMENTED | 1 |
 | BLOCKED | 4 |
-| **Completion = Implemented / Total × 100** | **78.4 %** |
+| **Completion = Implemented / Total × 100** | **78.7 %** |
 <!-- COMPLETION:END -->
 
 ## 2. Project Overview
@@ -224,7 +224,7 @@ verification and notes are in section 4.
 | REQ-121 | Vivid but controlled colour palette. | **IMPLEMENTED** | palette.gd | palette.gd | World, W4, Cloud, Factory |  | visual review of screenshots (Xvfb) | ART_DIRECTION's saturation <= 0.45 rule is exceeded numerically by very dark colours (e.g. Deep Ocean s 0.72 at v 0.21), and W4 exceeds the value cap. No test enforces the rule. |
 | REQ-122 | Every world has its own visual identity. | **IMPLEMENTED** |  |  | MeshFactory.rib |  | visual review of screenshots (Xvfb) | Committed in d107839. Hazard blocks look the same in every world, by design. data/worlds/w01..w10 'art' blocks: each world has its own rib_profile (gate, facet, truss, arch, hex, lattice, icicle, monolith, ring, candy; MeshFactory.rib), silhouette, sky, fog, floor, key light, atmosphere and music; renders in lead/worlds_final and lead/ribs. |
 | REQ-123 | All assets original; no copyrighted assets. | **IMPLEMENTED** | tools/audio | tools/audio/synth_bank.py, mesh_factory.gd | Audio, IconGlyph, The, Outfit |  | code inspection | Everything is original or procedural except the OFL Outfit font. Legacy web files (php/tsx) in the repo root are not game assets. |
-| REQ-124 | Any open-source asset is license-checked. | **IMPLEMENTED** | game/assets | game/assets/LICENSES.json, tools/ci/license_check.py, game/assets/fonts/OFL.txt, .github/workflows/ci.yml |  |  | code inspection | The only open-source asset (Outfit, OFL-1.1) is recorded and license-checked; the two AI-generated backdrops are recorded with their provider (see REQ-251). |
+| REQ-124 | Any open-source asset is license-checked. | **IMPLEMENTED** | game/assets | game/assets/LICENSES.json, tools/ci/license_check.py, game/assets/fonts/OFL.txt, .github/workflows/ci.yml |  |  | code inspection | The only open-source asset (Outfit, OFL-1.1) is recorded and license-checked; every other asset is generated in the repo (audio, icons, splash, backdrops). |
 | REQ-125 | Procedural / original art wherever possible. | **IMPLEMENTED** | noise.gd | noise.gd, synth_bank.py | MeshFactory, IconGlyph, No, ViewKit, GradientTexture2D |  | code inspection | Procedural and original art throughout. |
 | REQ-126 | Distinctive visual language recognisable from a single screenshot. | **PARTIAL** |  |  | ART, HDR, Consistent |  | visual review of screenshots (Xvfb) | Consistent, but recognisability was never validated. The player is now a small craft with flames and the obstacles differ per world, which moves it away from the plain orb-and-blocks genre look; still a human judgement. — evidence: ART_DIRECTION rules are applied in code: only energy glows (unshaded HDR core vs lit matter), per-world obstacle families with a shared warm warning light, a ribbed shaft, a different craft per form. Consistent across the 10 world renders (lead/worlds_final). |
 | REQ-127 | Signature elements: core look, energy trail, level transition, combo explosion, world transitions, collectible animation, fail effect, perfect effect. | **IMPLEMENTED** | core_view.gd | core_view.gd, trail_ribbon.gd | Core, CameraRig.start_reveal, GameFlow._world_transition, GameplayView._on_frame_events |  | code inspection | Judged from code and screenshots; motion not reviewed on a device. |
@@ -426,7 +426,7 @@ verification and notes are in section 4.
 | REQ-248 | Godot Engine is the main engine (mobile iOS + Android). | **IMPLEMENTED** | game | game/project.godot, export_presets.cfg, .github/workflows/ci.yml | Mobile, Android, APK |  | visual review of screenshots (Xvfb); Android debug export | The iOS export was never run here (no macOS/Xcode; BLOCKED), and release signing is BLOCKED (no keystore). |
 | REQ-249 | Inspect referenced repos (README, architecture, examples, source, patterns, tests, license) before use. | **IMPLEMENTED** | docs | docs/REPOSITORIES.md |  |  | code inspection | Only the demo-projects clone is still on disk. For pixijs, phaser and zustand the evidence is the doc alone (inspected before first feature commit per git log). |
 | REQ-250 | Include only genuinely useful approaches/libraries; no unnecessary dependencies. | **IMPLEMENTED** | tools/audio | tools/audio/requirements.txt | Only, Godot, PixiJS, Phaser, Zustand |  | code inspection |  |
-| REQ-251 | Do not copy commercially license-incompatible code or assets. | **PARTIAL** | tools/audio | tools/audio/synth_bank.py, game/tools/bake_backdrop.gd, LICENSES.json, tools/ci/license_check.py, placeholder_scan.py | Audio, MeshFactory, ViewKit, IconGlyph, Outfit, OFL |  | code inspection | Two painted backdrops (Neon Core, which is also the loading key art, and Deep Ocean) are AI image generations made on the ElevenLabs free plan; their commercial terms were not checked here, so they are listed under 'AI-generated (provider terms)' in LICENSES.json and must be cleared or re-baked before a store release. Separately: only a one-line 'Godot Engine - MIT License' ships (Presenters.licenses_text); the full Godot/third-party notice text is not shipped. — evidence: Audio from tools/audio/synth_bank.py, meshes from MeshFactory/ViewKit, icons from IconGlyph code, eight painted backdrops baked by game/tools/bake_backdrop.gd; Outfit OFL-1.1 with assets/fonts/OFL.txt; assets/LICENSES.json; tools/ci/license_check.py -> 0 problems, placeholder_scan.py -> 0 hits (re-run here). |
+| REQ-251 | Do not copy commercially license-incompatible code or assets. | **IMPLEMENTED** | tools/audio | tools/audio/synth_bank.py, game/tools/bake_backdrop.gd, LICENSES.json, tools/ci/license_check.py, placeholder_scan.py | Audio, MeshFactory, ViewKit, CraftShapes, IconGlyph, Outfit |  | code inspection | The two AI-generated backdrops of an earlier pass were replaced by baked ones, so no generated asset of unchecked terms ships. Separately: only a one-line 'Godot Engine - MIT License' ships (Presenters.licenses_text); the full Godot/third-party notice text is not shipped. |
 | REQ-252 | Install dependencies only through official package methods. | **IMPLEMENTED** |  |  | Godot, PyPI, Outfit, JDK, No |  | code inspection | CI downloads Godot 4.7.2 from github.com/godotengine releases; gdtoolkit via pip; numpy via PyPI requirements; Outfit via npm @fontsource/outfit; adb/JDK via apt (lead/apt_adb.log). No vendored binaries in git. |
 | REQ-253 | `docs/REPOSITORIES.md` lists each repo with reason, module, version, license and affected features. | **IMPLEMENTED** | docs | docs/REPOSITORIES.md | Presenters.licenses_text, Engine.get_license_text, Engine.get_copyright_info |  | code inspection |  |
 | REQ-254 | PixiJS / Phaser / Zustand only for a real need; never solve the same problem with two frameworks. | **IMPLEMENTED** | docs | docs/REPOSITORIES.md | No, PixiJS, Phaser, Zustand, GDScript, NodePool |  | visual review of screenshots (Xvfb) | The root package.json (React/WordPress) belongs to the legacy web project, not the game. |
@@ -776,7 +776,7 @@ Runtime: Godot only. Dev: gdtoolkit 4.5.0, numpy (audio tool), Python 3.11. Font
 ## 28. Open Source License Audit
 
 `game/assets/LICENSES.json` lists fonts (OFL-1.1 with `OFL.txt`), audio and icons (original);
-`python3 tools/ci/license_check.py` → `0 problem(s), 14 manifest entries` (two AI-generated backdrops recorded with their provider, to be cleared before a store release). Settings → Licences shows the
+`python3 tools/ci/license_check.py` → `0 problem(s), 14 manifest entries` (fonts, audio, icons, splash and the ten baked backdrops). Settings → Licences shows the
 asset licences, the Godot MIT licence text (`Engine.get_license_text()`) and the engine's third-party
 components (`Engine.get_copyright_info()`).
 
@@ -930,11 +930,11 @@ Computed by `python3 tools/report/completion.py` from the matrix (not estimated)
 <!-- SUMMARY:BEGIN -->
 | Total requirements | 333 |
 |---|---|
-| IMPLEMENTED | 261 |
-| PARTIAL | 67 |
+| IMPLEMENTED | 262 |
+| PARTIAL | 66 |
 | NOT_IMPLEMENTED | 1 |
 | BLOCKED | 4 |
-| **Completion = Implemented / Total × 100** | **78.4 %** |
+| **Completion = Implemented / Total × 100** | **78.7 %** |
 <!-- SUMMARY:END -->
 
 ## ANTI-AI-SLOP VISUAL AUDIT

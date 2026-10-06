@@ -7,9 +7,6 @@ Rules:
   * Every generated asset (audio, icons, the boot splash, baked backdrops) must be
     produced by an in-repo tool recorded in game/assets/LICENSES.json
     ("generated_by").
-  * AI image generations (two painted backdrops) are listed under their own
-    license tag, naming the provider: its terms must be checked before a store
-    release (docs/ASSET_GATE.md notes it on each).
   * No asset may come from a non-allow-listed license.
 Usage: python3 tools/ci/license_check.py
 """
@@ -22,8 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / "game" / "assets"
 MANIFEST = ASSETS / "LICENSES.json"
-AI_GENERATED = "AI-generated (provider terms)"
-ALLOWED = {"OFL-1.1", "MIT", "CC0-1.0", "Original (project)", AI_GENERATED}
+ALLOWED = {"OFL-1.1", "MIT", "CC0-1.0", "Original (project)"}
 CHECK_DIRS = ["fonts", "audio", "icons", "splash", "backdrops"]
 SKIP_SUFFIXES = {".import", ".tres", ".md", ".txt", ".json"}
 
@@ -46,8 +42,6 @@ def main() -> int:
         gen = e.get("generated_by")
         if gen and not (ROOT / gen).exists():
             problems.append(f"{e.get('path')}: generator {gen} missing")
-        if lic == AI_GENERATED and not e.get("provider"):
-            problems.append(f"{e.get('path')}: an AI generation must name its provider")
         covered[e.get("path", "")] = e
     for d in CHECK_DIRS:
         base = ASSETS / d
